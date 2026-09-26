@@ -18036,31 +18036,59 @@ async function openCoopShareModal() {
     nav.addEventListener('pointerdown', onPointerDown);
 
     /* -------- СИНХРОНИЗАЦИЯ С АКТИВНОЙ ВКЛАДКОЙ -------- */
-    // ★★★ ГЛАВНОЕ ИЗМЕНЕНИЕ: без MutationObserver, без резких прыжков ★★★
-    // Просто слушаем изменения и плавно меняем continuousIndex.
-    // CSS-transition сам отрисует плавный переезд.
-
     let lastActiveIndex = items.findIndex(i => i.classList.contains('nav-item-active'));
 
-    // MutationObserver — только для обнаружения смены активной вкладки
-    const classObserver = new MutationObserver(() => {
+    // ★★★ ОБЩАЯ ФУНКЦИЯ СИНХРОНИЗАЦИИ ПУЗЫРЬКА С АКТИВНОЙ ИКОНКОЙ ★★★
+    function syncBubbleToActive(force = false) {
+        // Не мешаем пользователю, пока он тянет пальцем
         if (isDragging || wasDragging) return;
 
         const activeIdx = items.findIndex(i => i.classList.contains('nav-item-active'));
         if (activeIdx < 0) return;
-        if (activeIdx === lastActiveIndex) return;
+
+        // Если уже на месте — ничего не делаем
+        if (!force && activeIdx === lastActiveIndex && Math.abs(continuousIndex - activeIdx) < 0.01) {
+            return;
+        }
 
         lastActiveIndex = activeIdx;
-
-        // ★★★ МЕНЯЕМ continuousIndex НА ЦЕЛОЕ ЧИСЛО ★★★
-        // CSS-transition плавно перенесёт пузырёк из текущей позиции в новую
         continuousIndex = activeIdx;
         renderBubble();
+    }
+
+    // MutationObserver — основной механизм
+    const classObserver = new MutationObserver(() => {
+        syncBubbleToActive();
     });
 
     items.forEach(item => {
         classObserver.observe(item, { attributes: true, attributeFilter: ['class'] });
     });
+
+    // ★★★ СТРАХОВКА №1: после клика по иконке — форсим синхронизацию ★★★
+    // Ловит случай, когда MutationObserver не сработал (класс не изменился,
+    // т.к. он уже был активным, но визуально пузырёк не там).
+    nav.addEventListener('click', function (e) {
+        const navItem = e.target.closest('.nav-item');
+        if (!navItem) return;
+        if (suppressNextClick) return;
+
+        setTimeout(() => syncBubbleToActive(true), 30);
+    });
+
+    // ★★★ СТРАХОВКА №2: оборачиваем navigateTo ★★★
+    // Любой программный переход (после логина, сохранения тренировки,
+    // из туториала и т.д.) — гарантированно синхронизирует пузырёк.
+    if (typeof window.navigateTo === 'function' && !window._navigateToWrapped) {
+        const originalNavigateTo = window.navigateTo;
+        window.navigateTo = function(page, params) {
+            const result = originalNavigateTo.apply(this, arguments);
+            syncBubbleToActive(true);
+            requestAnimationFrame(() => syncBubbleToActive(true));
+            return result;
+        };
+        window._navigateToWrapped = true;
+    }
 
     /* -------- ПЕРВИЧНЫЙ РЕНДЕР -------- */
     function tryInitialRender() {
@@ -18086,6 +18114,8 @@ async function openCoopShareModal() {
     }
 
     window.addEventListener('resize', renderBubble);
+        // Ручной вызов из консоли / других мест, если понадобится
+    window.refreshNavBubble = syncBubbleToActive;
 })();
 
 // =================== ВЫБОР ПОЛА ===================
