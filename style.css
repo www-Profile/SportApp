@@ -2235,7 +2235,7 @@ body.theme-dark-mode .btn-submit-arrow {
 /* =================== НИЖНЯЯ НАВИГАЦИЯ (APPLE LIQUID GLASS) ==================== */
 .bottom-nav {
     position: fixed;
-    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(0px + env(safe-area-inset-bottom, 0px));
     left: 50%;
     transform: translateX(-50%);
     width: 240px;
