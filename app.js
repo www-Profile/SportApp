@@ -1,822 +1,3 @@
-const exercisesData = {   
-    // ===================СИЛОВЫЕ ===================
-    'Силовые': { 
-        'Руки': {
-            '1 LVL': [
-                { name: 'Отжимания от стены', category: 'Руки', reps: '12', sets: '3', weight: 0, icon: 'bodybuilding' },
-                { name: 'Планка на вытянутых руках', category: 'Руки', reps: '20 сек', sets: '3', weight: 0, icon: 'bodybuilding' },
-                { name: 'Отжимания от коленей', category: 'Грудь', reps: '10', sets: '3', weight: 0, icon: 'breast' },
-                { name: 'Отжимания узким хватом', category: 'Руки', reps: '10', sets: '3', weight: 0, icon: 'bodybuilding' },
-                { name: 'Алмазные отжимания', category: 'Руки', reps: '8', sets: '3', weight: 0, icon: 'bodybuilding' }
-            ],
-            '2 LVL': [
-                { name: 'Сгибание рук с гантелями', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' },
-                { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' },
-                { name: 'Французский жим с гантелями лёжа', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' },
-                { name: 'Молотковые сгибания', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' },
-                { name: 'Обратные отжимания от стула', category: 'Руки', reps: '10', sets: '4', weight: 0, icon: 'bodybuilding' },
-                { name: 'Обратные отжимания от стула с весом', category: 'Руки', reps: '10', sets: '4', weight: 0, icon: 'bodybuilding' },
-                { name: 'Сгибание рук с гантелями хватом молот', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' },
-                { name: 'Отжимания узким хватом', category: 'Руки', reps: '15', sets: '4', weight: 0, icon: 'bodybuilding' },
-                { name: 'Алмазные отжимания', category: 'Руки', reps: '10', sets: '4', weight: 0, icon: 'bodybuilding' },
-                { name: 'Отжимания от пола широким хватом', category: 'Грудь', reps: '10', sets: '4', weight: 0, icon: 'breast' }
-            ],
-            '3 LVL': [
-                { name: 'Сгибание рук с гантелями', category: 'Руки', reps: '15', sets: '4', weight: 0, icon: 'bodybuilding' },
-                { name: 'Молотковые сгибания', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' },
-                { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' },
-                { name: 'Французский жим с гантелями лёжа', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' },
-                { name: 'Обратные отжимания от стула с весом', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' },
-                { name: 'Разгибание рук с гантелью из-за головы', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' },
-                { name: 'Сгибание рук с гантелями хватом молот', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' },
-                { name: 'Отжимания на одной руке на правую руку', category: 'Руки', reps: '6', sets: '4', weight: 0, icon: 'bodybuilding' },
-                { name: 'Отжимания на одной руке на левую руку', category: 'Руки', reps: '6', sets: '4', weight: 0, icon: 'bodybuilding' },
-                { name: 'Планка на одной руке на правую руку', category: 'Руки', reps: '30 сек', sets: '4', weight: 0, icon: 'bodybuilding' },
-                { name: 'Планка на одной руке на левую руку', category: 'Руки', reps: '30 сек', sets: '4', weight: 0, icon: 'bodybuilding' }
-            ]
-        },
-        'Плечи': {
-            '1 LVL': [
-                { name: 'Жим гантелей сидя', category: 'Плечи', reps: '12', sets: '3', weight: 0, icon: 'shoulder' },
-                { name: 'Разведение гантелей в стороны стоя', category: 'Плечи', reps: '12', sets: '3', weight: 0, icon: 'shoulder' },
-                { name: 'Разведение гантелей в стороны сидя', category: 'Плечи', reps: '12', sets: '3', weight: 0, icon: 'shoulder' },
-                { name: 'Подъём рук перед собой с гантелями', category: 'Плечи', reps: '12', sets: '3', weight: 0, icon: 'shoulder' },
-                { name: 'Отжимания в стойке у стены', category: 'Плечи', reps: '8', sets: '3', weight: 0, icon: 'shoulder' }
-            ],
-            '2 LVL': [
-                { name: 'Жим гантелей сидя', category: 'Плечи', reps: '12', sets: '4', weight: 0, icon: 'shoulder' },
-                { name: 'Разведение гантелей в стороны стоя', category: 'Плечи', reps: '12', sets: '4', weight: 0, icon: 'shoulder' },
-                { name: 'Тяга к подбородку с гантелями', category: 'Плечи', reps: '12', sets: '4', weight: 0, icon: 'shoulder' },
-                { name: 'Подъём рук перед собой с гантелями', category: 'Плечи', reps: '12', sets: '4', weight: 0, icon: 'shoulder' },
-                { name: 'Разведение гантелей в наклоне', category: 'Плечи', reps: '12', sets: '4', weight: 0, icon: 'shoulder' },
-                { name: 'Жим Арнольда', category: 'Плечи', reps: '10', sets: '4', weight: 0, icon: 'shoulder' },
-                { name: 'Махи гантелями перед собой', category: 'Плечи', reps: '12', sets: '4', weight: 0, icon: 'shoulder' },
-                { name: 'Отжимания в стойке с опорой', category: 'Плечи', reps: '8', sets: '4', weight: 0, icon: 'shoulder' }
-            ],
-            '3 LVL': [
-                { name: 'Жим гантелей сидя', category: 'Плечи', reps: '12', sets: '4', weight: 0, icon: 'shoulder' },
-                { name: 'Разведение гантелей в стороны стоя', category: 'Плечи', reps: '15', sets: '4', weight: 0, icon: 'shoulder' },
-                { name: 'Тяга к подбородку с гантелями', category: 'Плечи', reps: '12', sets: '4', weight: 0, icon: 'shoulder' },
-                { name: 'Подъём рук перед собой с гантелями', category: 'Плечи', reps: '15', sets: '4', weight: 0, icon: 'shoulder' },
-                { name: 'Разведение гантелей в наклоне', category: 'Плечи', reps: '15', sets: '4', weight: 0, icon: 'shoulder' },
-                { name: 'Жим Арнольда', category: 'Плечи', reps: '12', sets: '4', weight: 0, icon: 'shoulder' },
-                { name: 'Махи гантелями перед собой', category: 'Плечи', reps: '12', sets: '4', weight: 0, icon: 'shoulder' },
-                { name: 'Отжимания в стойке у стены', category: 'Плечи', reps: '8', sets: '4', weight: 0, icon: 'shoulder' }
-            ]
-        },
-        'Пресс': {
-            '1 LVL': [
-                { name: 'Скручивания лёжа', category: 'Пресс', reps: '15', sets: '3', weight: 0, icon: 'press' },
-                { name: 'Подъем ног лёжа', category: 'Пресс', reps: '12', sets: '3', weight: 0, icon: 'press' },
-                { name: 'Планка на коленях', category: 'Пресс', reps: '20 сек', sets: '3', weight: 0, icon: 'press' },
-                { name: 'Боковая планка на коленях на правую сторону', category: 'Пресс', reps: '15 сек', sets: '3', weight: 0, icon: 'press' },
-                { name: 'Боковая планка на коленях на левую сторону', category: 'Пресс', reps: '15 сек', sets: '3', weight: 0, icon: 'press' },
-                { name: 'Лодочка', category: 'Спина', reps: '12', sets: '3', weight: 0, icon: 'back' },
-                { name: 'Вакуум живота стоя', category: 'Пресс', reps: '10 сек', sets: '3', weight: 0, icon: 'press' }
-            ],
-            '2 LVL': [
-                { name: 'Скручивания с вытянутыми руками', category: 'Пресс', reps: '20', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Подъем ног в висе', category: 'Пресс', reps: '12', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Подъем ног в висе с весом', category: 'Пресс', reps: '10', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Ножницы ногами', category: 'Пресс', reps: '25', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Планка на локтях', category: 'Пресс', reps: '40 сек', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Планка на вытянутых руках', category: 'Пресс', reps: '40 сек', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Планка с подъёмом ног', category: 'Пресс', reps: '30 сек', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Планка с касанием плеч', category: 'Пресс', reps: '16', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Боковая планка на правую сторону', category: 'Пресс', reps: '25 сек', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Боковая планка на левую сторону', category: 'Пресс', reps: '25 сек', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Русский твист', category: 'Пресс', reps: '20', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Подъём таза лёжа', category: 'Пресс', reps: '15', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Твист сидя с гантелью', category: 'Пресс', reps: '20', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Лодочка с задержкой', category: 'Спина', reps: '15', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Велосипед лёжа', category: 'Пресс', reps: '20', sets: '4', weight: 0, icon: 'press' }
-            ],
-            '3 LVL': [
-                { name: 'Скручивания с гантелью', category: 'Пресс', reps: '25', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Подъем ног в висе', category: 'Пресс', reps: '15', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Подъем ног в висе с весом', category: 'Пресс', reps: '12', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Ножницы ногами', category: 'Пресс', reps: '30', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Планка на локтях с подъемом ног', category: 'Пресс', reps: '45 сек', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Боковая планка с подъемом ног на правую сторону', category: 'Пресс', reps: '30 сек', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Боковая планка с подъемом ног на левую сторону', category: 'Пресс', reps: '30 сек', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Русский твист', category: 'Пресс', reps: '20', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Подъём таза лёжа', category: 'Пресс', reps: '15', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Твист сидя с гантелью', category: 'Пресс', reps: '25', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Твист корпуса с гантелью', category: 'Пресс', reps: '15', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Подъем ног лёжа под углом 45°', category: 'Пресс', reps: '15', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Планка на руках с касанием плеч', category: 'Пресс', reps: '16', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Лодочка с задержкой', category: 'Спина', reps: '20', sets: '4', weight: 0, icon: 'back' }
-            ]
-        },
-        'Грудь': {
-            '1 LVL': [
-                { name: 'Отжимания от коленей', category: 'Грудь', reps: '12', sets: '3', weight: 0, icon: 'breast' },
-                { name: 'Отжимания от стены', category: 'Грудь', reps: '15', sets: '3', weight: 0, icon: 'breast' },
-                { name: 'Отжимания от пола', category: 'Грудь', reps: '10', sets: '3', weight: 0, icon: 'breast' },
-                { name: 'Планка на вытянутых руках', category: 'Руки', reps: '20 сек', sets: '3', weight: 0, icon: 'bodybuilding' }
-            ],
-            '2 LVL': [
-                { name: 'Отжимания от пола', category: 'Грудь', reps: '15', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Отжимания широким хватом', category: 'Грудь', reps: '12', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Отжимания с ногами на возвышении', category: 'Грудь', reps: '12', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Жим гантелей лёжа', category: 'Грудь', reps: '12', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Жим гантелей на наклонной скамье', category: 'Грудь', reps: '12', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Разводка гантелей лёжа', category: 'Грудь', reps: '12', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Разводка гантелей на наклонной скамье', category: 'Грудь', reps: '12', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Жим одной гантели лёжа', category: 'Грудь', reps: '12', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Пуловер с гантелью', category: 'Грудь', reps: '12', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Жим Свенда', category: 'Грудь', reps: '12', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Отжимания с узкой постановкой рук', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' }
-            ],
-            '3 LVL': [
-                { name: 'Отжимания с хлопком', category: 'Грудь', reps: '12', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Отжимания на одной руке на правую руку', category: 'Грудь', reps: '6', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Отжимания на одной руке на левую руку', category: 'Грудь', reps: '6', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Отжимания с ногами на возвышении', category: 'Грудь', reps: '15', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Отжимания с паузой внизу', category: 'Грудь', reps: '12', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Отжимания в алмаз', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' },
-                { name: 'Жим гантелей лёжа', category: 'Грудь', reps: '12', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Жим гантелей на наклонной скамье', category: 'Грудь', reps: '10', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Разводка гантелей лёжа', category: 'Грудь', reps: '15', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Разводка гантелей на наклонной скамье', category: 'Грудь', reps: '15', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Пуловер с гантелью', category: 'Грудь', reps: '12', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Жим Свенда', category: 'Грудь', reps: '12', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Планка на одной руке на правую руку', category: 'Руки', reps: '30 сек', sets: '4', weight: 0, icon: 'bodybuilding' },
-                { name: 'Планка на одной руке на левую руку', category: 'Руки', reps: '30 сек', sets: '4', weight: 0, icon: 'bodybuilding' }
-            ]
-        },
-        'Спина': {
-            '1 LVL': [
-                { name: 'Лодочка', category: 'Спина', reps: '12', sets: '3', weight: 0, icon: 'back' },
-                { name: 'Гиперэкстензия', category: 'Спина', reps: '15', sets: '3', weight: 0, icon: 'back' },
-                { name: 'Супермен', category: 'Спина', reps: '12', sets: '3', weight: 0, icon: 'back' },
-                { name: 'Подтягивания', category: 'Спина', reps: '5', sets: '3', weight: 0, icon: 'back' },
-                { name: 'Планка на вытянутых руках', category: 'Руки', reps: '20 сек', sets: '3', weight: 0, icon: 'bodybuilding' }
-            ],
-            '2 LVL': [
-                { name: 'Подтягивания', category: 'Спина', reps: '10', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Подтягивания широким хватом', category: 'Спина', reps: '8', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Подтягивания узким хватом', category: 'Спина', reps: '8', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Подтягивания обратным хватом', category: 'Спина', reps: '8', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Подтягивания нейтральным хватом', category: 'Спина', reps: '8', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Тяга гантели к поясу', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Тяга двух гантелей к поясу', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Гиперэкстензия', category: 'Спина', reps: '20', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Гиперэкстензия с весом', category: 'Спина', reps: '15', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Шраги с гантелями', category: 'Спина', reps: '15', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Лодочка с задержкой', category: 'Спина', reps: '15', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Тяга гантелей к поясу в наклоне', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Планка на локтях', category: 'Пресс', reps: '30 сек', sets: '4', weight: 0, icon: 'press' }
-            ],
-            '3 LVL': [
-                { name: 'Подтягивания', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Подтягивания широким хватом', category: 'Спина', reps: '10', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Подтягивания с отягощением', category: 'Спина', reps: '8', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Тяга гантели к поясу', category: 'Спина', reps: '15', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Тяга гантели к поясу с упором', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Тяга двух гантелей к поясу', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Тяга гантелей к поясу в наклоне', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Гиперэкстензия с весом', category: 'Спина', reps: '20', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Шраги с гантелями', category: 'Спина', reps: '15', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Лодочка с задержкой', category: 'Спина', reps: '15', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Планка на локтях с подъемом рук', category: 'Пресс', reps: '40 сек', sets: '4', weight: 0, icon: 'press' }
-            ]
-        },
-        'Ноги': {
-            '1 LVL': [
-                { name: 'Приседания без веса', category: 'Ноги', reps: '20', sets: '3', weight: 0, icon: 'legs' },
-                { name: 'Приседания с задержкой', category: 'Ноги', reps: '30 сек', sets: '3', weight: 0, icon: 'legs' },
-                { name: 'Приседания у стены', category: 'Ноги', reps: '30 сек', sets: '3', weight: 0, icon: 'legs' },
-                { name: 'Выпады на месте на правую ногу', category: 'Ноги', reps: '12', sets: '3', weight: 0, icon: 'legs' },
-                { name: 'Выпады на месте на левую ногу', category: 'Ноги', reps: '12', sets: '3', weight: 0, icon: 'legs' },
-                { name: 'Подъем на носки стоя', category: 'Ноги', reps: '20', sets: '3', weight: 0, icon: 'legs' },
-                { name: 'Ягодичный мостик', category: 'Ноги', reps: '20', sets: '3', weight: 0, icon: 'legs' },
-                { name: 'Махи ногой назад', category: 'Ноги', reps: '15', sets: '3', weight: 0, icon: 'legs' },
-                { name: 'Подъем на носки с гантелями', category: 'Ноги', reps: '20', sets: '3', weight: 0, icon: 'legs' }
-            ],
-            '2 LVL': [
-                { name: 'Приседания с гантелями', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Приседания с паузой внизу', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Выпады с гантелями', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Выпады с гантелями на правую ногу', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Выпады с гантелями на левую ногу', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Выпады назад с гантелями', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Выпады в стороны с гантелями', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Выпады с прыжком', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Болгарские сплит-приседания с гантелями', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Болгарские сплит-приседания на правую ногу', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Болгарские сплит-приседания на левую ногу', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Румынская тяга с гантелями', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Подъем на носки с гантелями', category: 'Ноги', reps: '20', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Ягодичный мостик с гантелью', category: 'Ноги', reps: '20', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Мёртвая тяга с гантелями', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' }
-            ],
-            '3 LVL': [
-                { name: 'Приседания с гантелями глубокие', category: 'Ноги', reps: '20', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Приседания с паузой внизу', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Выпады с гантелями', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Выпады с гантелями на правую ногу', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Выпады с гантелями на левую ногу', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Выпады в стороны с гантелями', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Болгарские сплит-приседания с гантелями', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Болгарские сплит-приседания на правую ногу', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Болгарские сплит-приседания на левую ногу', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Румынская тяга с гантелями', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Становая тяга с гантелями', category: 'Ноги', reps: '10', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Мёртвая тяга с гантелями', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Подъем на носки с гантелями', category: 'Ноги', reps: '25', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Ягодичный мостик с гантелью', category: 'Ноги', reps: '20', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Ягодичный мостик на правую ногу', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Ягодичный мостик на левую ногу', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Приседания плие с гантелью', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' }
-            ]
-        },
-        'Всё тело': {
-            '1 LVL': [
-                { name: 'Приседания без веса', category: 'Ноги', reps: '15', sets: '3', weight: 0, icon: 'legs' },
-                { name: 'Отжимания от коленей', category: 'Грудь', reps: '12', sets: '3', weight: 0, icon: 'breast' },
-                { name: 'Планка на коленях', category: 'Пресс', reps: '20 сек', sets: '3', weight: 0, icon: 'press' },
-                { name: 'Выпады на месте на правую ногу', category: 'Ноги', reps: '10', sets: '3', weight: 0, icon: 'legs' },
-                { name: 'Выпады на месте на левую ногу', category: 'Ноги', reps: '10', sets: '3', weight: 0, icon: 'legs' },
-                { name: 'Бёрпи', category: 'Ноги', reps: '8', sets: '3', weight: 0, icon: 'legs' },
-                { name: 'Джампинг Джек', category: 'Ноги', reps: '15', sets: '3', weight: 0, icon: 'WholeBody' },
-                { name: 'Прыжки из приседа', category: 'Ноги', reps: '12', sets: '3', weight: 0, icon: 'WholeBody' },
-                { name: 'Скручивания лёжа', category: 'Пресс', reps: '15', sets: '3', weight: 0, icon: 'press' }
-            ],
-            '2 LVL': [
-                { name: 'Приседания с гантелями', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Отжимания от пола', category: 'Грудь', reps: '12', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Планка на локтях', category: 'Пресс', reps: '30 сек', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Выпады с гантелями', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Выпады с гантелями на правую ногу', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Выпады с гантелями на левую ногу', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Тяга гантели к поясу', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Бёрпи', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Джампинг Джек', category: 'Ноги', reps: '20', sets: '4', weight: 0, icon: 'WholeBody' },
-                { name: 'Прыжки из приседа', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'WholeBody' },
-                { name: 'Скручивания лёжа', category: 'Пресс', reps: '20', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Подъем на носки с гантелями', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' }
-            ],
-            '3 LVL': [
-                { name: 'Приседания с гантелями глубокие', category: 'Ноги', reps: '20', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Отжимания с хлопком', category: 'Грудь', reps: '12', sets: '4', weight: 0, icon: 'breast' },
-                { name: 'Планка с подъемом ног', category: 'Пресс', reps: '40 сек', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Болгарские сплит-приседания с гантелями', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Болгарские сплит-приседания на правую ногу', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Болгарские сплит-приседания на левую ногу', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Подтягивания', category: 'Спина', reps: '10', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Тяга гантели к поясу', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Бёрпи', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Бёрпи с прыжком вверх', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Джампинг Джек', category: 'Ноги', reps: '25', sets: '4', weight: 0, icon: 'WholeBody' },
-                { name: 'Прыжки из приседа', category: 'Ноги', reps: '20', sets: '4', weight: 0, icon: 'WholeBody' },
-                { name: 'Скручивания с гантелью', category: 'Пресс', reps: '20', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Ягодичный мостик с гантелью', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' }
-            ]
-        }
-    },
-    // ===================ФИТНЕС ===================
-    'Фитнес': {
-        'Зарядка': {
-            '1 LVL': [
-                { name: 'Наклоны головы', category: 'Пресс', reps: '10', sets: '3', icon: 'press' },
-                { name: 'Вращение плечами', category: 'Плечи', reps: '10', sets: '3', icon: 'shoulder' },
-                { name: 'Наклоны туловища', category: 'Спина', reps: '12', sets: '3', icon: 'back' },
-                { name: 'Приседания', category: 'Ноги', reps: '15', sets: '3', icon: 'legs' },
-                { name: 'Махи ногами', category: 'Ноги', reps: '12', sets: '3', icon: 'legs' },
-                { name: 'Круговые движения тазом', category: 'Ягодицы', reps: '10', sets: '3', icon: 'legs' },
-                { name: 'Потягивание вверх', category: 'Спина', reps: '10', sets: '3', icon: 'back' }
-            ],
-            '2 LVL': [
-                { name: 'Наклоны головы с сопротивлением', category: 'Пресс', reps: '12', sets: '4', icon: 'press' },
-                { name: 'Вращение плечами с гантелями', category: 'Плечи', reps: '12', sets: '4', weight: 0, icon: 'shoulder' },
-                { name: 'Наклоны туловища с гантелями', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Приседания с гантелями', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Планка', category: 'Пресс', reps: '30 сек', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Выпады на месте на правую ногу', category: 'Ноги', reps: '10', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Выпады на месте на левую ногу', category: 'Ноги', reps: '10', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Вращение корпусом с гантелью', category: 'Пресс', reps: '12', sets: '4', weight: 0, icon: 'press' }
-            ],
-            '3 LVL': [
-                { name: 'Наклоны головы с отягощением', category: 'Пресс', reps: '15', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Вращение плечами с гантелями', category: 'Плечи', reps: '15', sets: '4', weight: 0, icon: 'shoulder' },
-                { name: 'Наклоны туловища с гантелями', category: 'Спина', reps: '15', sets: '4', weight: 0, icon: 'back' },
-                { name: 'Приседания с гантелями глубокие', category: 'Ноги', reps: '20', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Планка с подъемом рук', category: 'Пресс', reps: '40 сек', sets: '4', weight: 0, icon: 'press' },
-                { name: 'Бёрпи', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Выпады с прыжком на правую ногу', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Выпады с прыжком на левую ногу', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
-                { name: 'Твист корпуса с гантелью', category: 'Пресс', reps: '15', sets: '4', weight: 0, icon: 'press' }
-            ]
-        },
-        'Кардио': {
-            '1 LVL': [
-                { name: 'Бег на месте', category: 'Ноги', reps: '30 сек', sets: '3', icon: 'cardio' },
-                { name: 'Прыжки на месте', category: 'Ноги', reps: '20', sets: '3', icon: 'cardio' },
-                { name: 'Джампинг Джек', category: 'Ноги', reps: '15', sets: '3', icon: 'cardio' },
-                { name: 'Бёрпи (упрощённые)', category: 'Ноги', reps: '8', sets: '3', icon: 'cardio' },
-                { name: 'Ходьба с высоким подниманием колен', category: 'Ноги', reps: '20 сек', sets: '3', icon: 'cardio' },
-                { name: 'Прыжки со сменой ног', category: 'Ноги', reps: '15', sets: '3', icon: 'cardio' }
-            ],
-            '2 LVL': [
-                { name: 'Бег на месте', category: 'Ноги', reps: '45 сек', sets: '4', icon: 'cardio' },
-                { name: 'Прыжки на месте', category: 'Ноги', reps: '30', sets: '4', icon: 'cardio' },
-                { name: 'Джампинг Джек', category: 'Ноги', reps: '25', sets: '4', icon: 'cardio' },
-                { name: 'Бёрпи', category: 'Ноги', reps: '12', sets: '4', icon: 'cardio' },
-                { name: 'Скакалка (без скакалки)', category: 'Ноги', reps: '30 сек', sets: '4', icon: 'cardio' },
-                { name: 'Горные лыжи', category: 'Ноги', reps: '20', sets: '4', icon: 'cardio' },
-                { name: 'Прыжки ноги вместе-врозь', category: 'Ноги', reps: '20', sets: '4', icon: 'cardio' }
-            ],
-            '3 LVL': [
-                { name: 'Бег на месте', category: 'Ноги', reps: '60 сек', sets: '5', icon: 'cardio' },
-                { name: 'Прыжки на месте', category: 'Ноги', reps: '35', sets: '5', icon: 'cardio' },
-                { name: 'Джампинг Джек', category: 'Ноги', reps: '30', sets: '5', icon: 'cardio' },
-                { name: 'Бёрпи с отжиманием', category: 'Ноги', reps: '15', sets: '5', icon: 'cardio' },
-                { name: 'Скакалка (быстрая)', category: 'Ноги', reps: '45 сек', sets: '5', icon: 'cardio' },
-                { name: 'Горные лыжи', category: 'Ноги', reps: '25', sets: '5', icon: 'cardio' },
-                { name: 'Прыжки из приседа', category: 'Ноги', reps: '20', sets: '5', icon: 'cardio' },
-                { name: 'Берпи с прыжком вверх', category: 'Ноги', reps: '12', sets: '5', icon: 'cardio' }
-            ]
-        },
-        'Пилатес': {
-            '1 LVL': [
-                { name: 'Сотня (дыхание + руки)', category: 'Пресс', reps: '10', sets: '3', icon: 'Pilates' },
-                { name: 'Скручивание с подъемом ног', category: 'Пресс', reps: '12', sets: '3', icon: 'Pilates' },
-                { name: 'Подъем таза лёжа', category: 'Ягодицы', reps: '15', sets: '3', icon: 'Pilates' },
-                { name: 'Ножницы ногами', category: 'Ноги', reps: '15', sets: '3', icon: 'Pilates' },
-                { name: 'Планка на коленях', category: 'Пресс', reps: '20 сек', sets: '3', icon: 'Pilates' },
-                { name: 'Боковые наклоны сидя', category: 'Пресс', reps: '10', sets: '3', icon: 'Pilates' },
-                { name: 'Растяжка позвоночника (кошка)', category: 'Спина', reps: '10', sets: '3', icon: 'Pilates' }
-            ],
-            '2 LVL': [
-                { name: 'Сотня с вытянутыми ногами', category: 'Пресс', reps: '15', sets: '4', icon: 'Pilates' },
-                { name: 'Скручивание с подъемом ног', category: 'Пресс', reps: '15', sets: '4', icon: 'Pilates' },
-                { name: 'Подъем таза на правую ногу', category: 'Ягодицы', reps: '12', sets: '4', icon: 'Pilates' },
-                { name: 'Подъем таза на левую ногу', category: 'Ягодицы', reps: '12', sets: '4', icon: 'Pilates' },
-                { name: 'Подъем таза с гантелью', category: 'Ягодицы', reps: '15', sets: '4', weight: 0, icon: 'Pilates' },
-                { name: 'Ножницы ногами', category: 'Ноги', reps: '20', sets: '4', icon: 'Pilates' },
-                { name: 'Планка на локтях', category: 'Пресс', reps: '35 сек', sets: '4', icon: 'Pilates' },
-                { name: 'Боковая планка на правую сторону', category: 'Пресс', reps: '20 сек', sets: '4', icon: 'Pilates' },
-                { name: 'Боковая планка на левую сторону', category: 'Пресс', reps: '20 сек', sets: '4', icon: 'Pilates' },
-                { name: 'Растяжка спины (скручивание)', category: 'Спина', reps: '15', sets: '4', icon: 'Pilates' },
-                { name: 'Мостик с подъемом ноги на правую ногу', category: 'Ягодицы', reps: '12', sets: '4', icon: 'Pilates' },
-                { name: 'Мостик с подъемом ноги на левую ногу', category: 'Ягодицы', reps: '12', sets: '4', icon: 'Pilates' }
-            ],
-            '3 LVL': [
-                { name: 'Сотня с отягощением', category: 'Пресс', reps: '20', sets: '4', weight: 0, icon: 'Pilates' },
-                { name: 'Скручивание с подъемом ног и рук', category: 'Пресс', reps: '20', sets: '4', icon: 'Pilates' },
-                { name: 'Подъем таза с гантелью', category: 'Ягодицы', reps: '15', sets: '4', weight: 0, icon: 'Pilates' },
-                { name: 'Ножницы ногами с утяжелением', category: 'Ноги', reps: '25', sets: '4', weight: 0, icon: 'Pilates' },
-                { name: 'Планка с подъемом ноги на правую ногу', category: 'Пресс', reps: '40 сек', sets: '4', icon: 'Pilates' },
-                { name: 'Планка с подъемом ноги на левую ногу', category: 'Пресс', reps: '40 сек', sets: '4', icon: 'Pilates' },
-                { name: 'Боковая планка с подъемом ноги на правую сторону', category: 'Пресс', reps: '25 сек', sets: '4', icon: 'Pilates' },
-                { name: 'Боковая планка с подъемом ноги на левую сторону', category: 'Пресс', reps: '25 сек', sets: '4', icon: 'Pilates' },
-                { name: 'Лодочка с задержкой', category: 'Спина', reps: '20', sets: '4', icon: 'Pilates' },
-                { name: 'Растяжка в позе голубя', category: 'Ягодицы', reps: '20 сек', sets: '4', icon: 'Pilates' },
-                { name: 'Стойка на лопатках', category: 'Спина', reps: '20 сек', sets: '4', icon: 'Pilates' }
-            ]
-        },
-        'Растяжка': {
-            '1 LVL': [
-                { name: 'Наклоны к ногам сидя', category: 'Спина', reps: '25 сек', sets: '3', icon: 'stretching' },
-                { name: 'Растяжка шеи', category: 'Плечи', reps: '15 сек', sets: '3', icon: 'stretching' },
-                { name: 'Растяжка рук за спиной', category: 'Руки', reps: '20 сек', sets: '3', icon: 'stretching' },
-                { name: 'Наклоны в стороны', category: 'Спина', reps: '15 сек', sets: '3', icon: 'stretching' },
-                { name: 'Растяжка спины (кошка-корова)', category: 'Спина', reps: '20 сек', sets: '3', icon: 'stretching' },
-                { name: 'Ягодичный мостик (статический)', category: 'Ягодицы', reps: '20 сек', sets: '3', icon: 'stretching' },
-                { name: 'Растяжка трицепса', category: 'Руки', reps: '15 сек', sets: '3', icon: 'stretching' }
-            ],
-            '2 LVL': [
-                { name: 'Глубокий наклон к ногам', category: 'Спина', reps: '30 сек', sets: '4', icon: 'stretching' },
-                { name: 'Растяжка шеи с руками', category: 'Плечи', reps: '20 сек', sets: '4', icon: 'stretching' },
-                { name: 'Растяжка плеч (замок)', category: 'Плечи', reps: '25 сек', sets: '4', icon: 'stretching' },
-                { name: 'Боковые наклоны с руками', category: 'Спина', reps: '20 сек', sets: '4', icon: 'stretching' },
-                { name: 'Растяжка спины (скручивание)', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' },
-                { name: 'Растяжка ног (шпагат)', category: 'Ноги', reps: '20 сек', sets: '4', icon: 'stretching' },
-                { name: 'Поза голубя', category: 'Ягодицы', reps: '25 сек', sets: '4', icon: 'stretching' },
-                { name: 'Растяжка задней поверхности бедра', category: 'Ноги', reps: '20 сек', sets: '4', icon: 'stretching' }
-            ],
-            '3 LVL': [
-                { name: 'Глубокий наклон с захватом ног', category: 'Спина', reps: '40 сек', sets: '4', icon: 'stretching' },
-                { name: 'Растяжка шеи с сопротивлением', category: 'Плечи', reps: '25 сек', sets: '4', icon: 'stretching' },
-                { name: 'Растяжка плеч за спиной', category: 'Плечи', reps: '30 сек', sets: '4', icon: 'stretching' },
-                { name: 'Боковые наклоны с захватом', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' },
-                { name: 'Растяжка позвоночника (мост)', category: 'Спина', reps: '30 сек', sets: '4', icon: 'stretching' },
-                { name: 'Продольный шпагат', category: 'Ноги', reps: '25 сек', sets: '4', icon: 'stretching' },
-                { name: 'Поперечный шпагат', category: 'Ноги', reps: '20 сек', sets: '4', icon: 'stretching' },
-                { name: 'Поза верблюда', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' },
-                { name: 'Складка с захватом стоп', category: 'Спина', reps: '30 сек', sets: '4', icon: 'stretching' }
-            ]
-        }
-    },
-    // ===================ОСОБЫЕ (PREMIUM) ===================
-    'Особые': {
-        'Кроссфит': {
-            '1 LVL': [
-                { name: 'Бёрпи (упрощённые)', category: 'Ноги', reps: '10', sets: '4', weight: 0, icon: 'crossfit' },
-                { name: 'Прыжки на месте', category: 'Ноги', reps: '25', sets: '4', weight: 0, icon: 'crossfit' },
-                { name: 'Отжимания от коленей', category: 'Грудь', reps: '12', sets: '4', weight: 0, icon: 'crossfit' },
-                { name: 'Приседания без веса', category: 'Ноги', reps: '20', sets: '4', weight: 0, icon: 'crossfit' },
-                { name: 'Планка на коленях', category: 'Пресс', reps: '20 сек', sets: '4', weight: 0, icon: 'crossfit' },
-                { name: 'Джампинг Джек', category: 'Ноги', reps: '20', sets: '4', weight: 0, icon: 'crossfit' }
-            ],
-            '2 LVL': [
-                { name: 'Бёрпи', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'crossfit' },
-                { name: 'Джампинг Джек', category: 'Ноги', reps: '25', sets: '4', weight: 0, icon: 'crossfit' },
-                { name: 'Отжимания от пола', category: 'Грудь', reps: '15', sets: '4', weight: 0, icon: 'crossfit' },
-                { name: 'Приседания с выпрыгиванием', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'crossfit' },
-                { name: 'Планка на локтях', category: 'Пресс', reps: '35 сек', sets: '4', weight: 0, icon: 'crossfit' },
-                { name: 'Горные лыжи', category: 'Ноги', reps: '20', sets: '4', weight: 0, icon: 'crossfit' },
-                { name: 'Скакалка (без скакалки)', category: 'Ноги', reps: '30 сек', sets: '4', weight: 0, icon: 'crossfit' },
-                { name: 'Выпады с прыжком на правую ногу', category: 'Ноги', reps: '10', sets: '4', weight: 0, icon: 'crossfit' },
-                { name: 'Выпады с прыжком на левую ногу', category: 'Ноги', reps: '10', sets: '4', weight: 0, icon: 'crossfit' }
-            ],
-            '3 LVL': [
-                { name: 'Бёрпи с отжиманием', category: 'Ноги', reps: '15', sets: '5', weight: 0, icon: 'crossfit' },
-                { name: 'Отжимания с хлопком', category: 'Грудь', reps: '12', sets: '5', weight: 0, icon: 'crossfit' },
-                { name: 'Приседания с выпрыгиванием', category: 'Ноги', reps: '15', sets: '5', weight: 0, icon: 'crossfit' },
-                { name: 'Прыжки из приседа', category: 'Ноги', reps: '20', sets: '5', weight: 0, icon: 'crossfit' },
-                { name: 'Бёрпи с прыжком вверх', category: 'Ноги', reps: '12', sets: '5', weight: 0, icon: 'crossfit' }
-            ],
-            '_premium': true
-        },
-'ГТО': {
-    _gender: true,
-    _premium: true,
-    'Женский': {
-        '1 СТУПЕНЬ': [
-            { name: 'Бег на месте', category: 'Кардио', reps: '30 сек', sets: '3', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '20 сек', sets: '3', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '20 сек', sets: '3', weight: 0, icon: 'cardio' },
-            { name: 'Прыжки на месте', category: 'Кардио', reps: '15', sets: '3', weight: 0, icon: 'cardio' },
-            { name: 'Подтягивания', category: 'Спина', reps: '2', sets: '3', weight: 0, icon: 'back' },
-            { name: 'Отжимания от пола', category: 'Руки', reps: '4', sets: '3', weight: 0, icon: 'bodybuilding' },
-            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '10', sets: '3', weight: 0, icon: 'stretching' },
-            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '6', sets: '3', weight: 0, icon: 'bodybuilding' }
-        ],
-        '2 СТУПЕНЬ': [
-            { name: 'Бег на месте', category: 'Кардио', reps: '40 сек', sets: '3', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '30 сек', sets: '3', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '30 сек', sets: '3', weight: 0, icon: 'cardio' },
-            { name: 'Прыжки на месте', category: 'Кардио', reps: '20', sets: '3', weight: 0, icon: 'cardio' },
-            { name: 'Подтягивания', category: 'Спина', reps: '3', sets: '3', weight: 0, icon: 'back' },
-            { name: 'Отжимания от пола', category: 'Руки', reps: '6', sets: '3', weight: 0, icon: 'bodybuilding' },
-            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '12', sets: '3', weight: 0, icon: 'stretching' },
-            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '8', sets: '3', weight: 0, icon: 'bodybuilding' }
-        ],
-        '3 СТУПЕНЬ': [
-            { name: 'Бег на месте', category: 'Кардио', reps: '50 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '40 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '40 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Прыжки на месте', category: 'Кардио', reps: '25', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Подтягивания', category: 'Спина', reps: '5', sets: '4', weight: 0, icon: 'back' },
-            { name: 'Отжимания от пола', category: 'Руки', reps: '10', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '15', sets: '4', weight: 0, icon: 'stretching' },
-            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '10', sets: '4', weight: 0, icon: 'bodybuilding' }
-        ],
-        '4 СТУПЕНЬ': [
-            { name: 'Бег на месте', category: 'Кардио', reps: '60 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '50 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '50 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Прыжки на месте', category: 'Кардио', reps: '30', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Подтягивания', category: 'Спина', reps: '7', sets: '4', weight: 0, icon: 'back' },
-            { name: 'Отжимания от пола', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '18', sets: '4', weight: 0, icon: 'stretching' },
-            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' }
-        ],
-        '5 СТУПЕНЬ': [
-            { name: 'Бег на месте', category: 'Кардио', reps: '70 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '60 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '60 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Прыжки на месте', category: 'Кардио', reps: '35', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Подтягивания', category: 'Спина', reps: '8', sets: '4', weight: 0, icon: 'back' },
-            { name: 'Отжимания от пола', category: 'Руки', reps: '15', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '20', sets: '4', weight: 0, icon: 'stretching' },
-            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '14', sets: '4', weight: 0, icon: 'bodybuilding' }
-        ],
-        '6 СТУПЕНЬ': [
-            { name: 'Бег на месте', category: 'Кардио', reps: '90 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '70 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '70 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Прыжки на месте', category: 'Кардио', reps: '40', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Подтягивания', category: 'Спина', reps: '10', sets: '4', weight: 0, icon: 'back' },
-            { name: 'Отжимания от пола', category: 'Руки', reps: '20', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '22', sets: '4', weight: 0, icon: 'stretching' },
-            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '16', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Сгибание рук с гантелями', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Скручивания лёжа', category: 'Пресс', reps: '20', sets: '4', weight: 0, icon: 'press' }
-        ],
-        '7 СТУПЕНЬ': [
-            { name: 'Бег на месте', category: 'Кардио', reps: '100 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '80 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '80 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Прыжки на месте', category: 'Кардио', reps: '45', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Подтягивания', category: 'Спина', reps: '11', sets: '4', weight: 0, icon: 'back' },
-            { name: 'Отжимания от пола', category: 'Руки', reps: '25', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '25', sets: '4', weight: 0, icon: 'stretching' },
-            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '18', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Сгибание рук с гантелями', category: 'Руки', reps: '14', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Скручивания лёжа', category: 'Пресс', reps: '25', sets: '4', weight: 0, icon: 'press' },
-            { name: 'Молотковые сгибания', category: 'Руки', reps: '14', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Подъём ног лёжа', category: 'Пресс', reps: '15', sets: '4', weight: 0, icon: 'press' }
-        ],
-        '8 СТУПЕНЬ': [
-            { name: 'Бег на месте', category: 'Кардио', reps: '110 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '90 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '90 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Прыжки на месте', category: 'Кардио', reps: '50', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Подтягивания', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' },
-            { name: 'Отжимания от пола', category: 'Руки', reps: '28', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '28', sets: '4', weight: 0, icon: 'stretching' },
-            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '20', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Сгибание рук с гантелями', category: 'Руки', reps: '16', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Скручивания лёжа', category: 'Пресс', reps: '30', sets: '4', weight: 0, icon: 'press' },
-            { name: 'Молотковые сгибания', category: 'Руки', reps: '16', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Подъём ног лёжа', category: 'Пресс', reps: '18', sets: '4', weight: 0, icon: 'press' },
-            { name: 'Отжимания широким хватом', category: 'Грудь', reps: '15', sets: '4', weight: 0, icon: 'breast' },
-            { name: 'Скручивания с вытянутыми руками', category: 'Пресс', reps: '20', sets: '4', weight: 0, icon: 'press' }
-        ],
-        '9 СТУПЕНЬ': [
-            { name: 'Бег на месте', category: 'Кардио', reps: '120 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '100 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '100 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Прыжки на месте', category: 'Кардио', reps: '55', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Подтягивания', category: 'Спина', reps: '12', sets: '5', weight: 0, icon: 'back' },
-            { name: 'Отжимания от пола', category: 'Руки', reps: '32', sets: '5', weight: 0, icon: 'bodybuilding' },
-            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '30', sets: '5', weight: 0, icon: 'stretching' },
-            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '22', sets: '5', weight: 0, icon: 'bodybuilding' },
-            { name: 'Сгибание рук с гантелями', category: 'Руки', reps: '18', sets: '5', weight: 0, icon: 'bodybuilding' },
-            { name: 'Скручивания лёжа', category: 'Пресс', reps: '35', sets: '5', weight: 0, icon: 'press' },
-            { name: 'Молотковые сгибания', category: 'Руки', reps: '18', sets: '5', weight: 0, icon: 'bodybuilding' },
-            { name: 'Подъём ног лёжа', category: 'Пресс', reps: '20', sets: '5', weight: 0, icon: 'press' },
-            { name: 'Отжимания широким хватом', category: 'Грудь', reps: '18', sets: '5', weight: 0, icon: 'breast' },
-            { name: 'Скручивания с вытянутыми руками', category: 'Пресс', reps: '25', sets: '5', weight: 0, icon: 'press' },
-            { name: 'Подтягивания узким хватом', category: 'Спина', reps: '8', sets: '5', weight: 0, icon: 'back' },
-            { name: 'Выпады с прыжком', category: 'Ноги', reps: '15', sets: '5', weight: 0, icon: 'legs' }
-        ],
-        '10 СТУПЕНЬ': [
-            { name: 'Бег на месте', category: 'Кардио', reps: '130 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '110 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '110 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Прыжки на месте', category: 'Кардио', reps: '60', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Подтягивания', category: 'Спина', reps: '12', sets: '5', weight: 0, icon: 'back' },
-            { name: 'Отжимания от пола', category: 'Руки', reps: '35', sets: '5', weight: 0, icon: 'bodybuilding' },
-            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '32', sets: '5', weight: 0, icon: 'stretching' },
-            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '24', sets: '5', weight: 0, icon: 'bodybuilding' },
-            { name: 'Сгибание рук с гантелями', category: 'Руки', reps: '20', sets: '5', weight: 0, icon: 'bodybuilding' },
-            { name: 'Скручивания лёжа', category: 'Пресс', reps: '40', sets: '5', weight: 0, icon: 'press' },
-            { name: 'Молотковые сгибания', category: 'Руки', reps: '20', sets: '5', weight: 0, icon: 'bodybuilding' },
-            { name: 'Подъём ног лёжа', category: 'Пресс', reps: '22', sets: '5', weight: 0, icon: 'press' },
-            { name: 'Отжимания широким хватом', category: 'Грудь', reps: '20', sets: '5', weight: 0, icon: 'breast' },
-            { name: 'Скручивания с вытянутыми руками', category: 'Пресс', reps: '28', sets: '5', weight: 0, icon: 'press' },
-            { name: 'Подтягивания узким хватом', category: 'Спина', reps: '10', sets: '5', weight: 0, icon: 'back' },
-            { name: 'Выпады с прыжком', category: 'Ноги', reps: '18', sets: '5', weight: 0, icon: 'legs' },
-            { name: 'Подтягивания широким хватом', category: 'Спина', reps: '8', sets: '5', weight: 0, icon: 'back' },
-            { name: 'Бёрпи с прыжком вверх', category: 'Всё тело', reps: '12', sets: '5', weight: 0, icon: 'WholeBody' }
-        ]
-        
-    },
-    'Мужской': {
-        '1 СТУПЕНЬ': [
-            { name: 'Бег на месте', category: 'Кардио', reps: '30 сек', sets: '3', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '20 сек', sets: '3', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '20 сек', sets: '3', weight: 0, icon: 'cardio' },
-            { name: 'Прыжки на месте', category: 'Кардио', reps: '15', sets: '3', weight: 0, icon: 'cardio' },
-            { name: 'Подтягивания', category: 'Спина', reps: '3', sets: '3', weight: 0, icon: 'back' },
-            { name: 'Отжимания от пола', category: 'Руки', reps: '5', sets: '3', weight: 0, icon: 'bodybuilding' },
-            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '10', sets: '3', weight: 0, icon: 'stretching' },
-            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '8', sets: '3', weight: 0, icon: 'bodybuilding' }
-        ],
-        '2 СТУПЕНЬ': [
-            { name: 'Бег на месте', category: 'Кардио', reps: '40 сек', sets: '3', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '30 сек', sets: '3', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '30 сек', sets: '3', weight: 0, icon: 'cardio' },
-            { name: 'Прыжки на месте', category: 'Кардио', reps: '20', sets: '3', weight: 0, icon: 'cardio' },
-            { name: 'Подтягивания', category: 'Спина', reps: '5', sets: '3', weight: 0, icon: 'back' },
-            { name: 'Отжимания от пола', category: 'Руки', reps: '8', sets: '3', weight: 0, icon: 'bodybuilding' },
-            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '12', sets: '3', weight: 0, icon: 'stretching' },
-            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '10', sets: '3', weight: 0, icon: 'bodybuilding' }
-        ],
-        '3 СТУПЕНЬ': [
-            { name: 'Бег на месте', category: 'Кардио', reps: '50 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '40 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '40 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Прыжки на месте', category: 'Кардио', reps: '25', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Подтягивания', category: 'Спина', reps: '7', sets: '4', weight: 0, icon: 'back' },
-            { name: 'Отжимания от пола', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '15', sets: '4', weight: 0, icon: 'stretching' },
-            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' }
-        ],
-        '4 СТУПЕНЬ': [
-            { name: 'Бег на месте', category: 'Кардио', reps: '60 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '50 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '50 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Прыжки на месте', category: 'Кардио', reps: '30', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Подтягивания', category: 'Спина', reps: '9', sets: '4', weight: 0, icon: 'back' },
-            { name: 'Отжимания от пола', category: 'Руки', reps: '15', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '18', sets: '4', weight: 0, icon: 'stretching' },
-            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '14', sets: '4', weight: 0, icon: 'bodybuilding' }
-        ],
-        '5 СТУПЕНЬ': [
-            { name: 'Бег на месте', category: 'Кардио', reps: '70 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '60 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '60 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Прыжки на месте', category: 'Кардио', reps: '35', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Подтягивания', category: 'Спина', reps: '10', sets: '4', weight: 0, icon: 'back' },
-            { name: 'Отжимания от пола', category: 'Руки', reps: '20', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '20', sets: '4', weight: 0, icon: 'stretching' },
-            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '16', sets: '4', weight: 0, icon: 'bodybuilding' }
-        ],
-        '6 СТУПЕНЬ': [
-            { name: 'Бег на месте', category: 'Кардио', reps: '90 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '70 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '70 сек', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Прыжки на месте', category: 'Кардио', reps: '40', sets: '4', weight: 0, icon: 'cardio' },
-            { name: 'Подтягивания', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' },
-            { name: 'Отжимания от пола', category: 'Руки', reps: '25', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '22', sets: '4', weight: 0, icon: 'stretching' },
-            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '18', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Сгибание рук с гантелями', category: 'Руки', reps: '15', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Скручивания лёжа', category: 'Пресс', reps: '25', sets: '4', weight: 0, icon: 'press' }
-        ],
-        '7 СТУПЕНЬ': [
-            { name: 'Бег на месте', category: 'Кардио', reps: '100 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '80 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '80 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Прыжки на месте', category: 'Кардио', reps: '45', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Подтягивания', category: 'Спина', reps: '14', sets: '4', weight: 0, icon: 'back' },
-            { name: 'Отжимания от пола', category: 'Руки', reps: '30', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '25', sets: '4', weight: 0, icon: 'stretching' },
-            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '20', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Сгибание рук с гантелями', category: 'Руки', reps: '18', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Скручивания лёжа', category: 'Пресс', reps: '30', sets: '4', weight: 0, icon: 'press' },
-            { name: 'Молотковые сгибания', category: 'Руки', reps: '18', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Подъём ног лёжа', category: 'Пресс', reps: '18', sets: '4', weight: 0, icon: 'press' }
-        ],
-        '8 СТУПЕНЬ': [
-            { name: 'Бег на месте', category: 'Кардио', reps: '110 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '90 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '90 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Прыжки на месте', category: 'Кардио', reps: '50', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Подтягивания', category: 'Спина', reps: '15', sets: '4', weight: 0, icon: 'back' },
-            { name: 'Отжимания от пола', category: 'Руки', reps: '35', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '28', sets: '4', weight: 0, icon: 'stretching' },
-            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '22', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Сгибание рук с гантелями', category: 'Руки', reps: '20', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Скручивания лёжа', category: 'Пресс', reps: '35', sets: '4', weight: 0, icon: 'press' },
-            { name: 'Молотковые сгибания', category: 'Руки', reps: '20', sets: '4', weight: 0, icon: 'bodybuilding' },
-            { name: 'Подъём ног лёжа', category: 'Пресс', reps: '20', sets: '4', weight: 0, icon: 'press' },
-            { name: 'Отжимания широким хватом', category: 'Грудь', reps: '20', sets: '4', weight: 0, icon: 'breast' },
-            { name: 'Скручивания с вытянутыми руками', category: 'Пресс', reps: '25', sets: '4', weight: 0, icon: 'press' }
-        ],
-        '9 СТУПЕНЬ': [
-            { name: 'Бег на месте', category: 'Кардио', reps: '120 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '100 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '100 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Прыжки на месте', category: 'Кардио', reps: '55', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Подтягивания', category: 'Спина', reps: '15', sets: '5', weight: 0, icon: 'back' },
-            { name: 'Отжимания от пола', category: 'Руки', reps: '40', sets: '5', weight: 0, icon: 'bodybuilding' },
-            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '30', sets: '5', weight: 0, icon: 'stretching' },
-            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '24', sets: '5', weight: 0, icon: 'bodybuilding' },
-            { name: 'Сгибание рук с гантелями', category: 'Руки', reps: '22', sets: '5', weight: 0, icon: 'bodybuilding' },
-            { name: 'Скручивания лёжа', category: 'Пресс', reps: '40', sets: '5', weight: 0, icon: 'press' },
-            { name: 'Молотковые сгибания', category: 'Руки', reps: '22', sets: '5', weight: 0, icon: 'bodybuilding' },
-            { name: 'Подъём ног лёжа', category: 'Пресс', reps: '22', sets: '5', weight: 0, icon: 'press' },
-            { name: 'Отжимания широким хватом', category: 'Грудь', reps: '22', sets: '5', weight: 0, icon: 'breast' },
-            { name: 'Скручивания с вытянутыми руками', category: 'Пресс', reps: '30', sets: '5', weight: 0, icon: 'press' },
-            { name: 'Подтягивания узким хватом', category: 'Спина', reps: '10', sets: '5', weight: 0, icon: 'back' },
-            { name: 'Выпады с прыжком', category: 'Ноги', reps: '18', sets: '5', weight: 0, icon: 'legs' }
-        ],
-        '10 СТУПЕНЬ': [
-            { name: 'Бег на месте', category: 'Кардио', reps: '130 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '110 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '110 сек', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Прыжки на месте', category: 'Кардио', reps: '60', sets: '5', weight: 0, icon: 'cardio' },
-            { name: 'Подтягивания', category: 'Спина', reps: '14', sets: '5', weight: 0, icon: 'back' },
-            { name: 'Отжимания от пола', category: 'Руки', reps: '45', sets: '5', weight: 0, icon: 'bodybuilding' },
-            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '32', sets: '5', weight: 0, icon: 'stretching' },
-            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '26', sets: '5', weight: 0, icon: 'bodybuilding' },
-            { name: 'Сгибание рук с гантелями', category: 'Руки', reps: '24', sets: '5', weight: 0, icon: 'bodybuilding' },
-            { name: 'Скручивания лёжа', category: 'Пресс', reps: '45', sets: '5', weight: 0, icon: 'press' },
-            { name: 'Молотковые сгибания', category: 'Руки', reps: '24', sets: '5', weight: 0, icon: 'bodybuilding' },
-            { name: 'Подъём ног лёжа', category: 'Пресс', reps: '25', sets: '5', weight: 0, icon: 'press' },
-            { name: 'Отжимания широким хватом', category: 'Грудь', reps: '25', sets: '5', weight: 0, icon: 'breast' },
-            { name: 'Скручивания с вытянутыми руками', category: 'Пресс', reps: '35', sets: '5', weight: 0, icon: 'press' },
-            { name: 'Подтягивания узким хватом', category: 'Спина', reps: '12', sets: '5', weight: 0, icon: 'back' },
-            { name: 'Выпады с прыжком', category: 'Ноги', reps: '20', sets: '5', weight: 0, icon: 'legs' },
-            { name: 'Подтягивания широким хватом', category: 'Спина', reps: '10', sets: '5', weight: 0, icon: 'back' },
-            { name: 'Бёрпи с прыжком вверх', category: 'Всё тело', reps: '15', sets: '5', weight: 0, icon: 'WholeBody' }
-        ]
-    }
-},
-        'Мужская сила': {
-            '1 LVL': [
-                { name: 'Кегель для мужчин', category: 'Ягодицы', reps: '12', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Ягодичный мостик', category: 'Ягодицы', reps: '20', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Приседания с задержкой', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Планка с подъемом таза', category: 'Пресс', reps: '20 сек', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Махи ногами в сторону на правую ногу', category: 'Ягодицы', reps: '15', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Махи ногами в сторону на левую ногу', category: 'Ягодицы', reps: '15', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Подъем на носки', category: 'Ноги', reps: '20', sets: '4', weight: 0, icon: 'men' }
-            ],
-            '2 LVL': [
-                { name: 'Кегель для мужчин', category: 'Ягодицы', reps: '20', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Ягодичный мостик с гантелью', category: 'Ягодицы', reps: '15', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Приседания с выпрыгиванием', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Боковая планка с подъемом ноги на правую сторону', category: 'Пресс', reps: '25 сек', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Боковая планка с подъемом ноги на левую сторону', category: 'Пресс', reps: '25 сек', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Болгарские сплит-приседания с гантелями', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Болгарские сплит-приседания на правую ногу', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Болгарские сплит-приседания на левую ногу', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Ягодичный мостик на правую ногу', category: 'Ягодицы', reps: '12', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Ягодичный мостик на левую ногу', category: 'Ягодицы', reps: '12', sets: '4', weight: 0, icon: 'men' }
-            ],
-            '3 LVL': [
-                { name: 'Кегель для мужчин', category: 'Ягодицы', reps: '25', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Ягодичный мостик на правую ногу', category: 'Ягодицы', reps: '15', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Ягодичный мостик на левую ногу', category: 'Ягодицы', reps: '15', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Ягодичный мостик с гантелью', category: 'Ягодицы', reps: '15', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Румынская тяга с гантелями', category: 'Ягодицы', reps: '15', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Болгарские сплит-приседания с гантелями', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Выпады с прыжком на правую ногу', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Выпады с прыжком на левую ногу', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Боковые выпады с гантелью на правую ногу', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'men' },
-                { name: 'Боковые выпады с гантелью на левую ногу', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'men' }
-            ],
-            '_premium': true
-        },
-        'Женское счастье': {
-            '1 LVL': [
-                { name: 'Кегель для женщин', category: 'Ягодицы', reps: '15', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Ягодичный мостик', category: 'Ягодицы', reps: '20', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Приседания плие', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Планка на коленях', category: 'Пресс', reps: '25 сек', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Махи ногой назад на правую ногу', category: 'Ягодицы', reps: '15', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Махи ногой назад на левую ногу', category: 'Ягодицы', reps: '15', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Отведение ноги в сторону стоя на правую ногу', category: 'Ягодицы', reps: '15', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Отведение ноги в сторону стоя на левую ногу', category: 'Ягодицы', reps: '15', sets: '4', weight: 0, icon: 'woman' }
-            ],
-            '2 LVL': [
-                { name: 'Кегель для женщин', category: 'Ягодицы', reps: '20', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Ягодичный мостик с гантелью', category: 'Ягодицы', reps: '20', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Приседания плие с гантелью', category: 'Ноги', reps: '20', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Боковая планка на правую сторону', category: 'Пресс', reps: '30 сек', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Боковая планка на левую сторону', category: 'Пресс', reps: '30 сек', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Ягодичный мостик на правую ногу', category: 'Ягодицы', reps: '15', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Ягодичный мостик на левую ногу', category: 'Ягодицы', reps: '15', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Болгарские сплит-приседания с гантелями', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Болгарские сплит-приседания на правую ногу', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Болгарские сплит-приседания на левую ногу', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'woman' }
-            ],
-            '3 LVL': [
-                { name: 'Кегель для женщин', category: 'Ягодицы', reps: '25', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Ягодичный мостик на правую ногу', category: 'Ягодицы', reps: '15', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Ягодичный мостик на левую ногу', category: 'Ягодицы', reps: '15', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Ягодичный мостик с гантелью', category: 'Ягодицы', reps: '20', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Приседания с гантелями глубокие', category: 'Ноги', reps: '20', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Приседания плие с гантелью', category: 'Ноги', reps: '20', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Планка с подъемом ноги на правую ногу', category: 'Пресс', reps: '40 сек', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Планка с подъемом ноги на левую ногу', category: 'Пресс', reps: '40 сек', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Болгарские сплит-приседания с гантелями', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Болгарские сплит-приседания на правую ногу', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Болгарские сплит-приседания на левую ногу', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Выпады с прыжком на правую ногу', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Выпады с прыжком на левую ногу', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Румынская тяга с гантелями', category: 'Ягодицы', reps: '15', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Боковые выпады с гантелью на правую ногу', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'woman' },
-                { name: 'Боковые выпады с гантелью на левую ногу', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'woman' }
-            ],
-            '_premium': true
-        },
-        'Растяжка позвоночника': {
-            '1 LVL': [
-                { name: 'Вис на турнике', category: 'Спина', reps: '15 сек', sets: '3', icon: 'stretching' },
-                { name: 'Наклоны вперёд сидя', category: 'Спина', reps: '20 сек', sets: '3', icon: 'stretching' },
-                { name: 'Кошка-корова', category: 'Спина', reps: '10', sets: '3', icon: 'stretching' },
-                { name: 'Растяжка спины на полу (скручивание)', category: 'Спина', reps: '20 сек', sets: '3', icon: 'stretching' },
-                { name: 'Поза ребёнка', category: 'Спина', reps: '20 сек', sets: '3', icon: 'stretching' },
-                { name: 'Наклоны в стороны стоя', category: 'Спина', reps: '15 сек', sets: '3', icon: 'stretching' }
-            ],
-            '2 LVL': [
-                { name: 'Глубокий наклон вперёд с захватом ног', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' },
-                { name: 'Кошка-корова с задержкой', category: 'Спина', reps: '15', sets: '4', icon: 'stretching' },
-                { name: 'Скручивание лёжа (позвоночник)', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' },
-                { name: 'Поза голубя', category: 'Ягодицы', reps: '25 сек', sets: '4', icon: 'stretching' },
-                { name: 'Растяжка спины на фитболе', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' }
-            ],
-            '3 LVL': [
-                { name: 'Глубокий наклон с захватом стоп', category: 'Спина', reps: '35 сек', sets: '4', icon: 'stretching' },
-                { name: 'Поза верблюда', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' },
-                { name: 'Скручивание позвоночника сидя', category: 'Спина', reps: '30 сек', sets: '4', icon: 'stretching' },
-                { name: 'Поза лука', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' },
-                { name: 'Мост (позвоночник)', category: 'Спина', reps: '30 сек', sets: '4', icon: 'stretching' },
-                { name: 'Стойка на лопатках (плечи)', category: 'Плечи', reps: '25 сек', sets: '4', icon: 'stretching' }
-            ],
-            '_premium': true
-        }
-    }
-};
-
 // =================== МАППИНГ ИКОНОК В КАТЕГОРИИ ДЛЯ СТАТИСТИКИ ===================
 const ICON_TO_CATEGORY = {
     'bodybuilding': 'Руки',
@@ -4096,24 +3277,24 @@ function loadLevelSelect(category, params = {}) {
     }
     const titleEl = document.getElementById('levelSelectTitle');
     if (titleEl) titleEl.textContent = 'ТРЕНИРОВКА';
-let isPremium = false;
-if (parentCategory && exercisesData[parentCategory] && exercisesData[parentCategory][category]) {
-    isPremium = exercisesData[parentCategory][category]._premium || false;
-}
-    
+    let isPremium = false;
+    if (parentCategory && exercisesData[parentCategory] && exercisesData[parentCategory][category]) {
+        isPremium = exercisesData[parentCategory][category]._premium || false;
+    }
+
     // ★★★ ОПРЕДЕЛЯЕМ СПИСОК УРОВНЕЙ ★★★
     let levelsArr = ['1 LVL', '2 LVL', '3 LVL'];
     let levelDescs = ['Начинающий', 'Любитель', 'Профессионал'];
-    
-// ★★★ ДЛЯ ГТО — СВОИ УРОВНИ ★★★
-if (category === 'ГТО' && params.gtoGender) {
-    const gender = params.gtoGender;
-if (exercisesData['Особые'] && exercisesData['Особые']['ГТО'] && exercisesData['Особые']['ГТО'][gender]) {
-    levelsArr = Object.keys(exercisesData['Особые']['ГТО'][gender]).filter(k => !k.startsWith('_'));
-    levelDescs = levelsArr.map(level => GTO_AGE_MAP[level] || 'Ступень ГТО');
-}
-}
-    
+
+    // ★★★ ДЛЯ ГТО — СВОИ УРОВНИ ★★★
+    if (category === 'ГТО' && params.gtoGender) {
+        const gender = params.gtoGender;
+        if (exercisesData['Особые'] && exercisesData['Особые']['ГТО'] && exercisesData['Особые']['ГТО'][gender]) {
+            levelsArr = Object.keys(exercisesData['Особые']['ГТО'][gender]).filter(k => !k.startsWith('_'));
+            levelDescs = levelsArr.map(level => GTO_AGE_MAP[level] || 'Ступень ГТО');
+        }
+    }
+
     const CATEGORY_ICON_MAP = {
         'Руки': 'bodybuilding', 'Плечи': 'shoulder', 'Пресс': 'press',
         'Грудь': 'breast', 'Спина': 'back', 'Ноги': 'legs',
@@ -4125,17 +3306,18 @@ if (exercisesData['Особые'] && exercisesData['Особые']['ГТО'] && 
     const icon = CATEGORY_ICON_MAP[category] || null;
 
     const container = document.getElementById('levelsContainer');
+    const userInventory = getUserInventoryFromStorage();
 
     container.innerHTML = levelsArr.map((level, index) => {
         let exercises = [];
         let displayName = category + ' ' + level;
 
         let levelData = null;
-if (category === 'ГТО' && params.gtoGender) {
-    if (exercisesData['Особые'] && exercisesData['Особые']['ГТО'] && exercisesData['Особые']['ГТО'][params.gtoGender]) {
-        levelData = exercisesData['Особые']['ГТО'][params.gtoGender][level];
-    }
-} else if (parentCategory && exercisesData[parentCategory] && exercisesData[parentCategory][category]) {
+        if (category === 'ГТО' && params.gtoGender) {
+            if (exercisesData['Особые'] && exercisesData['Особые']['ГТО'] && exercisesData['Особые']['ГТО'][params.gtoGender]) {
+                levelData = exercisesData['Особые']['ГТО'][params.gtoGender][level];
+            }
+        } else if (parentCategory && exercisesData[parentCategory] && exercisesData[parentCategory][category]) {
             levelData = exercisesData[parentCategory][category][level];
         } else if (exercisesData[category] && exercisesData[category][level]) {
             levelData = exercisesData[category][level];
@@ -4148,8 +3330,11 @@ if (category === 'ГТО' && params.gtoGender) {
             }
         }
 
+        // ★★★ СОБИРАЕМ УПРАЖНЕНИЯ С УЧЁТОМ ИНВЕНТАРЯ ★★★
         if (levelData) {
-            if (Array.isArray(levelData)) {
+            if (levelData.core && Array.isArray(levelData.core)) {
+                exercises = buildWorkoutForUser(levelData, userInventory);
+            } else if (Array.isArray(levelData)) {
                 exercises = levelData;
             } else if (typeof levelData === 'object' && levelData._exercises) {
                 exercises = levelData._exercises;
@@ -4247,9 +3432,9 @@ function loadWorkoutDetail(category, level, isCustom, id, parentCategory, isPrem
         let levelData = null;
 
         // ★★★ ДЛЯ ГТО — ИЩЕМ В ПОДРАЗДЕЛЕ ПОЛА ★★★
-if (category === 'ГТО' && gtoGender && exercisesData['Особые'] && exercisesData['Особые']['ГТО'] && exercisesData['Особые']['ГТО'][gtoGender]) {
-    levelData = exercisesData['Особые']['ГТО'][gtoGender][currentLevel];
-} else {
+        if (category === 'ГТО' && gtoGender && exercisesData['Особые'] && exercisesData['Особые']['ГТО'] && exercisesData['Особые']['ГТО'][gtoGender]) {
+            levelData = exercisesData['Особые']['ГТО'][gtoGender][currentLevel];
+        } else {
             for (const parent in exercisesData) {
                 if (exercisesData[parent] && exercisesData[parent][category]) {
                     levelData = exercisesData[parent][category][currentLevel];
@@ -4261,12 +3446,15 @@ if (category === 'ГТО' && gtoGender && exercisesData['Особые'] && exerc
             }
         }
 
+        // ★★★ СОБИРАЕМ УПРАЖНЕНИЯ ПО ИНВЕНТАРЮ ★★★
         if (levelData) {
-            if (typeof levelData === 'object' && !Array.isArray(levelData)) {
-                if (levelData._exercises) {
-                    exercises = levelData._exercises;
-                    found = true;
-                }
+            if (levelData.core && Array.isArray(levelData.core)) {
+                const userInventory = getUserInventoryFromStorage();
+                exercises = buildWorkoutForUser(levelData, userInventory);
+                found = exercises.length > 0;
+            } else if (typeof levelData === 'object' && !Array.isArray(levelData) && levelData._exercises) {
+                exercises = levelData._exercises;
+                found = true;
                 if (levelData._title) {
                     savedTitle = levelData._title;
                 }
@@ -4283,7 +3471,10 @@ if (category === 'ГТО' && gtoGender && exercisesData['Особые'] && exerc
                     for (const lvl of levelsArr) {
                         const data = exercisesData[parent][category][lvl];
                         if (data) {
-                            if (typeof data === 'object' && !Array.isArray(data) && data._exercises) {
+                            if (data.core && Array.isArray(data.core)) {
+                                const userInventory = getUserInventoryFromStorage();
+                                exercises = buildWorkoutForUser(data, userInventory);
+                            } else if (typeof data === 'object' && !Array.isArray(data) && data._exercises) {
                                 exercises = data._exercises;
                                 if (data._title) savedTitle = data._title;
                             } else if (Array.isArray(data) && data.length > 0) {
@@ -4449,7 +3640,6 @@ if (category === 'ГТО' && gtoGender && exercisesData['Особые'] && exerc
             if (currentIsCustom && currentWorkoutId) {
                 resolvedCategory = finalWorkoutIcon ? (ICON_TO_CATEGORY[finalWorkoutIcon] || 'Всё тело') : 'Без категории';
             } else if (category === 'ГТО') {
-                // ★★★ ГТО — относим к категории "ГТО" ★★★
                 resolvedCategory = 'ГТО';
             } else {
                 let parent = parentCategory || '';
@@ -5425,29 +4615,34 @@ function getExercisesForEdit(category, level, isCustom, id) {
     }
     if (!isCustom) {
         const targetLevel = level || '1 LVL';
-        let exercisesFound = [];
+        let levelData = null;
+
+        // Ищем levelData в новой структуре
         for (const parent in exercisesData) {
             if (exercisesData[parent] && exercisesData[parent][category]) {
-                const levelData = exercisesData[parent][category][targetLevel];
-                if (levelData) {
-                    if (Array.isArray(levelData)) {
-                        exercisesFound = levelData;
-                    } else if (typeof levelData === 'object' && levelData._exercises) {
-                        exercisesFound = levelData._exercises;
-                    }
-                    break;
-                }
+                levelData = exercisesData[parent][category][targetLevel];
+                if (levelData) break;
             }
         }
-        if (exercisesFound.length === 0 && exercisesData[category] && exercisesData[category][targetLevel]) {
-            const levelData = exercisesData[category][targetLevel];
+        if (!levelData && exercisesData[category] && exercisesData[category][targetLevel]) {
+            levelData = exercisesData[category][targetLevel];
+        }
+
+        if (levelData) {
+            if (levelData.core && Array.isArray(levelData.core)) {
+                // ★★★ Собираем по инвентарю пользователя ★★★
+                const userInventory = getUserInventoryFromStorage();
+                return JSON.parse(JSON.stringify(
+                    buildWorkoutForUser(levelData, userInventory)
+                ));
+            }
             if (Array.isArray(levelData)) {
-                exercisesFound = levelData;
-            } else if (typeof levelData === 'object' && levelData._exercises) {
-                exercisesFound = levelData._exercises;
+                return JSON.parse(JSON.stringify(levelData));
+            }
+            if (levelData._exercises) {
+                return JSON.parse(JSON.stringify(levelData._exercises));
             }
         }
-        return JSON.parse(JSON.stringify(exercisesFound));
     }
     return [];
 }
@@ -6569,6 +5764,16 @@ async function loadProfile() {
     if (levelTitle) levelTitle.textContent = currentLevel.name;
     if (levelProgressText) levelProgressText.textContent = progressText;
     if (levelFill) levelFill.style.width = progress + '%';
+
+// ★★★ ЗАГРУЖАЕМ ПОЛ И АВАТАР ★★★
+applyGenderToUI(profile.gender || 'male');
+
+const avatarImg = document.querySelector('.profile-avatar img');
+if (avatarImg) {
+    avatarImg.src = (profile.gender === 'female')
+        ? 'images/avatar-woman.png'
+        : 'images/avatar-men.png';
+}
     
 // ★★★ ПРОВЕРКА ПОВЫШЕНИЯ УРОВНЯ И СОХРАНЕНИЕ СОБЫТИЯ ★★★
 const prevLevelData = await syncLoadFromFirestore('prevLevel');
@@ -6638,6 +5843,9 @@ document.getElementById('editProfileBtn')?.addEventListener('click', () => {
     document.getElementById('profileEdit').style.display = 'block';
     const currentName = document.getElementById('profileName').textContent;
     document.getElementById('editName').value = currentName;
+
+    // ★★★ ПОДСВЕЧИВАЕМ ВЫБРАННЫЙ ПОЛ ★★★
+    applyGenderToUI(tempGender || 'male');
 });
 
 document.getElementById('cancelProfileEditBtn')?.addEventListener('click', () => {
@@ -6650,7 +5858,6 @@ document.getElementById('cancelProfileEditBtn')?.addEventListener('click', () =>
 document.getElementById('saveProfileBtn')?.addEventListener('click', async () => {
     const nameInput = document.getElementById('editName');
     const name = nameInput.value.trim();
-    const currentName = document.getElementById('profileName').textContent;
 
     if (!name) {
         showToast('⚠️ Введите имя и фамилию');
@@ -6659,22 +5866,38 @@ document.getElementById('saveProfileBtn')?.addEventListener('click', async () =>
     }
     nameInput.classList.remove('error');
 
-    if (name === currentName) {
-        isEditingProfile = false;
-        document.getElementById('profileView').style.display = 'flex';  // ← flex
-        document.getElementById('profileEdit').style.display = 'none';
+    const user = await getFirebaseUser();
+    if (!user) {
+        showToast('❌ Пользователь не авторизован');
         return;
     }
 
-    const user = await getFirebaseUser();
-    if (user) {
-        await updateUserProfile(user.uid, { displayName: name });
+    // ★★★ ВСЕГДА СОХРАНЯЕМ И ИМЯ, И ПОЛ ★★★
+    const updates = {
+        displayName: name,
+        gender: tempGender || 'male'
+    };
+
+    const result = await updateUserProfile(user.uid, updates);
+
+    if (result.success) {
         isEditingProfile = false;
-        loadProfile();
-        showToast('✅ Профиль обновлен');
+        document.getElementById('profileView').style.display = 'flex';
+        document.getElementById('profileEdit').style.display = 'none';
+
+        // ★★★ СРАЗУ МЕНЯЕМ АВАТАР, НЕ ДОЖИДАЯСЬ loadProfile ★★★
+        const avatarImg = document.querySelector('.profile-avatar img');
+        if (avatarImg) {
+            avatarImg.src = (updates.gender === 'female')
+                ? 'images/avatar-woman.png'
+                : 'images/avatar-men.png';
+        }
+
+        await loadProfile();
+        showToast('✅ Профиль обновлён');
+    } else {
+        showToast('❌ Ошибка сохранения профиля');
     }
-    document.getElementById('profileView').style.display = 'flex';  // ← flex
-    document.getElementById('profileEdit').style.display = 'none';
 });
 
 // ===================СЛУШАТЕЛЬ АВТОРИЗАЦИИ ===================
@@ -6707,8 +5930,39 @@ firebase.auth().onAuthStateChanged(async (user) => {
 
         // ===== ПРОВЕРКА ПОДТВЕРЖДЕНИЯ ПОЧТЫ =====
         if (!user.emailVerified) {
-            // ...оставляем как у тебя было (код с pendingDeletions и т.д.)
-            // ...
+            console.log('📧 Почта не подтверждена, показываем экран приветствия');
+            
+            isDataLoaded = false;
+            if (bottomNav) bottomNav.style.display = 'none';
+            
+            // Скрываем все страницы
+            document.querySelectorAll('.page').forEach(p => {
+                p.classList.remove('page-active');
+                p.style.display = 'none';
+            });
+            
+            // Показываем hero
+            const heroPage = document.getElementById('page-hero');
+            if (heroPage) {
+                heroPage.classList.add('page-active');
+                heroPage.style.display = 'block';
+            }
+            
+            clearAuthFields();
+            showHeroButtons();
+            
+            // Показываем тост с напоминанием
+            showToast('⚠️ Подтвердите почту! Проверьте письмо на ' + user.email);
+            return;
+        }
+
+                // ★★★ СОХРАНЯЕМ ФЛАГ ПОДТВЕРЖДЕНИЯ ПОЧТЫ В FIRESTORE ★★★
+        try {
+            await firebase.firestore().collection('users').doc(user.uid).set({
+                emailVerified: true
+            }, { merge: true });
+        } catch (e) {
+            console.warn('Не удалось сохранить emailVerified:', e);
         }
 
         // ★★★ ПОЧТА ПОДТВЕРЖДЕНА — УДАЛЯЕМ ИЗ PENDING ★★★
@@ -7132,7 +6386,7 @@ document.getElementById('registerVerifyBtn')?.addEventListener('click', async fu
             localStorage.removeItem('pendingVerification_' + user.uid);
             
             // ★★★ ПЕРЕХОДИМ НА ШАГ 5 (ВЫБОР ИНВЕНТАРЯ) ★★★
-            switchToPage('page-inventory');
+            switchToPage('page-register-gender');
             
             // Загружаем сохранённый выбор инвентаря
             setTimeout(() => {
@@ -7157,6 +6411,37 @@ document.getElementById('registerVerifyBtn')?.addEventListener('click', async fu
         }
         btn.disabled = false;
     }
+});
+
+// =================== РЕГИСТРАЦИЯ: ВЫБОР ПОЛА (ШАГ 5) ===================
+let registerGender = 'male';  // по умолчанию
+
+window.selectGenderRegister = function(gender) {
+    registerGender = gender;
+
+    document.querySelectorAll('#page-register-gender .toggle-btn[data-gender]').forEach(btn => {
+        btn.classList.toggle('toggle-btn-active', btn.dataset.gender === gender);
+    });
+
+    console.log('👤 Выбран пол при регистрации:', gender);
+};
+
+// Кнопка «Далее» на шаге с полом
+document.getElementById('registerGenderBtn')?.addEventListener('click', function() {
+    // Сохраняем пол в localStorage — чтобы потом записать в Firestore после входа
+    localStorage.setItem('pendingGender', registerGender);
+
+    console.log('💾 Пол сохранён:', registerGender);
+
+    // Переходим на шаг с инвентарём
+    switchToPage('page-inventory');
+
+    // Загружаем сохранённый выбор инвентаря (если был)
+    setTimeout(() => {
+        if (typeof loadInventorySelection === 'function') {
+            loadInventorySelection();
+        }
+    }, 100);
 });
 
 // ★★★ ОБРАБОТЧИК ШАГА 5 (ВЫБОР ИНВЕНТАРЯ) ★★★
@@ -7224,15 +6509,17 @@ async function resendVerificationEmail() {
 
 // =================== АВТОУДАЛЕНИЕ НЕПОДТВЕРЖДЁННЫХ АККАУНТОВ (ЧЕРЕЗ FIRESTORE) ===================
 
-/**
- * Запускает механизм удаления аккаунта через 5 минут
- * Теперь удаление происходит через Firestore, даже если браузер закрыт
- */
 function scheduleAccountDeletion(user) {
     if (!user) return;
     
     const creationTime = Date.now();
     const deleteAt = creationTime + 300000; // +5 минут
+    
+    // ★★★ СОЗДАЁМ ПРОФИЛЬ С ФЛАГОМ emailVerified: false ★★★
+    firebase.firestore().collection('users').doc(user.uid).set({
+        emailVerified: false,
+        createdAt: new Date().toISOString()
+    }, { merge: true });
     
     // ★★★ СОХРАНЯЕМ ДАННЫЕ В FIRESTORE ★★★
     firebase.firestore().collection('pendingDeletions').doc(user.uid).set({
@@ -7240,24 +6527,19 @@ function scheduleAccountDeletion(user) {
         email: user.email,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         deleteAt: new Date(deleteAt),
-        pendingVerification: true
+        pendingVerification: true,
+        processed: false
     });
     
-    // ★★★ ТАКЖЕ СОХРАНЯЕМ В LOCALSTORAGE ДЛЯ БЫСТРОЙ ПРОВЕРКИ ★★★
     localStorage.setItem('pendingVerification_' + user.uid, String(creationTime));
     
-    console.log('⏰ Запланировано удаление аккаунта через 5 минут (сохранено в Firestore)');
+    console.log('⏰ Запланировано удаление аккаунта через 5 минут');
 }
 
-/**
- * Проверяет и удаляет просроченные аккаунты
- * Вызывается при загрузке приложения и периодически
- */
 async function checkAndDeleteExpiredAccounts() {
     try {
         const now = new Date();
         
-        // ★★★ ИЩЕМ ПРОСРОЧЕННЫЕ ЗАПИСИ В FIRESTORE ★★★
         const snapshot = await firebase.firestore()
             .collection('pendingDeletions')
             .where('deleteAt', '<=', now)
@@ -7274,42 +6556,69 @@ async function checkAndDeleteExpiredAccounts() {
             const data = doc.data();
             const userId = data.userId;
             
+            if (!userId) {
+                // Некорректная запись — просто удаляем
+                await doc.ref.delete();
+                continue;
+            }
+            
             try {
-                // ★★★ ПРОВЕРЯЕМ, НЕ ПОДТВЕРЖДЕНА ЛИ ПОЧТА ★★★
-                const userRecord = await firebase.auth().getUser(userId);
+                // ★★★ ПРОВЕРЯЕМ ЧЕРЕЗ FIRESTORE, А НЕ AUTH ★★★
+                const userDoc = await firebase.firestore()
+                    .collection('users')
+                    .doc(userId)
+                    .get();
                 
-                if (userRecord.emailVerified) {
-                    // Почта подтверждена - удаляем запись о pending
-                    await doc.ref.delete();
-                    localStorage.removeItem('pendingVerification_' + userId);
-                    console.log(`✅ Пользователь ${userId} подтвердил почту, запись удалена`);
-                    continue;
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    
+                    // Если почта подтверждена — удаляем pending-запись
+                    if (userData.emailVerified === true) {
+                        await doc.ref.delete();
+                        localStorage.removeItem('pendingVerification_' + userId);
+                        console.log(`✅ Пользователь ${userId} подтвердил почту, запись удалена`);
+                        continue;
+                    }
                 }
                 
-                // ★★★ УДАЛЯЕМ ДАННЫЕ ПОЛЬЗОВАТЕЛЯ ★★★
+                // ★★★ УДАЛЯЕМ ДАННЫЕ ИЗ FIRESTORE ★★★
                 console.log(`🗑️ Удаляем просроченный аккаунт: ${userId}`);
                 
-                // Удаляем из Firestore
+                // Удаляем профиль
                 await firebase.firestore().collection('users').doc(userId).delete();
                 
-                // Удаляем самого пользователя
-                await firebase.auth().deleteUser(userId);
+                // Удаляем тренировки
+                const workoutsSnap = await firebase.firestore()
+                    .collection('workouts')
+                    .where('userId', '==', userId)
+                    .get();
+                const batch = firebase.firestore().batch();
+                workoutsSnap.forEach(w => batch.delete(w.ref));
+                await batch.commit();
                 
-                // Удаляем запись о pending
-                await doc.ref.delete();
+                // Удаляем уведомления
+                const notifSnap = await firebase.firestore()
+                    .collection('notifications')
+                    .where('to', '==', userId)
+                    .get();
+                const batch2 = firebase.firestore().batch();
+                notifSnap.forEach(n => batch2.delete(n.ref));
+                await batch2.commit();
+                
+                // Помечаем pending как обработанный (не удаляем сразу,
+                // чтобы Cloud Function могла удалить из Auth)
+                await doc.ref.update({
+                    processed: true,
+                    processedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
                 localStorage.removeItem('pendingVerification_' + userId);
                 
-                console.log(`✅ Аккаунт ${userId} удалён (почта не подтверждена за 5 минут)`);
+                console.log(`✅ Данные аккаунта ${userId} удалены (почта не подтверждена)`);
                 
             } catch (error) {
-                if (error.code === 'auth/user-not-found') {
-                    // Пользователь уже удалён - просто удаляем запись
-                    await doc.ref.delete();
-                    localStorage.removeItem('pendingVerification_' + userId);
-                    console.log(`ℹ️ Пользователь ${userId} уже удалён, запись очищена`);
-                } else {
-                    console.error(`❌ Ошибка удаления аккаунта ${userId}:`, error);
-                }
+                console.error(`❌ Ошибка удаления аккаунта ${userId}:`, error);
+                // Не удаляем pending-запись — попробуем в следующий раз
             }
         }
         
@@ -13008,10 +12317,6 @@ function applyCustomColor() {
 }
 
 function applyColorToTheme(color) {
-    const isDarkMode = document.body.classList.contains('theme-dark-mode') ||
-                      localStorage.getItem('appThemeMode') === 'dark' ||
-                      (localStorage.getItem('appThemeMode') === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    
     // ★★★ УБИРАЕМ ВСЕ КЛАССЫ ТЕМ ★★★
     document.body.className = '';
     
@@ -15560,16 +14865,24 @@ document.getElementById('inventoryForm')?.addEventListener('submit', async funct
 
     localStorage.setItem('userInventory', JSON.stringify(selectedInventory));
 
-    // ★★★ СОХРАНЯЕМ В FIRESTORE ★★★
+    // ★★★ СОХРАНЯЕМ ИНВЕНТАРЬ И ПОЛ В FIRESTORE ★★★
     try {
         const user = await getFirebaseUser();
         if (user) {
+            const genderFromStorage = localStorage.getItem('pendingGender') || 'male';
+
             await updateUserProfile(user.uid, {
-                inventory: selectedInventory
+                inventory: selectedInventory,
+                gender: genderFromStorage       // ★ ЗАПИСЫВАЕМ ПОЛ
             });
+
+            // Очищаем временный ключ
+            localStorage.removeItem('pendingGender');
+
+            console.log('✅ Инвентарь и пол сохранены в Firestore');
         }
     } catch (error) {
-        console.warn('Ошибка сохранения инвентаря:', error);
+        console.warn('Ошибка сохранения инвентаря и пола:', error);
     }
 
     switchToPage('page-loading');
@@ -17333,7 +16646,7 @@ async function sendSupportMessage() {
         return;
     }
 
-    // ★★★ ПОВТОРНАЯ ПРОВЕРКА КУЛДАУНА (на случай гонки) ★★★
+    // ★★★ ПОВТОРНАЯ ПРОВЕРКА КУЛДАУНА ★★★
     const lastSent = parseInt(localStorage.getItem(SUPPORT_COOLDOWN_KEY) || '0');
     const now = Date.now();
     if (now - lastSent < SUPPORT_COOLDOWN_MS) {
@@ -17351,36 +16664,22 @@ async function sendSupportMessage() {
         const profileResult = await getUserProfile(user.uid);
         const profile = profileResult.success ? profileResult.data : {};
 
-        const payload = {
+        // ★★★ 1. СОХРАНЯЕМ В FIRESTORE ★★★
+        await firebase.firestore().collection('supportMessages').add({
             userName: profile.displayName || 'Пользователь',
             userEmail: user.email || '',
             userContact: contact || '—',
             subject: subject,
             message: message,
-            userId: user.uid
-        };
-
-        // 1. Сохраняем в Firestore
-        await firebase.firestore().collection('supportMessages').add({
-            ...payload,
+            userId: user.uid,
             status: 'new',
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             deviceInfo: navigator.userAgent.slice(0, 200)
         });
 
-        // 2. Отправляем на вебхук Nodul → Telegram
-        try {
-            await fetch('https://webhook.nodul.ru/27731/dev/7ce0dbd1-82f5-4125-bf98-bbee595b4742', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            console.log('✅ Уведомление отправлено в Nodul');
-        } catch (webhookError) {
-            console.warn('⚠️ Ошибка отправки вебхука:', webhookError);
-        }
+        console.log('✅ Сообщение сохранено в Firestore');
 
-        // ★★★ 3. СОХРАНЯЕМ ВРЕМЯ ОТПРАВКИ ★★★
+        // ★★★ 2. СОХРАНЯЕМ ВРЕМЯ ОТПРАВКИ ★★★
         const sentAt = Date.now();
         localStorage.setItem(SUPPORT_COOLDOWN_KEY, String(sentAt));
         syncSaveToFirestore('supportLastSent', sentAt);
@@ -18576,4 +17875,250 @@ async function openCoopShareModal() {
         console.error('Ошибка генерации:', e);
         preview.innerHTML = '<div style="color:var(--danger);padding:2rem;">Ошибка</div>';
     }
+}
+
+// =================== APPLE LIQUID GLASS TAB BAR ===================
+(function initAppleTabBar() {
+    const nav = document.getElementById('bottomNav');
+    const bubble = document.getElementById('navBubble');
+    if (!nav || !bubble) return;
+
+    const items = Array.from(nav.querySelectorAll('.nav-item'));
+    if (items.length === 0) return;
+
+    const PADDING = 5;
+    const DRAG_THRESHOLD = 4;
+
+    let isDragging = false;
+    let wasDragging = false;
+    let pointerId = null;
+    let dragStartX = 0;
+    let suppressNextClick = false;
+    let initialRenderDone = false;
+    let continuousIndex = Math.max(0, items.findIndex(i => i.classList.contains('nav-item-active')));
+
+    /* -------- ГЕОМЕТРИЯ -------- */
+
+    function getCenters() {
+        const navRect = nav.getBoundingClientRect();
+        return items.map(item => {
+            const r = item.getBoundingClientRect();
+            return r.left + r.width / 2 - navRect.left;
+        });
+    }
+
+    function getTabWidth() {
+        return items[0].getBoundingClientRect().width;
+    }
+
+    /* -------- РЕНДЕР ПУЗЫРЯ -------- */
+
+    function renderBubble() {
+        const navRect = nav.getBoundingClientRect();
+        if (navRect.width === 0) return;
+
+        const centers = getCenters();
+        const tabWidth = getTabWidth();
+        const n = items.length;
+
+        const idx = Math.max(0, Math.min(n - 1, continuousIndex));
+        const floor = Math.floor(idx);
+        const ceil = Math.min(n - 1, Math.ceil(idx));
+
+        let width, center;
+
+        if (floor === ceil) {
+            width = tabWidth;
+            center = centers[floor];
+        } else {
+            const gap = centers[ceil] - centers[floor];
+            const fraction = idx - floor;
+            center = centers[floor] + gap * fraction;
+            width = tabWidth + gap * Math.pow(Math.sin(Math.PI * fraction), 1.5) * 0.7;
+        }
+
+        const maxWidth = navRect.width - PADDING * 2;
+        if (width > maxWidth) width = maxWidth;
+
+        let tx = center - width / 2;
+        const minTx = PADDING;
+        const maxTx = navRect.width - width - PADDING;
+        if (tx < minTx) tx = minTx;
+        if (tx > maxTx) tx = maxTx;
+
+        // ★★★ МЕНЯЕМ ТОЛЬКО transform И width — CSS сам всё анимирует ★★★
+        bubble.style.width = width + 'px';
+        bubble.style.transform = `translateX(${tx}px)`;
+    }
+
+    /* -------- X → ИНДЕКС -------- */
+
+    function clientXToIndex(clientX) {
+        const centers = getCenters();
+        const navRect = nav.getBoundingClientRect();
+        const x = clientX - navRect.left;
+        const n = centers.length;
+
+        if (x <= centers[0]) return 0;
+        if (x >= centers[n - 1]) return n - 1;
+
+        for (let i = 0; i < n - 1; i++) {
+            if (x >= centers[i] && x <= centers[i + 1]) {
+                const t = (x - centers[i]) / (centers[i + 1] - centers[i]);
+                return i + t;
+            }
+        }
+        return 0;
+    }
+
+    /* -------- POINTER EVENTS -------- */
+
+    function onPointerDown(e) {
+        if (e.button !== undefined && e.button !== 0) return;
+
+        isDragging = true;
+        wasDragging = false;
+        pointerId = e.pointerId;
+        dragStartX = e.clientX;
+
+        document.addEventListener('pointermove', onPointerMove);
+        document.addEventListener('pointerup', onPointerUp);
+        document.addEventListener('pointercancel', onPointerUp);
+    }
+
+    function onPointerMove(e) {
+        if (!isDragging || e.pointerId !== pointerId) return;
+
+        if (!wasDragging) {
+            if (Math.abs(e.clientX - dragStartX) < DRAG_THRESHOLD) return;
+            wasDragging = true;
+            nav.classList.add('dragging');
+            try { nav.setPointerCapture(e.pointerId); } catch (_) {}
+        }
+
+        continuousIndex = clientXToIndex(e.clientX);
+        renderBubble();
+    }
+
+    function onPointerUp(e) {
+        if (!isDragging || e.pointerId !== pointerId) return;
+        isDragging = false;
+        pointerId = null;
+        nav.classList.remove('dragging');
+
+        document.removeEventListener('pointermove', onPointerMove);
+        document.removeEventListener('pointerup', onPointerUp);
+        document.removeEventListener('pointercancel', onPointerUp);
+
+        if (wasDragging) {
+            const targetIndex = Math.max(0, Math.min(items.length - 1, Math.round(continuousIndex)));
+            continuousIndex = targetIndex;
+            renderBubble();
+
+            suppressNextClick = true;
+            setTimeout(() => { suppressNextClick = false; }, 100);
+
+            const targetItem = items[targetIndex];
+            if (targetItem && targetItem.dataset.page && typeof window.navigateTo === 'function') {
+                window.navigateTo(targetItem.dataset.page);
+            }
+        }
+    }
+
+    nav.addEventListener('click', function (e) {
+        if (suppressNextClick) {
+            suppressNextClick = false;
+            e.stopImmediatePropagation();
+            e.preventDefault();
+        }
+    }, true);
+
+    nav.addEventListener('pointerdown', onPointerDown);
+
+    /* -------- СИНХРОНИЗАЦИЯ С АКТИВНОЙ ВКЛАДКОЙ -------- */
+    // ★★★ ГЛАВНОЕ ИЗМЕНЕНИЕ: без MutationObserver, без резких прыжков ★★★
+    // Просто слушаем изменения и плавно меняем continuousIndex.
+    // CSS-transition сам отрисует плавный переезд.
+
+    let lastActiveIndex = items.findIndex(i => i.classList.contains('nav-item-active'));
+
+    // MutationObserver — только для обнаружения смены активной вкладки
+    const classObserver = new MutationObserver(() => {
+        if (isDragging || wasDragging) return;
+
+        const activeIdx = items.findIndex(i => i.classList.contains('nav-item-active'));
+        if (activeIdx < 0) return;
+        if (activeIdx === lastActiveIndex) return;
+
+        lastActiveIndex = activeIdx;
+
+        // ★★★ МЕНЯЕМ continuousIndex НА ЦЕЛОЕ ЧИСЛО ★★★
+        // CSS-transition плавно перенесёт пузырёк из текущей позиции в новую
+        continuousIndex = activeIdx;
+        renderBubble();
+    });
+
+    items.forEach(item => {
+        classObserver.observe(item, { attributes: true, attributeFilter: ['class'] });
+    });
+
+    /* -------- ПЕРВИЧНЫЙ РЕНДЕР -------- */
+    function tryInitialRender() {
+        if (initialRenderDone) return;
+        if (nav.offsetWidth === 0) return;
+
+        initialRenderDone = true;
+        bubble.style.transition = 'none';
+        renderBubble();
+        void bubble.offsetWidth;
+        requestAnimationFrame(() => {
+            bubble.style.transition = '';
+        });
+    }
+
+    const styleObserver = new MutationObserver(() => {
+        if (nav.style.display !== 'none') tryInitialRender();
+    });
+    styleObserver.observe(nav, { attributes: true, attributeFilter: ['style'] });
+
+    if (nav.style.display !== 'none') {
+        requestAnimationFrame(tryInitialRender);
+    }
+
+    window.addEventListener('resize', renderBubble);
+})();
+
+// =================== ВЫБОР ПОЛА ===================
+let tempGender = null;
+
+/**
+ * Выбор пола — визуально + сразу меняет аватар на превью
+ */
+function selectGender(gender) {
+    tempGender = gender;
+
+    // Подсветка активной кнопки
+    document.querySelectorAll('#profileEdit .toggle-btn[data-gender]').forEach(btn => {
+        btn.classList.toggle('toggle-btn-active', btn.dataset.gender === gender);
+    });
+
+    // Меняем картинку аватара на превью
+    const avatarImg = document.querySelector('.profile-avatar img');
+    if (avatarImg) {
+        avatarImg.src = gender === 'female'
+            ? 'images/avatar-woman.png'
+            : 'images/avatar-men.png';
+    }
+}
+
+/**
+ * Применить пол к UI (при загрузке профиля)
+ */
+function applyGenderToUI(gender) {
+    const g = gender || 'male';
+    tempGender = g;
+
+    document.querySelectorAll('#profileEdit .toggle-btn[data-gender]').forEach(btn => {
+        btn.classList.toggle('toggle-btn-active', btn.dataset.gender === g);
+    });
 }
