@@ -1820,8 +1820,8 @@ body.theme-dark-mode .btn-submit-arrow {
 }
 
 .hero-title {
-    font-size: 4rem;
-    font-weight: 800;
+    font-size: 3rem;
+    font-weight: 900;
     margin-bottom: 0.5rem;
     letter-spacing: -0.02em;
     background: var(--accent);
@@ -2856,7 +2856,6 @@ body.theme-dark-mode .premium-price-period { color: var(--text-secondary); }
     .calendar-day { font-size: 0.8rem; padding: 0.4rem 0; }
     .nav-item i { font-size: 18px; }
     .scroll-wrapper { max-height: 380px; }
-    .hero-title { font-size: 2.8rem; }
     .hero-features { grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; }
     .feature { padding: 0.8rem 0.3rem; }
     .feature i { font-size: 1.5rem; }
