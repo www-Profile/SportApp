@@ -3515,11 +3515,14 @@ body.theme-dark-mode .achievement-modal-progress-text.unlocked { color: var(--te
 /* =================== ДОСТИЖЕНИЯ ==================== */
 .achievements-container {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     flex-wrap: nowrap;
     margin-top: 0.8rem;
-    gap: 1rem;
-    overflow: hidden;
+    gap: 0;
+    overflow: visible;
+    width: 100%;
+    padding: 0 1rem;      /* ← отступы слева и справа */
+    box-sizing: border-box; /* ← чтобы padding не расширял контейнер */
 }
 
 .achievements-container.hidden { display: none !important; }
@@ -3961,7 +3964,7 @@ body.theme-dark-mode .weekly-load-value { color: var(--accent); }
 /* =================== ВЫБОР ИНВЕНТАРЯ ==================== */
 .inventory-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 0.5rem;
 }
 

@@ -3353,16 +3353,17 @@ if (subtitleEl) {
         }
 
         // ★★★ СОБИРАЕМ УПРАЖНЕНИЯ С УЧЁТОМ ИНВЕНТАРЯ ★★★
-        if (levelData) {
-            if (levelData.core && Array.isArray(levelData.core)) {
-                exercises = buildWorkoutForUser(levelData, userInventory);
-            } else if (Array.isArray(levelData)) {
-                exercises = levelData;
-            } else if (typeof levelData === 'object' && levelData._exercises) {
-                exercises = levelData._exercises;
-                displayName = levelData._title || displayName;
-            }
-        }
+if (levelData) {
+    if (Array.isArray(levelData)) {
+        exercises = levelData;
+    } else if (typeof levelData === 'object' && levelData._exercises) {
+        exercises = levelData._exercises;
+        displayName = levelData._title || displayName;
+    } else if (typeof levelData === 'object') {
+        // ★★★ НОВЫЙ ФОРМАТ: none / dumbbells / pullup / dumbbells_pullup
+        exercises = buildWorkoutForUser(levelData, userInventory);
+    }
+}
 
         const count = exercises.length;
         return `
@@ -3469,22 +3470,20 @@ function loadWorkoutDetail(category, level, isCustom, id, parentCategory, isPrem
         }
 
         // ★★★ СОБИРАЕМ УПРАЖНЕНИЯ ПО ИНВЕНТАРЮ ★★★
-        if (levelData) {
-            if (levelData.core && Array.isArray(levelData.core)) {
-                const userInventory = getUserInventoryFromStorage();
-                exercises = buildWorkoutForUser(levelData, userInventory);
-                found = exercises.length > 0;
-            } else if (typeof levelData === 'object' && !Array.isArray(levelData) && levelData._exercises) {
-                exercises = levelData._exercises;
-                found = true;
-                if (levelData._title) {
-                    savedTitle = levelData._title;
-                }
-            } else if (Array.isArray(levelData) && levelData.length > 0) {
-                exercises = levelData;
-                found = true;
-            }
-        }
+if (levelData) {
+    if (Array.isArray(levelData) && levelData.length > 0) {
+        exercises = levelData;
+        found = true;
+    } else if (typeof levelData === 'object' && !Array.isArray(levelData) && levelData._exercises) {
+        exercises = levelData._exercises;
+        found = true;
+        if (levelData._title) savedTitle = levelData._title;
+    } else if (typeof levelData === 'object' && !Array.isArray(levelData)) {
+        const userInventory = getUserInventoryFromStorage();   // ← ДОБАВИЛИ
+        exercises = buildWorkoutForUser(levelData, userInventory);
+        found = exercises.length > 0;
+    }
+}
 
         if (!found) {
             for (const parent in exercisesData) {
@@ -15043,12 +15042,11 @@ function updateInventoryText() {
         return;
     }
     
-    const names = {
-        'dumbbells': 'Гантели',
-        'barbell': 'Штанга',
-        'mat': 'Коврик',
-        'pullup': 'Турник'
-    };
+const names = {
+    'dumbbells': 'Гантели',
+    'mat': 'Коврик',
+    'pullup': 'Турник'
+};
     
     const selectedNames = selectedInventory.map(item => names[item] || item);
     textEl.textContent = selectedNames.join(' · ');
@@ -15337,9 +15335,6 @@ async function saveInventoryFromModal() {
     closeModal('inventoryModal');
 }
 
-/**
- * Обновить статус инвентаря в настройках (текст под пунктом)
- */
 function updateInventoryStatus() {
     const statusEl = document.getElementById('inventoryStatus');
     if (!statusEl) return;
@@ -15351,7 +15346,6 @@ function updateInventoryStatus() {
 
     const names = {
         'dumbbells': 'Гантели',
-        'barbell': 'Штанга',
         'mat': 'Коврик',
         'pullup': 'Турник'
     };
@@ -16460,16 +16454,20 @@ function declOfNum(n, titles) {
 window.openStreakModal = openStreakModal;
 
 // =================== ИНВЕНТАРЬ ДЛЯ ФИЛЬТРАЦИИ УПРАЖНЕНИЙ ===================
-
-/**
- * Получить инвентарь пользователя из localStorage
- */
 function getUserInventoryFromStorage() {
     try {
         const saved = localStorage.getItem('userInventory');
         if (saved) {
             const parsed = JSON.parse(saved);
-            if (Array.isArray(parsed)) return parsed;
+            if (Array.isArray(parsed)) {
+                // ★★★ УБИРАЕМ УСТАРЕВШИЕ ЗНАЧЕНИЯ ★★★
+                const cleaned = parsed.filter(item => item !== 'barbell');
+                if (cleaned.length !== parsed.length) {
+                    localStorage.setItem('userInventory', JSON.stringify(cleaned));
+                    console.log('🧹 Удалён устаревший инвентарь "barbell"');
+                }
+                return cleaned;
+            }
         }
     } catch (e) {
         console.warn('Ошибка получения инвентаря:', e);

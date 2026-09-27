@@ -1625,20 +1625,17 @@
             <form id="inventoryForm" novalidate>
                 <label class="form-label-large">Какой инвентарь у вас есть?</label>
                 
-                <div class="inventory-grid">
-                    <button type="button" class="inventory-btn" data-inventory="dumbbells" onclick="toggleInventory(this)">
-                        <span class="inventory-name">Гантели</span>
-                    </button>
-                    <button type="button" class="inventory-btn" data-inventory="barbell" onclick="toggleInventory(this)">
-                        <span class="inventory-name">Штанга</span>
-                    </button>
-                    <button type="button" class="inventory-btn" data-inventory="mat" onclick="toggleInventory(this)">
-                        <span class="inventory-name">Коврик</span>
-                    </button>
-                    <button type="button" class="inventory-btn" data-inventory="pullup" onclick="toggleInventory(this)">
-                        <span class="inventory-name">Турник</span>
-                    </button>
-                </div>
+<div class="inventory-grid">
+    <button type="button" class="inventory-btn" data-inventory="dumbbells" onclick="toggleInventory(this)">
+        <span class="inventory-name">Гантели</span>
+    </button>
+    <button type="button" class="inventory-btn" data-inventory="mat" onclick="toggleInventory(this)">
+        <span class="inventory-name">Коврик</span>
+    </button>
+    <button type="button" class="inventory-btn" data-inventory="pullup" onclick="toggleInventory(this)">
+        <span class="inventory-name">Турник</span>
+    </button>
+</div>
                 
                 <div class="input-with-btn" style="margin-top: 0.5rem;">
                     <span style="flex: 1; font-size: 0.8rem; color: var(--slate); text-align: center;" id="selectedInventoryText">Ничего из перечисленного</span>
@@ -1971,21 +1968,17 @@
             Отметьте, какой инвентарь у вас есть. Это поможет подбирать подходящие тренировки.
         </p>
 
-        <!-- ★★★ ТАКАЯ ЖЕ СЕТКА КАК НА ШАГЕ 5 РЕГИСТРАЦИИ ★★★ -->
-        <div class="inventory-grid" style="margin-bottom: 1rem;">
-            <button type="button" class="inventory-btn" data-inventory="dumbbells" onclick="toggleInventory(this)">
-                <span class="inventory-name">Гантели</span>
-            </button>
-            <button type="button" class="inventory-btn" data-inventory="barbell" onclick="toggleInventory(this)">
-                <span class="inventory-name">Штанга</span>
-            </button>
-            <button type="button" class="inventory-btn" data-inventory="mat" onclick="toggleInventory(this)">
-                <span class="inventory-name">Коврик</span>
-            </button>
-            <button type="button" class="inventory-btn" data-inventory="pullup" onclick="toggleInventory(this)">
-                <span class="inventory-name">Турник</span>
-            </button>
-        </div>
+<div class="inventory-grid" style="margin-bottom: 1rem;">
+    <button type="button" class="inventory-btn" data-inventory="dumbbells" onclick="toggleInventory(this)">
+        <span class="inventory-name">Гантели</span>
+    </button>
+    <button type="button" class="inventory-btn" data-inventory="mat" onclick="toggleInventory(this)">
+        <span class="inventory-name">Коврик</span>
+    </button>
+    <button type="button" class="inventory-btn" data-inventory="pullup" onclick="toggleInventory(this)">
+        <span class="inventory-name">Турник</span>
+    </button>
+</div>
 
         <button class="btn btn-primary" onclick="saveInventoryFromModal()">
             Сохранить

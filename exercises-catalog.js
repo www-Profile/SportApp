@@ -1,14 +1,4 @@
 // =================== ОТДЕЛЬНЫЙ КАТАЛОГ УПРАЖНЕНИЙ ===================
-// Инвентарь: гантели, штанга, турник, вес тела
-// weight: 0 добавлен во все упражнения, кроме Растяжки, Кардио, Зарядки, Пилатеса
-//
-// ★★★ ПОЛЕ equipment — определяет, какой инвентарь нужен ★★★
-//   'none'      — без инвентаря (вес тела) — доступно всегда
-//   'dumbbells' — нужны гантели
-//   'barbell'   — нужна штанга
-//   'pullup'    — нужен турник
-//   'mat'       — нужен коврик (не фильтруется, всегда доступно)
-
 const EXERCISES_CATALOG = [
     // ====================================================================
     // БЛОК 1: БЕЗ ИНВЕНТАРЯ (ВЕС ТЕЛА) — доступно всегда
@@ -278,17 +268,6 @@ const EXERCISES_CATALOG = [
     { name: 'Ножницы ногами с утяжелением', category: 'Пилатес', sets: 3, reps: 20, weight: 0, icon: 'Pilates', equipment: 'dumbbells' },
 
     // ====================================================================
-    // БЛОК 3: ШТАНГА
-    // ====================================================================
-
-    { name: 'Жим штанги лёжа', category: 'Грудь', sets: 4, reps: 10, weight: 0, icon: 'breast', equipment: 'barbell' },
-    { name: 'Становая тяга со штангой', category: 'Ноги', sets: 4, reps: 8, weight: 0, icon: 'legs', equipment: 'barbell' },
-    { name: 'Приседания со штангой', category: 'Ноги', sets: 4, reps: 10, weight: 0, icon: 'legs', equipment: 'barbell' },
-    { name: 'Жим штанги стоя', category: 'Плечи', sets: 4, reps: 10, weight: 0, icon: 'shoulder', equipment: 'barbell' },
-    { name: 'Тяга штанги к поясу', category: 'Спина', sets: 4, reps: 10, weight: 0, icon: 'back', equipment: 'barbell' },
-    { name: 'Сгибание рук со штангой', category: 'Руки', sets: 4, reps: 10, weight: 0, icon: 'bodybuilding', equipment: 'barbell' },
-
-    // ====================================================================
     // БЛОК 4: ТУРНИК
     // ====================================================================
 
@@ -350,24 +329,21 @@ const EXERCISES_CATALOG = [
 ];
 
 // =================== ФИЛЬТРАЦИЯ ПО ИНВЕНТАРЮ ===================
-/**
- * Возвращает отфильтрованный список упражнений по инвентарю пользователя
- * @param {Array} userInventory — массив выбранного инвентаря, например ['dumbbells', 'mat']
- * @returns {Array} — отфильтрованный список
- */
 function filterExercisesByInventory(userInventory) {
-    const inventory = Array.isArray(userInventory) ? userInventory : [];
+    if (typeof EXERCISES_CATALOG === 'undefined') return [];
     
     return EXERCISES_CATALOG.filter(ex => {
-        const eq = ex.equipment || 'none';
-        
-        // 'none' и 'mat' — доступно всегда
-        if (eq === 'none' || eq === 'mat') {
+        if (!ex.equipment || !Array.isArray(ex.equipment) || ex.equipment.length === 0) {
             return true;
         }
         
-        // Проверяем, есть ли нужный инвентарь
-        return inventory.includes(eq);
+        if (userInventory.length === 0) {
+            return ex.equipment.includes('bodyweight') || ex.equipment.includes('none');
+        }
+        
+        return ex.equipment.some(item => 
+            userInventory.includes(item) || item === 'bodyweight' || item === 'none'
+        );
     });
 }
 
@@ -392,7 +368,6 @@ function getUserInventoryFromStorage() {
 // {
 //   core: [упражнения без инвентаря — всегда],
 //   pullup: [если есть турник],
-//   barbell: [если есть штанга],
 //   dumbbells: [если есть гантели],
 //   noEquipment: [если нет ничего],
 //   _restTime: 30,       // опционально
@@ -439,11 +414,6 @@ const exercisesData = {
                     { name: 'Подтягивания узким хватом', category: 'Спина', reps: '8', sets: '4', weight: 0, icon: 'back' },
                     { name: 'Подтягивания обратным хватом', category: 'Спина', reps: '8', sets: '4', weight: 0, icon: 'back' }
                 ],
-                barbell: [
-                    { name: 'Сгибание рук со штангой', category: 'Руки', reps: '10', sets: '4', weight: 0, icon: 'bodybuilding' },
-                    { name: 'Жим штанги узким хватом', category: 'Руки', reps: '10', sets: '4', weight: 0, icon: 'bodybuilding' },
-                    { name: 'Французский жим со штангой', category: 'Руки', reps: '10', sets: '4', weight: 0, icon: 'bodybuilding' }
-                ],
                 dumbbells: [
                     { name: 'Сгибание рук с гантелями хватом молот', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' },
                     { name: 'Разгибание рук с гантелью из-за головы', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' },
@@ -471,11 +441,6 @@ const exercisesData = {
                     { name: 'Подтягивания', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' },
                     { name: 'Подтягивания с отягощением', category: 'Спина', reps: '8', sets: '4', weight: 0, icon: 'back' },
                     { name: 'Подтягивания узким хватом', category: 'Спина', reps: '10', sets: '4', weight: 0, icon: 'back' }
-                ],
-                barbell: [
-                    { name: 'Сгибание рук со штангой', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' },
-                    { name: 'Жим штанги узким хватом', category: 'Руки', reps: '10', sets: '4', weight: 0, icon: 'bodybuilding' },
-                    { name: 'Французский жим со штангой лёжа', category: 'Руки', reps: '10', sets: '4', weight: 0, icon: 'bodybuilding' }
                 ],
                 dumbbells: [
                     { name: 'Сгибание рук с гантелями хватом молот', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' },
@@ -525,11 +490,6 @@ const exercisesData = {
                     { name: 'Подтягивания обратным хватом', category: 'Спина', reps: '8', sets: '4', weight: 0, icon: 'back' },
                     { name: 'Вис на турнике', category: 'Плечи', reps: '20 сек', sets: '4', weight: 0, icon: 'stretching' }
                 ],
-                barbell: [
-                    { name: 'Жим штанги стоя', category: 'Плечи', reps: '10', sets: '4', weight: 0, icon: 'shoulder' },
-                    { name: 'Тяга штанги к подбородку', category: 'Плечи', reps: '10', sets: '4', weight: 0, icon: 'shoulder' },
-                    { name: 'Жим штанги из-за головы', category: 'Плечи', reps: '10', sets: '4', weight: 0, icon: 'shoulder' }
-                ],
                 dumbbells: [
                     { name: 'Жим одной гантели сидя', category: 'Плечи', reps: '12', sets: '4', weight: 0, icon: 'shoulder' },
                     { name: 'Разводка гантелей в наклоне сидя', category: 'Плечи', reps: '12', sets: '4', weight: 0, icon: 'shoulder' },
@@ -555,11 +515,6 @@ const exercisesData = {
                     { name: 'Подтягивания', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' },
                     { name: 'Подтягивания широким хватом', category: 'Спина', reps: '10', sets: '4', weight: 0, icon: 'back' },
                     { name: 'Вис на турнике', category: 'Плечи', reps: '25 сек', sets: '4', weight: 0, icon: 'stretching' }
-                ],
-                barbell: [
-                    { name: 'Жим штанги стоя', category: 'Плечи', reps: '12', sets: '4', weight: 0, icon: 'shoulder' },
-                    { name: 'Тяга штанги к подбородку', category: 'Плечи', reps: '12', sets: '4', weight: 0, icon: 'shoulder' },
-                    { name: 'Жим штанги из-за головы', category: 'Плечи', reps: '10', sets: '4', weight: 0, icon: 'shoulder' }
                 ],
                 dumbbells: [
                     { name: 'Жим одной гантели сидя', category: 'Плечи', reps: '12', sets: '4', weight: 0, icon: 'shoulder' },
@@ -683,11 +638,6 @@ const exercisesData = {
                     { name: 'Подтягивания широким хватом', category: 'Спина', reps: '8', sets: '4', weight: 0, icon: 'back' },
                     { name: 'Вис на турнике', category: 'Плечи', reps: '20 сек', sets: '4', weight: 0, icon: 'stretching' }
                 ],
-                barbell: [
-                    { name: 'Жим штанги лёжа', category: 'Грудь', reps: '10', sets: '4', weight: 0, icon: 'breast' },
-                    { name: 'Жим штанги на наклонной скамье', category: 'Грудь', reps: '10', sets: '4', weight: 0, icon: 'breast' },
-                    { name: 'Разводка штанги лёжа', category: 'Грудь', reps: '10', sets: '4', weight: 0, icon: 'breast' }
-                ],
                 dumbbells: [
                     { name: 'Разводка гантелей на наклонной скамье', category: 'Грудь', reps: '12', sets: '4', weight: 0, icon: 'breast' },
                     { name: 'Жим одной гантели лёжа', category: 'Грудь', reps: '12', sets: '4', weight: 0, icon: 'breast' },
@@ -714,11 +664,6 @@ const exercisesData = {
                     { name: 'Подтягивания', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' },
                     { name: 'Подтягивания с отягощением', category: 'Спина', reps: '8', sets: '4', weight: 0, icon: 'back' },
                     { name: 'Вис на турнике', category: 'Плечи', reps: '25 сек', sets: '4', weight: 0, icon: 'stretching' }
-                ],
-                barbell: [
-                    { name: 'Жим штанги лёжа', category: 'Грудь', reps: '12', sets: '4', weight: 0, icon: 'breast' },
-                    { name: 'Жим штанги на наклонной скамье', category: 'Грудь', reps: '10', sets: '4', weight: 0, icon: 'breast' },
-                    { name: 'Жим штанги узким хватом', category: 'Руки', reps: '10', sets: '4', weight: 0, icon: 'bodybuilding' }
                 ],
                 dumbbells: [
                     { name: 'Жим гантелей на наклонной скамье', category: 'Грудь', reps: '10', sets: '4', weight: 0, icon: 'breast' },
@@ -768,11 +713,6 @@ const exercisesData = {
                     { name: 'Подтягивания обратным хватом', category: 'Спина', reps: '10', sets: '4', weight: 0, icon: 'back' },
                     { name: 'Вис на турнике', category: 'Спина', reps: '20 сек', sets: '4', weight: 0, icon: 'stretching' }
                 ],
-                barbell: [
-                    { name: 'Тяга штанги к поясу', category: 'Спина', reps: '10', sets: '4', weight: 0, icon: 'back' },
-                    { name: 'Становая тяга со штангой', category: 'Спина', reps: '8', sets: '4', weight: 0, icon: 'back' },
-                    { name: 'Шраги со штангой', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' }
-                ],
                 dumbbells: [
                     { name: 'Тяга гантелей к поясу в наклоне', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' },
                     { name: 'Тяга гантели к поясу с упором', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' },
@@ -798,11 +738,6 @@ const exercisesData = {
                     { name: 'Подтягивания с отягощением', category: 'Спина', reps: '8', sets: '4', weight: 0, icon: 'back' },
                     { name: 'Подтягивания узким хватом', category: 'Спина', reps: '10', sets: '4', weight: 0, icon: 'back' },
                     { name: 'Вис на турнике', category: 'Спина', reps: '25 сек', sets: '4', weight: 0, icon: 'stretching' }
-                ],
-                barbell: [
-                    { name: 'Становая тяга со штангой', category: 'Спина', reps: '10', sets: '4', weight: 0, icon: 'back' },
-                    { name: 'Тяга штанги к поясу', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' },
-                    { name: 'Шраги со штангой', category: 'Спина', reps: '15', sets: '4', weight: 0, icon: 'back' }
                 ],
                 dumbbells: [
                     { name: 'Тяга гантелей к поясу в наклоне', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' },
@@ -856,11 +791,6 @@ const exercisesData = {
                     { name: 'Подъём ног в висе', category: 'Пресс', reps: '12', sets: '4', weight: 0, icon: 'press' },
                     { name: 'Подъём ног в висе с весом', category: 'Пресс', reps: '10', sets: '4', weight: 0, icon: 'press' }
                 ],
-                barbell: [
-                    { name: 'Приседания со штангой', category: 'Ноги', reps: '10', sets: '4', weight: 0, icon: 'legs' },
-                    { name: 'Становая тяга со штангой', category: 'Ноги', reps: '8', sets: '4', weight: 0, icon: 'legs' },
-                    { name: 'Выпады со штангой', category: 'Ноги', reps: '10', sets: '4', weight: 0, icon: 'legs' }
-                ],
                 dumbbells: [
                     { name: 'Приседания с паузой внизу', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
                     { name: 'Выпады в стороны с гантелями', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
@@ -886,11 +816,6 @@ const exercisesData = {
                 pullup: [
                     { name: 'Подъём ног в висе', category: 'Пресс', reps: '15', sets: '4', weight: 0, icon: 'press' },
                     { name: 'Подъём ног в висе с весом', category: 'Пресс', reps: '12', sets: '4', weight: 0, icon: 'press' }
-                ],
-                barbell: [
-                    { name: 'Приседания со штангой', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
-                    { name: 'Становая тяга со штангой', category: 'Ноги', reps: '10', sets: '4', weight: 0, icon: 'legs' },
-                    { name: 'Выпады со штангой', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' }
                 ],
                 dumbbells: [
                     { name: 'Приседания с паузой внизу', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' },
@@ -942,11 +867,6 @@ const exercisesData = {
                     { name: 'Подъём ног в висе', category: 'Пресс', reps: '12', sets: '4', weight: 0, icon: 'press' },
                     { name: 'Вис на турнике', category: 'Спина', reps: '20 сек', sets: '4', weight: 0, icon: 'stretching' }
                 ],
-                barbell: [
-                    { name: 'Приседания со штангой', category: 'Ноги', reps: '10', sets: '4', weight: 0, icon: 'legs' },
-                    { name: 'Становая тяга со штангой', category: 'Ноги', reps: '8', sets: '4', weight: 0, icon: 'legs' },
-                    { name: 'Жим штанги стоя', category: 'Плечи', reps: '10', sets: '4', weight: 0, icon: 'shoulder' }
-                ],
                 dumbbells: [
                     { name: 'Выпады с гантелями', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
                     { name: 'Подъём на носки с гантелями', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' },
@@ -974,11 +894,6 @@ const exercisesData = {
                     { name: 'Подтягивания широким хватом', category: 'Спина', reps: '10', sets: '4', weight: 0, icon: 'back' },
                     { name: 'Подъём ног в висе с весом', category: 'Пресс', reps: '12', sets: '4', weight: 0, icon: 'press' },
                     { name: 'Вис на турнике', category: 'Спина', reps: '25 сек', sets: '4', weight: 0, icon: 'stretching' }
-                ],
-                barbell: [
-                    { name: 'Приседания со штангой', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'legs' },
-                    { name: 'Становая тяга со штангой', category: 'Ноги', reps: '10', sets: '4', weight: 0, icon: 'legs' },
-                    { name: 'Тяга штанги к поясу', category: 'Спина', reps: '10', sets: '4', weight: 0, icon: 'back' }
                 ],
                 dumbbells: [
                     { name: 'Болгарские сплит-приседания с гантелями', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'legs' },
@@ -1229,11 +1144,6 @@ const exercisesData = {
                     { name: 'Подъём ног в висе', category: 'Пресс', reps: '12', sets: '4', weight: 0, icon: 'press' },
                     { name: 'Вис на турнике', category: 'Спина', reps: '20 сек', sets: '4', weight: 0, icon: 'stretching' }
                 ],
-                barbell: [
-                    { name: 'Приседания со штангой', category: 'Ноги', reps: '10', sets: '4', weight: 0, icon: 'crossfit' },
-                    { name: 'Становая тяга со штангой', category: 'Ноги', reps: '8', sets: '4', weight: 0, icon: 'crossfit' },
-                    { name: 'Жим штанги стоя', category: 'Плечи', reps: '10', sets: '4', weight: 0, icon: 'crossfit' }
-                ],
                 dumbbells: [
                     { name: 'Выпады с гантелями', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'crossfit' },
                     { name: 'Приседания с гантелями', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'crossfit' },
@@ -1256,11 +1166,6 @@ const exercisesData = {
                 pullup: [
                     { name: 'Подтягивания', category: 'Спина', reps: '12', sets: '5', weight: 0, icon: 'back' },
                     { name: 'Подъём ног в висе с весом', category: 'Пресс', reps: '12', sets: '5', weight: 0, icon: 'press' }
-                ],
-                barbell: [
-                    { name: 'Приседания со штангой', category: 'Ноги', reps: '12', sets: '5', weight: 0, icon: 'crossfit' },
-                    { name: 'Становая тяга со штангой', category: 'Ноги', reps: '10', sets: '5', weight: 0, icon: 'crossfit' },
-                    { name: 'Тяга штанги к поясу', category: 'Спина', reps: '10', sets: '5', weight: 0, icon: 'crossfit' }
                 ],
                 dumbbells: [
                     { name: 'Выпады с гантелями', category: 'Ноги', reps: '15', sets: '5', weight: 0, icon: 'crossfit' },
@@ -1293,10 +1198,6 @@ const exercisesData = {
                 pullup: [
                     { name: 'Подтягивания', category: 'Спина', reps: '8', sets: '4', weight: 0, icon: 'men' }
                 ],
-                barbell: [
-                    { name: 'Приседания со штангой', category: 'Ноги', reps: '10', sets: '4', weight: 0, icon: 'men' },
-                    { name: 'Становая тяга со штангой', category: 'Ноги', reps: '8', sets: '4', weight: 0, icon: 'men' }
-                ],
                 noEquipment: [
                     { name: 'Ягодичный мостик на правую ногу', category: 'Ягодицы', reps: '12', sets: '4', weight: 0, icon: 'men' },
                     { name: 'Ягодичный мостик на левую ногу', category: 'Ягодицы', reps: '12', sets: '4', weight: 0, icon: 'men' }
@@ -1320,10 +1221,6 @@ const exercisesData = {
                 pullup: [
                     { name: 'Подтягивания', category: 'Спина', reps: '10', sets: '4', weight: 0, icon: 'men' },
                     { name: 'Подъём ног в висе', category: 'Пресс', reps: '12', sets: '4', weight: 0, icon: 'men' }
-                ],
-                barbell: [
-                    { name: 'Приседания со штангой', category: 'Ноги', reps: '12', sets: '4', weight: 0, icon: 'men' },
-                    { name: 'Становая тяга со штангой', category: 'Ноги', reps: '10', sets: '4', weight: 0, icon: 'men' }
                 ],
                 noEquipment: [
                     { name: 'Выпады с прыжком на правую ногу', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'men' },
@@ -1350,10 +1247,6 @@ const exercisesData = {
                 pullup: [
                     { name: 'Подтягивания', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'men' },
                     { name: 'Подъём ног в висе с весом', category: 'Пресс', reps: '12', sets: '4', weight: 0, icon: 'men' }
-                ],
-                barbell: [
-                    { name: 'Приседания со штангой', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'men' },
-                    { name: 'Становая тяга со штангой', category: 'Ноги', reps: '10', sets: '4', weight: 0, icon: 'men' }
                 ],
                 noEquipment: [
                     { name: 'Боковые выпады на правую ногу', category: 'Ноги', reps: '15', sets: '4', weight: 0, icon: 'men' },
@@ -1722,33 +1615,47 @@ const exercisesData = {
  * @returns {Array} — массив упражнений
  */
 function buildWorkoutForUser(levelData, userInventory) {
-    // Если это старый формат (просто массив) — возвращаем как есть
+    // Старый формат (просто массив) — возвращаем как есть
     if (Array.isArray(levelData)) {
         return levelData;
     }
-    if (!levelData || !Array.isArray(levelData.core)) {
+    if (!levelData || typeof levelData !== 'object') {
         return [];
     }
 
     const inventory = Array.isArray(userInventory) ? userInventory : [];
-    const result = [...levelData.core];
 
-    // ★★★ ОПРЕДЕЛЯЕМ ВЕТКУ ПО ПРИОРИТЕТУ ★★★
-    let branch = null;
+    const hasDumbbells = inventory.includes('dumbbells');
+    const hasPullup = inventory.includes('pullup');
 
-    if (inventory.includes('pullup') && Array.isArray(levelData.pullup) && levelData.pullup.length > 0) {
-        branch = levelData.pullup;
-    } else if (inventory.includes('barbell') && Array.isArray(levelData.barbell) && levelData.barbell.length > 0) {
-        branch = levelData.barbell;
-    } else if (inventory.includes('dumbbells') && Array.isArray(levelData.dumbbells) && levelData.dumbbells.length > 0) {
-        branch = levelData.dumbbells;
-    } else if (Array.isArray(levelData.noEquipment)) {
-        branch = levelData.noEquipment;
+    let list = [];
+
+    if (hasDumbbells && hasPullup) {
+        // Комбинации "dumbbells_pullup" в данных нет — берём всё, что есть
+        list = [
+            ...(levelData.core || []),
+            ...(levelData.dumbbells || []),
+            ...(levelData.pullup || [])
+        ];
+    } else if (hasDumbbells) {
+        list = [
+            ...(levelData.core || []),
+            ...(levelData.dumbbells || [])
+        ];
+    } else if (hasPullup) {
+        list = [
+            ...(levelData.core || []),
+            ...(levelData.pullup || [])
+        ];
+    } else {
+        // Без инвентаря — core + noEquipment
+        list = [
+            ...(levelData.core || []),
+            ...(levelData.noEquipment || [])
+        ];
     }
 
-    if (branch) {
-        result.push(...branch);
-    }
+    console.log(`🏋️ buildWorkoutForUser: инвентарь=[${inventory.join(',')}] → упражнений=${list.length}`);
 
-    return result;
+    return list;
 }
