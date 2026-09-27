@@ -8,7 +8,24 @@
     <meta name="Partypay" content="6a6f5e9de764e">
     <title>SportApp</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="images/icon-192.png">
+    <link rel="apple-touch-icon" href="images/preview.png">
+    <link rel="icon" type="image/png" href="images/preview.png">
+
+    <!-- ★★★ Open Graph (Telegram, WhatsApp, VK, Discord и т.д.) ★★★ -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="SportApp — тренируйся и соревнуйся">
+    <meta property="og:description" content="Отслеживай прогресс, создавай тренировки и соревнуйся с друзьями.">
+    <meta property="og:image" content="https://www-profile.github.io/SportApp/images/preview.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:url" content="https://www-profile.github.io/SportApp/">
+
+    <!-- ★★★ Twitter Card (на всякий случай) ★★★ -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="SportApp — тренируйся и соревнуйся">
+    <meta name="twitter:description" content="Отслеживай прогресс, создавай тренировки и соревнуйся с друзьями.">
+    <meta name="twitter:image" content="https://www-profile.github.io/SportApp/images/preview.png">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -111,40 +128,48 @@
                             <button class="section-drag" touch-action="none"><i class="fa-solid fa-grip-lines"></i></button>
                         </div>
                         <div class="section-body">
-                            <div class="item-grid" id="catalogGridFitness">
-                                <div class="item-card" data-category="Зарядка">
-                                    <div class="item-icon"><img src="images/charging.png"></div>
-                                    <div class="item-info">
-                                        <h3 class="item-title">Зарядка</h3>
-                                        <p class="item-desc">Разминка · Тонус · Энергия</p>
-                                    </div>
-                                    <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
-                                </div>
-                                <div class="item-card" data-category="Кардио">
-                                    <div class="item-icon"><img src="images/cardio.png"></div>
-                                    <div class="item-info">
-                                        <h3 class="item-title">Кардио</h3>
-                                        <p class="item-desc">Бег · Прыжки · Бёрпи</p>
-                                    </div>
-                                    <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
-                                </div>
-                                <div class="item-card" data-category="Пилатес">
-                                    <div class="item-icon"><img src="images/Pilates.png"></div>
-                                    <div class="item-info">
-                                        <h3 class="item-title">Пилатес</h3>
-                                        <p class="item-desc">Контроль · Баланс · Кор</p>
-                                    </div>
-                                    <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
-                                </div>
-                                <div class="item-card" data-category="Растяжка">
-                                    <div class="item-icon"><img src="images/stretching.png"></div>
-                                    <div class="item-info">
-                                        <h3 class="item-title">Растяжка</h3>
-                                        <p class="item-desc">Гибкость · Шпагат · Наклоны</p>
-                                    </div>
-                                    <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
-                                </div>
-                            </div>
+<div class="item-grid" id="catalogGridFitness">
+    <div class="item-card" data-category="Зарядка">
+        <div class="item-icon"><img src="images/charging.png"></div>
+        <div class="item-info">
+            <h3 class="item-title">Зарядка</h3>
+            <p class="item-desc">Разминка · Тонус · Энергия</p>
+        </div>
+        <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+    <div class="item-card" data-category="Растяжка">
+        <div class="item-icon"><img src="images/stretching.png"></div>
+        <div class="item-info">
+            <h3 class="item-title">Растяжка</h3>
+            <p class="item-desc">Гибкость · Шпагат · Наклоны</p>
+        </div>
+        <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+    <div class="item-card" data-category="Растяжка позвоночника">
+        <div class="item-icon"><img src="images/stretching-back.png"></div>
+        <div class="item-info">
+            <h3 class="item-title">Растяжка позвоночника</h3>
+            <p class="item-desc">Вис · Наклоны · Скручивания</p>
+        </div>
+        <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+    <div class="item-card" data-category="Кардио">
+        <div class="item-icon"><img src="images/cardio.png"></div>
+        <div class="item-info">
+            <h3 class="item-title">Кардио</h3>
+            <p class="item-desc">Бег · Прыжки · Бёрпи</p>
+        </div>
+        <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+    <div class="item-card" data-category="Пилатес">
+        <div class="item-icon"><img src="images/Pilates.png"></div>
+        <div class="item-info">
+            <h3 class="item-title">Пилатес</h3>
+            <p class="item-desc">Контроль · Баланс · Кор</p>
+        </div>
+        <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+</div>
                         </div>
                     </div>
 
@@ -186,14 +211,6 @@
                                     <div class="item-info">
                                         <h3 class="item-title">Женское счастье</h3>
                                         <p class="item-desc">Грация · Тонус · Гармония</p>
-                                    </div>
-                                    <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
-                                </div>
-                                <div class="item-card premium-card" data-category="Растяжка позвоночника">
-                                    <div class="item-icon"><img src="images/stretching.png"></div>
-                                    <div class="item-info">
-                                        <h3 class="item-title">Растяжка позвоночника</h3>
-                                        <p class="item-desc">Вис · Наклоны · Скручивания</p>
                                     </div>
                                     <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
                                 </div>
@@ -266,7 +283,7 @@
             <header class="dashboard-header">
                 <h1 class="dashboard-title" id="levelSelectTitle">ТРЕНИРОВКА</h1>
             </header>
-            <h3 class="section-title">Уровни тренировки</h3>
+            <h3 class="section-title" id="levelSelectSubtitle">Уровни тренировки</h3>
             <div id="levelsContainer" class="item-grid"></div>
         </main>
     </div>
@@ -1196,6 +1213,15 @@
                 </div>
                 <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
             </div>
+
+                        <div class="settings-item" onclick="openSupportModal()">
+                <div class="settings-icon"><i class="fa-solid fa-headset"></i></div>
+                <div class="settings-info">
+                    <div class="settings-title">Связь с администрацией</div>
+                    <div class="settings-desc">Задать вопрос или сообщить о проблеме</div>
+                </div>
+                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
         </div>
     </div>
 </div>
@@ -1243,15 +1269,6 @@
                 <div class="settings-info">
                     <div class="settings-title">Редактирование тренировок</div>
                     <div class="settings-desc" id="editWorkoutStatus">Включено</div>
-                </div>
-                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
-            </div>
-
-            <div class="settings-item" onclick="openSupportModal()">
-                <div class="settings-icon"><i class="fa-solid fa-headset"></i></div>
-                <div class="settings-info">
-                    <div class="settings-title">Связь с администрацией</div>
-                    <div class="settings-desc">Задать вопрос или сообщить о проблеме</div>
                 </div>
                 <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
             </div>
@@ -1667,34 +1684,6 @@
     </div>
 </div>
 
-<!-- ===== СТРАНИЦА: ГТО — ВЫБОР ПОЛА ===== -->
-<div id="page-gto-gender" class="page">
-    <main class="dashboard-container">
-        <header class="dashboard-header">
-            <h1 class="dashboard-title">ТРЕНИРОВКА</h1>
-        </header>
-        <h3 class="section-title">Выберите пол</h3>
-        <div class="item-grid">
-            <div class="item-card" onclick="selectGTOGender('Женский')">
-                <div class="item-icon"><img src="images/woman.png"></div>
-                <div class="item-info">
-                    <h3 class="item-title">Женский</h3>
-                    <p class="item-desc">Нормативы для женщин</p>
-                </div>
-                <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
-            </div>
-            <div class="item-card" onclick="selectGTOGender('Мужской')">
-                <div class="item-icon"><img src="images/men.png"></div>
-                <div class="item-info">
-                    <h3 class="item-title">Мужской</h3>
-                    <p class="item-desc">Нормативы для мужчин</p>
-                </div>
-                <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
-            </div>
-        </div>
-    </main>
-</div>
-
 <!-- ===== НИЖНЯЯ НАВИГАЦИЯ (APPLE STYLE) ===== -->
 <nav class="bottom-nav" id="bottomNav" style="display:none;">
     <div class="nav-bubble" id="navBubble"></div>
@@ -1917,7 +1906,7 @@
 
         <!-- ★★★ МОЁ МЕСТО И НАГРАДА ★★★ -->
         <div id="communityGoalMyPlace" style="margin-bottom: 0.5rem;">
-            <span style="font-size: 0.8rem; font-weight: 600; color: var(--dark);">
+            <span class="modal-text">
                 <span id="communityGoalMyPlaceText">Вы на 1-ом месте</span>, ваша награда: <span id="communityGoalMyReward" style="color: var(--accent);">+100XP</span>
             </span>
         </div>
@@ -2248,7 +2237,7 @@
         <div class="premium-price-label">Ежемесячный</div>
         <div class="premium-price-row">
             <div class="premium-price-value">190 ₽</div>
-            <div class="premium-price-period">/ месяц</div>
+            <div class="premium-price-period">/ мес</div>
         </div>
         <div class="premium-price-period">2280 ₽ / год</div>
     </div>

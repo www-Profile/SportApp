@@ -2204,9 +2204,9 @@ function getDefaultStatsLayout() {
 function getDefaultWorkoutsLayout() {
     return {
         workoutsBlocksContainer: ['strength', 'fitness', 'premium'],
-catalogGridStrength: ['Руки', 'Плечи', 'Пресс', 'Грудь', 'Спина', 'Ноги', 'Всё тело'],
-catalogGridFitness: ['Зарядка', 'Кардио', 'Пилатес'],
-catalogGridPremium: ['Кроссфит', 'Мужская сила', 'Женское счастье', 'ГТО', 'Растяжка позвоночника'],
+        catalogGridStrength: ['Руки', 'Плечи', 'Пресс', 'Грудь', 'Спина', 'Ноги', 'Всё тело'],
+        catalogGridFitness: ['Зарядка', 'Растяжка', 'Растяжка позвоночника', 'Кардио', 'Пилатес'],
+        catalogGridPremium: ['Кроссфит', 'Мужская сила', 'Женское счастье', 'ГТО'],
         myWorkoutsList: []
     };
 }
@@ -2551,9 +2551,6 @@ if (parentCategory === 'Особые') {
     }
     if (category === 'Кроссфит') {
         return 'Всё тело';
-    }
-    if (category === 'Растяжка позвоночника') {
-        return 'Гибкость';  // ← ДОБАВИТЬ
     }
     if (category === 'ГТО') {
         return 'Всё тело';  // ← ДОБАВИТЬ
@@ -3047,7 +3044,12 @@ window.navigateTo = function(page, params) {
         loadProfile();
         setTimeout(() => TabManager.profile(TabManager.state.profile), 300);
     }
-    if (page === 'level-select' && params) loadLevelSelect(params.category, params);
+    if (page === 'level-select' && params) {
+    // ★★★ СБРАСЫВАЕМ ПОДЗАГОЛОВОК ДО ВЫЗОВА ★★★
+    const subtitleEl = document.getElementById('levelSelectSubtitle');
+    if (subtitleEl) subtitleEl.textContent = 'Уровни тренировки';
+    loadLevelSelect(params.category, params);
+}
     if (page === 'workout-detail' && params) {
         loadWorkoutDetail(
             params.category,
@@ -3195,72 +3197,80 @@ if (currentTab === 'world') {
 
 // ===================КАТЕГОРИИ ТРЕНИРОВОК ===================
 document.querySelectorAll('.item-card').forEach(card => {
-    card.addEventListener('click', function(e) {
+    card.addEventListener('click', async function(e) {
         const name = this.dataset.category;
         if (!name) return;
-        
+
         // ★★★ НЕ ОБРАБАТЫВАЕМ КЛИК, ЕСЛИ БЛОК ЗАКРЫТ ★★★
         const parentBlock = this.closest('.section-block');
         if (parentBlock && !parentBlock.classList.contains('open')) {
             e.stopPropagation();
             return;
         }
-        
+
         console.log('=== КЛИК ПО КАРТОЧКЕ ===');
         console.log('name:', name);
-        console.log('dataset:', JSON.stringify(this.dataset));
-        
+
         let parentCategory = null;
         let categoryData = null;
-        
+
         for (const parent in exercisesData) {
-            console.log('  проверяем parent:', parent, 'есть ли', name, ':', !!(exercisesData[parent] && exercisesData[parent][name]));
             if (exercisesData[parent] && exercisesData[parent][name]) {
                 parentCategory = parent;
                 categoryData = exercisesData[parent][name];
                 break;
             }
         }
-        
-        console.log('parentCategory:', parentCategory);
-        console.log('categoryData:', categoryData);
-        console.log('_premium:', categoryData?._premium);
-        console.log('_gender:', categoryData?._gender);
-        
-let isPremium = false;
-if (categoryData && categoryData._premium === true) {
-    isPremium = true;
-}
-if (parentCategory === 'Особые') {
-    isPremium = true;
-}
 
-console.log('  isPremium:', isPremium);
-console.log('  hasPremium():', hasPremium());
+        let isPremium = false;
+        if (categoryData && categoryData._premium === true) {
+            isPremium = true;
+        }
+        if (parentCategory === 'Особые') {
+            isPremium = true;
+        }
 
-// ★★★ ПРОВЕРКА PREMIUM ДО ПРОВЕРКИ _gender ★★★
-if (isPremium && !hasPremium()) {
-    openModal('premiumModal');
-    return;
-}
+        if (isPremium && !hasPremium()) {
+            openModal('premiumModal');
+            return;
+        }
 
-if (categoryData && categoryData._gender === true) {
-    window.navigateTo('gto-gender', { category: name });
-    return;
-}
-        
+        // ★★★ ГТО: пол берём из профиля и сразу открываем нужный гендер ★★★
+        if (categoryData && categoryData._gender === true) {
+            let gender = localStorage.getItem('userGender');
+
+            // Если в localStorage нет — запрашиваем из Firestore
+            if (!gender) {
+                try {
+                    const user = await getFirebaseUser();
+                    if (user) {
+                        const profileResult = await getUserProfile(user.uid);
+                        if (profileResult.success) {
+                            gender = profileResult.data.gender || 'male';
+                            localStorage.setItem('userGender', gender);
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Не удалось получить пол из профиля:', err);
+                }
+            }
+
+            const gtoGender = (gender === 'female') ? 'Женский' : 'Мужской';
+
+            window.navigateTo('level-select', {
+                category: name,
+                gtoGender: gtoGender,
+                parentCategory: 'Особые'
+            });
+            return;
+        }
+
         window.navigateTo('level-select', { category: name });
     });
 });
 
 // ===================СТРАНИЦА ВЫБОРА УРОВНЯ ===================
 function loadLevelSelect(category, params = {}) {
-    // ★★★ ЕСЛИ ЭТО ГТО И НЕ ВЫБРАН ПОЛ — ПЕРЕНАПРАВЛЯЕМ НА ВЫБОР ПОЛА ★★★
-    if (category === 'ГТО' && !params.gtoGender) {
-        window.navigateTo('gto-gender', { category: 'ГТО' });
-        return;
-    }
-
     let parentCategory = null;
     for (const parent in exercisesData) {
         if (exercisesData[parent] && exercisesData[parent][category]) {
@@ -3275,8 +3285,20 @@ function loadLevelSelect(category, params = {}) {
             return;
         }
     }
-    const titleEl = document.getElementById('levelSelectTitle');
-    if (titleEl) titleEl.textContent = 'ТРЕНИРОВКА';
+// ★★★ ЗАГОЛОВОК СТРАНИЦЫ — ВСЕГДА "ТРЕНИРОВКА" ★★★
+const titleEl = document.getElementById('levelSelectTitle');
+if (titleEl) titleEl.textContent = 'ТРЕНИРОВКА';
+
+// ★★★ ПОДЗАГОЛОВОК: для ГТО — "Уровни тренировки для мужчин/женщин" ★★★
+const subtitleEl = document.getElementById('levelSelectSubtitle');
+if (subtitleEl) {
+    if (category === 'ГТО' && params.gtoGender) {
+        const genderWord = (params.gtoGender === 'Женский') ? 'женщин' : 'мужчин';
+        subtitleEl.textContent = 'Уровни тренировки для ' + genderWord;
+    } else {
+        subtitleEl.textContent = 'Уровни тренировки';
+    }
+}
     let isPremium = false;
     if (parentCategory && exercisesData[parentCategory] && exercisesData[parentCategory][category]) {
         isPremium = exercisesData[parentCategory][category]._premium || false;
@@ -3301,7 +3323,7 @@ function loadLevelSelect(category, params = {}) {
         'Всё тело': 'WholeBody', 'Кардио': 'cardio', 'Растяжка': 'stretching',
         'Зарядка': 'charging', 'Пилатес': 'Pilates', 'Кроссфит': 'crossfit',
         'Мужская сила': 'men', 'Женское счастье': 'woman',
-        'Растяжка позвоночника': 'stretching', 'ГТО': 'bodybuilding'
+        'Растяжка позвоночника': 'stretching-back', 'ГТО': 'bodybuilding'
     };
     const icon = CATEGORY_ICON_MAP[category] || null;
 
@@ -3514,7 +3536,7 @@ function loadWorkoutDetail(category, level, isCustom, id, parentCategory, isPrem
             'Кроссфит': 'crossfit',
             'Мужская сила': 'men',
             'Женское счастье': 'woman',
-            'Растяжка позвоночника': 'stretching',
+            'Растяжка позвоночника': 'stretching-back',
             'ГТО': 'WholeBody'
         };
         workoutIcon = CATEGORY_ICON_MAP[category] || null;
@@ -5768,6 +5790,9 @@ async function loadProfile() {
 // ★★★ ЗАГРУЖАЕМ ПОЛ И АВАТАР ★★★
 applyGenderToUI(profile.gender || 'male');
 
+// ★★★ СОХРАНЯЕМ ПОЛ В LOCALSTORAGE — пригодится для ГТО ★★★
+localStorage.setItem('userGender', profile.gender || 'male');
+
 const avatarImg = document.querySelector('.profile-avatar img');
 if (avatarImg) {
     avatarImg.src = (profile.gender === 'female')
@@ -5994,12 +6019,13 @@ firebase.auth().onAuthStateChanged(async (user) => {
             p.classList.remove('page-active');
         });
         
-        const loadingPage = document.getElementById('page-loading');
-        if (loadingPage) {
-            loadingPage.style.display = 'block';
-            loadingPage.classList.add('page-active');
-            console.log('📱 Страница загрузки показана мгновенно');
-        }
+const loadingPage = document.getElementById('page-loading');
+if (loadingPage) {
+    loadingPage.style.display = 'block';
+    loadingPage.classList.add('page-active');
+    triggerLoadingAnimations();   // ★★★ запуск анимации ★★★
+    console.log('📱 Страница загрузки показана мгновенно');
+}
         if (bottomNav) bottomNav.style.display = 'none';
         
         // ★★★ УБЕЖДАЕМСЯ, ЧТО КНОПКА СКРЫТА ★★★
@@ -6148,16 +6174,59 @@ function showHero() {
 
 // ★★★ ПЛАВНО ПОКАЗАТЬ КНОПКИ НА ЭКРАНАХ HERO / LOADING ★★★
 function showHeroButtons() {
-    document.querySelectorAll('.hero-buttons').forEach(el => {
-        el.classList.add('hero-buttons-ready');
-    });
+    // Отменяем предыдущий отложенный показ (если был)
+    if (_showButtonsTimeout) {
+        clearTimeout(_showButtonsTimeout);
+        _showButtonsTimeout = null;
+    }
+
+    const now = Date.now();
+    const elapsed = now - _loadingAnimStartTime;
+    const remaining = Math.max(0, LOADING_ANIM_DURATION_MS - elapsed);
+
+    console.log(`⏳ Кнопка появится через ${remaining}мс`);
+
+    _showButtonsTimeout = setTimeout(() => {
+        document.querySelectorAll('.hero-buttons').forEach(el => {
+            el.classList.add('hero-buttons-ready');
+        });
+        _showButtonsTimeout = null;
+        console.log('✅ Кнопка показана');
+    }, remaining);
 }
 
 // ★★★ СКРЫТЬ КНОПКИ ★★★
 function hideHeroButtons() {
+    if (_showButtonsTimeout) {
+        clearTimeout(_showButtonsTimeout);
+        _showButtonsTimeout = null;
+    }
     document.querySelectorAll('.hero-buttons').forEach(el => {
         el.classList.remove('hero-buttons-ready');
     });
+}
+
+// =================== АНИМАЦИЯ ЭКРАНА ЗАГРУЗКИ ===================
+const LOADING_ANIM_DURATION_MS = 3300;   // длительность всей анимации + запас
+let _loadingAnimStartTime = 0;
+let _showButtonsTimeout = null;
+
+/**
+ * Запускает анимацию появления фич на экране загрузки
+ * и запоминает время старта, чтобы потом правильно рассчитать
+ * момент появления кнопки.
+ */
+function triggerLoadingAnimations() {
+    const loadingPage = document.getElementById('page-loading');
+    if (!loadingPage) return;
+
+    // ★★★ СБРАСЫВАЕМ И ПЕРЕЗАПУСКАЕМ АНИМАЦИИ ★★★
+    loadingPage.classList.remove('loading-animate');
+    void loadingPage.offsetWidth;   // force reflow — обязательно, иначе не перезапустится
+    loadingPage.classList.add('loading-animate');
+
+    _loadingAnimStartTime = Date.now();
+    console.log('🎬 Анимация загрузки запущена');
 }
 
 // =================== РЕГИСТРАЦИЯ (ПОШАГОВАЯ) ===================
@@ -6181,6 +6250,11 @@ function switchToPage(pageId) {
     if (target) {
         target.classList.add('page-active');
         target.style.display = 'block';
+
+        // ★★★ ЗАПУСКАЕМ АНИМАЦИЮ, ЕСЛИ ЭТО ЭКРАН ЗАГРУЗКИ ★★★
+        if (pageId === 'page-loading') {
+            triggerLoadingAnimations();
+        }
     }
 }
 
@@ -7625,7 +7699,7 @@ function getAllExercises() {
         'Всё тело': 'WholeBody',
         'Кардио': 'cardio',
         'Растяжка': 'stretching',
-        'Растяжка позвоночника': 'stretching',
+        'Растяжка позвоночника': 'stretching-back',
         'Зарядка': 'charging',
         'Пилатес': 'Pilates',
         'Кроссфит': 'crossfit',
@@ -7755,7 +7829,7 @@ function renderExerciseListPageContent() {
     }
     
     // ★★★ ФИЛЬТРУЕМ PREMIUM УПРАЖНЕНИЯ ★★★
-    const premiumCategories = ['Кроссфит', 'Мужская сила', 'Женское счастье', 'Растяжка позвоночника', 'ГТО'];
+    const premiumCategories = ['Кроссфит', 'Мужская сила', 'Женское счастье', 'ГТО'];
     const hasPremiumAccess = hasPremium();  // ← проверяем актуальный статус
     
     if (!hasPremiumAccess) {
@@ -7854,7 +7928,7 @@ function addExerciseFromList(name, sets, reps) {
                 'Всё тело': 'WholeBody',
                 'Кардио': 'cardio',
                 'Растяжка': 'stretching',
-                'Растяжка позвоночника': 'stretching',
+                'Растяжка позвоночника': 'stretching-back',
                 'Зарядка': 'charging',
                 'Пилатес': 'Pilates',
                 'Кроссфит': 'crossfit',
@@ -8152,21 +8226,84 @@ async function loadFriendsLeaderboard() {
 }
 
 // ===================ТОСТ ===================
+// =================== ОЧЕРЕДЬ ТОСТОВ ===================
+const TOAST_QUEUE_MAX = 5;              // максимум в очереди
+const TOAST_PAUSE_BETWEEN_MS = 120;     // пауза между тостами
+
+let toastQueue = [];
+let isToastShowing = false;
+
+/**
+ * Показать тост. Если сейчас показывается другой — встаём в очередь.
+ */
 function showToast(message, duration = 3000) {
-    const oldToast = document.getElementById('toast');
-    if (oldToast) oldToast.remove();
+    // ★★★ ЗАЩИТА ОТ СПАМА: ограничиваем размер очереди ★★★
+    if (toastQueue.length >= TOAST_QUEUE_MAX) {
+        console.warn('⚠️ Очередь тостов переполнена, сообщение отброшено:', message);
+        return;
+    }
+
+    toastQueue.push({ message, duration });
+    processToastQueue();
+}
+
+/**
+ * Взять следующий тост из очереди и показать его.
+ * Если что-то уже показывается или очередь пуста — ничего не делаем.
+ */
+function processToastQueue() {
+    if (isToastShowing) return;
+    if (toastQueue.length === 0) return;
+
+    isToastShowing = true;
+    const { message, duration } = toastQueue.shift();
+
     const toast = document.createElement('div');
     toast.id = 'toast';
     toast.textContent = message;
     document.body.appendChild(toast);
-    requestAnimationFrame(() => toast.classList.add('show'));
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 300);
+
+    // ★★★ ДВОЙНОЙ rAF — браузер успеет отрисовать стартовое состояние ★★★
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            toast.classList.add('show');
+        });
+    });
+
+    // ★★★ АВТО-СКРЫТИЕ ★★★
+    const hideTimeout = setTimeout(() => {
+        hideToast(toast);
     }, duration);
+
+    toast._hideTimeout = hideTimeout;
 }
 
+/**
+ * Плавно скрыть конкретный тост и запустить следующий из очереди.
+ */
+function hideToast(toastEl) {
+    // ★★★ ЗАЩИТА: если элемента уже нет в DOM — просто продолжаем очередь ★★★
+    if (!toastEl || !toastEl.parentNode) {
+        isToastShowing = false;
+        setTimeout(processToastQueue, TOAST_PAUSE_BETWEEN_MS);
+        return;
+    }
 
+    // очищаем таймер авто-скрытия, если он ещё висит
+    clearTimeout(toastEl._hideTimeout);
+
+    // запускаем анимацию исчезновения
+    toastEl.classList.remove('show');
+    toastEl.classList.add('hiding');
+
+    setTimeout(() => {
+        if (toastEl.parentNode) toastEl.remove();
+
+        // ★★★ ТЕКУЩИЙ ТОСТ ЗАВЕРШЁН — ОБРАБАТЫВАЕМ СЛЕДУЮЩИЙ ★★★
+        isToastShowing = false;
+        setTimeout(processToastQueue, TOAST_PAUSE_BETWEEN_MS);
+    }, 280);
+}
 
 // ===================ТУТОРИАЛ ===================
 const TUTORIAL_KEY = 'tutorialCompleted';
@@ -8249,9 +8386,19 @@ function createTutorialOverlay(step) {
     overlay.id = 'tutorialOverlay';
     overlay.className = 'tutorial-overlay';
     document.body.appendChild(overlay);
-overlay.style.display = 'flex';
-void overlay.offsetWidth;
-overlay.classList.add('modal-overlay-visible');
+    overlay.style.display = 'flex';
+    void overlay.offsetWidth;
+    overlay.classList.add('modal-overlay-visible');
+
+    // ★★★ УПРАВЛЯЕМ ПУЗЫРЬКОМ НАВИГАЦИИ ★★★
+    const nav = document.getElementById('bottomNav');
+    if (nav) {
+        if (step.id === 1) {
+            nav.classList.add('tutorial-hide-bubble');   // ← шаг 1: прячем
+        } else {
+            nav.classList.remove('tutorial-hide-bubble'); // ← остальные: показываем
+        }
+    }
 
     let highlightElements = [];
     if (step.highlight) {
@@ -8329,7 +8476,7 @@ overlay.classList.add('modal-overlay-visible');
     `;
     document.body.appendChild(tooltip);
 
-    const autoSteps = [1, 9, 10, 14, 15, 16];
+    const autoSteps = [1, 9, 10, 14, 15, 16, 17];
     const isAuto = autoSteps.includes(step.id) && highlightElements.length > 0;
 
     if (isAuto) {
@@ -8368,6 +8515,12 @@ overlay.classList.add('modal-overlay-visible');
 }
 
 function removeTutorialOverlay() {
+    // ★★★ ВОЗВРАЩАЕМ ПУЗЫРЁК НАВИГАЦИИ ★★★
+    const nav = document.getElementById('bottomNav');
+    if (nav) {
+        nav.classList.remove('tutorial-hide-bubble');
+    }
+
     const overlay = document.getElementById('tutorialOverlay');
     if (overlay) {
         overlay.classList.remove('tutorial-overlay-active');
@@ -8458,13 +8611,13 @@ const tutorialSteps = [
         id: 3,
         page: 'stats',
         highlight: ['#page-stats .tab-btn[data-tab="personal"]', '.stat-card'],
-        text: 'В разделе "Личной статистики" собрана вся информация о ваших тренировках.\nКоличество тренировок, минут, упражнений, распределение по группам мышц и категориям, календарь и история - все в одном месте.'
+            text: 'В разделе "Личной статистики" собрана вся информация о ваших тренировках.',
     },
     {
         id: 4,
         page: 'stats',
         highlight: '#page-stats .tab-btn[data-tab="world"]',
-        text: 'В разделе "Мировой статистики" вы можете увидеть рейтинг всех пользователей и отдельно рейтинг ваших друзей.',
+        text: 'В разделе "Мировой статистики" собрана статистика всего сообщества SportApp.',
         action: () => { switchStatsTab('world'); }
     },
     {
@@ -8550,7 +8703,7 @@ const tutorialSteps = [
         id: 13,
         page: 'profile',
         highlight: ['.profile-card'],
-        text: 'Это ваш профиль, в нем есть система уровней.\nТренируйтесь, получайте XP и повышайте свой уровень.\nСоревнуйтесь с друзьями и другими пользователями!'
+        text: 'Это ваш профиль.\nТренируйтесь, получайте XP и повышайте свой уровень.',
     },
 {
     id: 14,
@@ -8566,7 +8719,7 @@ const tutorialSteps = [
         const isDaily = checkAllTasksCompleted();
         return isDaily 
             ? 'Это ваши ежедневные задания.\nВыполняйте их каждый день, чтобы получать дополнительный опыт!'
-            : 'Это ваши первые задания.\nВыполните все 5 заданий, чтобы открыть ежедневные задания! За каждое задание вы получаете +10 XP.';
+            : 'Это ваши первые задания.\nВыполните все задания, чтобы открыть ежедневные задания!';
     },
     action: function() {
         const isDaily = checkAllTasksCompleted();
@@ -8603,30 +8756,36 @@ const tutorialSteps = [
     }
 },
     
+{
+    id: 15,
+    page: 'profile',
+    highlight: '#settings-block-main .settings-block',
+    text: 'В основных настройках вы можете настроить приложение под себя.'
+},
+{
+    id: 16,
+    page: 'profile',
+    highlight: '#settings-block-extra .settings-block',
+    text: 'В дополнительных настройках вы можете скрывать или показывать дополнительные функции приложения.'
+},
+{
+    id: 17,
+    page: 'profile',
+    highlight: '#dangerSettings .settings-block',
+    text: 'Здесь находятся важные настройки. Будьте внимательны, эти действия нельзя отменить.'
+},
     {
-        id: 15,
-        page: 'profile',
-        highlight: '#settings-block-main .settings-block',
-        text: 'В дополнительных настройках вы можете настроить приложение под себя.'
-    },
-    {
-        id: 16,
-        page: 'profile',
-        highlight: '#dangerSettings .settings-block',
-        text: 'Здесь находятся важные настройки. Будьте внимательны - эти действия нельзя отменить.'
-    },
-    {
-        id: 17,
+        id: 18,
         page: 'profile',
         highlight: ['.profile-tab-btn[data-tab="friends"]', '.friends-list-block'],
-        text: 'Здесь вы можете находить друзей, отправлять им заявки и добавлять их в друзья. Также вы можете смотреть историю друзей, их выполненные тренировки и достижения.',
+        text: 'Здесь вы можете находить друзей и следить за их успехами.',
         action: () => {
             switchProfileTab('friends');
             renderFriendsInProfile();
         }
     },
     {
-        id: 18,
+        id: 19,
         page: 'workouts',
         highlight: null,
         text: 'Желаем отличной тренировки! Если не знаете, с чего начать, начните с выполнения заданий.',
@@ -9949,7 +10108,7 @@ function getExerciseIcon(exerciseName) {
                 'Всё тело': 'WholeBody',
                 'Кардио': 'cardio',
                 'Растяжка': 'stretching',
-                'Растяжка позвоночника': 'stretching',
+                'Растяжка позвоночника': 'stretching-back',
                 'Зарядка': 'charging',
                 'Пилатес': 'Pilates',
                 'Кроссфит': 'crossfit',
@@ -16090,23 +16249,6 @@ async function checkAndGiveCommunityGoalReward(force = false) {
 }
 
 // =================== ГТО: ВОЗРАСТНЫЕ КАТЕГОРИИ (15 СТУПЕНЕЙ) ===================
-
-window.selectGTOGender = function(gender) {
-    const category = 'ГТО';
-    
-    // ★★★ ПРОВЕРКА PREMIUM ★★★
-    if (!hasPremium()) {
-        openModal('premiumModal');
-        return;
-    }
-    
-    window.navigateTo('level-select', { 
-        category: category,
-        parentCategory: 'Особые',
-        gtoGender: gender
-    });
-};
-
 const GTO_AGE_MAP = {
     '1 СТУПЕНЬ':  '6 - 7 лет',
     '2 СТУПЕНЬ':  '8 - 9 лет',
@@ -16293,6 +16435,15 @@ function filterExercisesByInventory(userInventory) {
 }
 
 // =================== АВТО-КАРУСЕЛЬ (БЕСКОНЕЧНАЯ) ===================
+function shuffleArray(arr) {
+    const result = [...arr];
+    for (let i = result.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+}
+
 const CAROUSEL_CARDS = [
     {
         icon: 'fa-solid fa-dumbbell',
@@ -16440,20 +16591,13 @@ function initAutoCarousel() {
     // ★★★ ОБНОВЛЯЕМ ДИНАМИЧЕСКИЕ КАРТОЧКИ ПЕРЕД РЕНДЕРОМ ★★★
     updateCarouselDynamicCards();
 
-    // ★★★ СЛУЧАЙНЫЙ СТАРТОВЫЙ ИНДЕКС ★★★
-    const totalCards = CAROUSEL_CARDS.length;
-    const randomStart = Math.floor(Math.random() * totalCards);
-    console.log(`🎲 Карусель стартует с карточки №${randomStart} ("${CAROUSEL_CARDS[randomStart].title}")`);
-
-    // ★★★ СДВИГАЕМ МАССИВ, ЧТОБЫ СЛУЧАЙНАЯ КАРТОЧКА БЫЛА ПЕРВОЙ ★★★
-    const rotatedCards = [
-        ...CAROUSEL_CARDS.slice(randomStart),
-        ...CAROUSEL_CARDS.slice(0, randomStart)
-    ];
+    // ★★★ ПОЛНАЯ СЛУЧАЙНАЯ ТАСОВКА ★★★
+    const shuffledCards = shuffleArray(CAROUSEL_CARDS);
+    console.log('🎲 Карусель перемешана:', shuffledCards.map(c => c.title));
 
     // Дублируем карточки для бесконечной прокрутки
-    const cardsHtml = rotatedCards.map((card, index) => {
-        // ★★★ data-card-index — это ИСХОДНЫЙ индекс в CAROUSEL_CARDS, чтобы клики работали правильно ★★★
+    const cardsHtml = shuffledCards.map((card) => {
+        // ★★★ data-card-index — ИСХОДНЫЙ индекс в CAROUSEL_CARDS, чтобы клики работали правильно ★★★
         const originalIndex = CAROUSEL_CARDS.indexOf(card);
         const iconHtml = card.iconImg
             ? `<img src="${card.iconImg}" alt="${card.title}">`
@@ -16529,15 +16673,10 @@ function refreshAutoCarousel() {
     track.style.animation = 'none';
     updateCarouselDynamicCards();
 
-    // ★★★ СЛУЧАЙНЫЙ СТАРТ ★★★
-    const totalCards = CAROUSEL_CARDS.length;
-    const randomStart = Math.floor(Math.random() * totalCards);
-    const rotatedCards = [
-        ...CAROUSEL_CARDS.slice(randomStart),
-        ...CAROUSEL_CARDS.slice(0, randomStart)
-    ];
+    // ★★★ ПОЛНАЯ СЛУЧАЙНАЯ ТАСОВКА ★★★
+    const shuffledCards = shuffleArray(CAROUSEL_CARDS);
 
-    const cardsHtml = rotatedCards.map((card) => {
+    const cardsHtml = shuffledCards.map((card) => {
         const originalIndex = CAROUSEL_CARDS.indexOf(card);
         const iconHtml = card.iconImg
             ? `<img src="${card.iconImg}" alt="${card.title}">`

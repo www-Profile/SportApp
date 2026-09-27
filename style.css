@@ -27,9 +27,6 @@ body {
     --shadow-float:
         0 4px 12px rgba(15, 23, 42, 0.08),
         0 20px 60px rgba(15, 23, 42, 0.15);
-    --shadow-btn: 0 3px 0 color-mix(in srgb, var(--accent) 80%, black);
-    --shadow-inset: inset 0 0 0 2px var(--accent);
-    --shadow-glow: 0 0 30px var(--accent);
     --shadow-card-dark:
         0 1px 2px rgba(0, 0, 0, 0.3),
         0 3px 12px rgba(0, 0, 0, 0.4);
@@ -504,7 +501,7 @@ body.theme-dark-mode .item-card-light {
     color: var(--accent);
     display: block;
     width: 100%;
-    box-shadow: var(--shadow-float), inset 0 0 0 2px var(--accent);
+    box-shadow:  inset 0 0 0 2px var(--accent);
 }
 
 .btn-danger {
@@ -556,12 +553,12 @@ body.theme-dark-mode .item-card-light {
     padding: 0rem;
     border-radius: 14px;
     width: 100%;
-    margin: 0.6rem 0;
+    margin: 0.4rem 0;
 }
 
 .tab-btn {
     flex: 1;
-    padding: 0.7rem;
+    padding: 0.6rem;
     border: none;
     border-radius: 10px;
     font-size: 0.95rem;
@@ -2451,30 +2448,66 @@ body.theme-dark-mode .nav-item-active { color: var(--accent); }
     display: inline-block;
 }
 
-/* ===================ТОСТ ==================== */
+/* ===================TOAST ==================== */
 #toast {
     position: fixed;
-    bottom: 100px;
+    bottom: calc(100px + env(safe-area-inset-bottom, 0px));
     left: 50%;
-    transform: translateX(-50%);
+    transform: translate(-50%, 20px) scale(0.9);
     background: var(--bg-primary);
-    color: white;
-    padding: 0.6rem 0.8rem;
-    border-radius: 12px;
+    color: #fff;
+    padding: 0.7rem 1rem;
+    border-radius: 14px;
     font-size: 0.95rem;
     font-weight: 500;
     z-index: 3000;
-    box-shadow: var(--shadow-float);
     max-width: 90%;
     text-align: center;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    pointer-events: none;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+
+    box-shadow:
+        0 8px 24px rgba(15, 23, 42, 0.25),
+        0 2px 6px rgba(15, 23, 42, 0.15);
+
+    /* переход для СКРЫТИЯ (по умолчанию) */
+    transition:
+        opacity 0.25s cubic-bezier(0.4, 0, 1, 1),
+        transform 0.25s cubic-bezier(0.4, 0, 1, 1);
+
+    will-change: opacity, transform;
 }
 
-#toast.show { opacity: 1; }
+/* ПОЯВЛЕНИЕ — пружинный эффект */
+#toast.show {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+    transition:
+        opacity 0.28s ease,
+        transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ★★★ АНИМАЦИЯ ИСЧЕЗНОВЕНИЯ ★★★ */
+#toast.hiding {
+    opacity: 0;
+    transform: translate(-50%, -10px) scale(0.95);
+    transition:
+        opacity 0.22s cubic-bezier(0.4, 0, 1, 1),
+        transform 0.22s cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* Тёмная тема */
+body.theme-dark-mode #toast {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.5),
+        0 2px 6px rgba(0, 0, 0, 0.35),
+        inset 0 0 0 1px var(--border-color);
+}
 
 /* ===================ТУТОРИАЛ ==================== */
 .tutorial-overlay {
@@ -2510,7 +2543,7 @@ body.theme-dark-mode .nav-item-active { color: var(--accent); }
     border-radius: 16px;
     text-align: center;
     z-index: 10001;
-    box-shadow: var(--shadow-glow), inset 0 0 0 2px var(--accent);
+    box-shadow: 0 0 30px var(--accent), inset 0 0 0 2px var(--accent);
     opacity: 0;
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
                 opacity 0.4s ease;
@@ -2597,7 +2630,7 @@ body.theme-dark-mode .tutorial-highlight {
 
 .tutorial-highlight-active {
     border-color: var(--accent) !important;
-    box-shadow: var(--shadow-glow) !important;
+    box-shadow: 0 0 30px var(--accent) !important;
 }
 
 .tutorial-highlight .tab-btn {
@@ -2607,7 +2640,7 @@ body.theme-dark-mode .tutorial-highlight {
 }
 
 .tutorial-highlight .tab-btn-active {
-    box-shadow: var(--shadow-glow), var(--shadow-card) !important;
+    box-shadow: 0 0 30px var(--accent), var(--shadow-card) !important;
 }
 
 .tutorial-highlight#editStatsBtn,
@@ -2870,7 +2903,7 @@ body.theme-dark-mode .premium-price-period { color: var(--text-secondary); }
 }
 
 /* ===================ВСПОМОГАТЕЛЬНЫЕ КЛАССЫ ==================== */
-input::placeholder { font-style: italic; }
+::placeholder {font-style: italic;}
 
 input.error,
 textarea.error {
@@ -3354,12 +3387,6 @@ body.theme-dark-mode .finish-content { background: var(--bg-secondary); }
 body.theme-dark-mode .finish-stat-item {
     background: var(--bg-secondary);
     border-color: var(--border-color);
-}
-
-body.theme-dark-mode #toast {
-    background: var(--border-color);
-    color: var(--text-primary);
-    box-shadow: var(--shadow-float-dark);
 }
 
 body.theme-dark-mode .rules-list { background: var(--bg-secondary); }
@@ -4576,4 +4603,93 @@ body.theme-dark-mode .coop-friend-status-progress { color: var(--text-secondary)
 
 .toggle-group-with-arrow .btn-submit-arrow {
     flex-shrink: 0;
+}
+
+/* =================== АНИМАЦИЯ ЭКРАНА ЗАГРУЗКИ ==================== */
+
+/* Разрешаем иконке выйти за границы фичи во время scale() */
+#page-loading .feature {
+    overflow: visible;
+}
+
+#page-loading .feature i {
+    position: relative;
+    z-index: 2;
+    transform-origin: center center;
+    will-change: transform;
+}
+
+#page-loading .feature span {
+    position: relative;
+    z-index: 1;
+    will-change: opacity, transform;
+}
+
+/* ★★★ ОБЩИЕ ПАРАМЕТРЫ ВСЕХ АНИМАЦИЙ ★★★ */
+/* Задержка 1с — стартовая пауза ПЕРЕД первым движением.
+   Длительность, кривая и режим — для всех одинаковые. */
+#page-loading.loading-animate .feature i,
+#page-loading.loading-animate .feature span {
+    animation-duration: 0.9s;
+    animation-timing-function: cubic-bezier(0.34, 1.3, 0.64, 1);
+    animation-fill-mode: both;
+    animation-delay: 1s;   /* ← базовая задержка для ВСЕХ */
+}
+
+/* ── Фича 1: задержка = 1.0s (база + 0) ── */
+#page-loading.loading-animate .feature:nth-child(1) i {
+    animation-name: featureIconIn;
+    animation-delay: 1.0s;
+}
+#page-loading.loading-animate .feature:nth-child(1) span {
+    animation-name: featureTextIn;
+    animation-delay: 1.0s;
+}
+
+/* ── Фича 2: задержка = 1.0 + 0.6 = 1.6s ── */
+#page-loading.loading-animate .feature:nth-child(2) i {
+    animation-name: featureIconIn;
+    animation-delay: 1.6s;
+}
+#page-loading.loading-animate .feature:nth-child(2) span {
+    animation-name: featureTextIn;
+    animation-delay: 1.6s;
+}
+
+/* ── Фича 3: задержка = 1.0 + 1.2 = 2.2s ── */
+#page-loading.loading-animate .feature:nth-child(3) i {
+    animation-name: featureIconIn;
+    animation-delay: 2.2s;
+}
+#page-loading.loading-animate .feature:nth-child(3) span {
+    animation-name: featureTextIn;
+    animation-delay: 2.2s;
+}
+
+/* Иконка: большая → обычная */
+@keyframes featureIconIn {
+    0% {
+        transform: scale(1.5) translateY(0.35em);
+    }
+    100% {
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Текст: прозрачный + сверху → видимый + на месте */
+@keyframes featureTextIn {
+    0% {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* =================== ОБУЧЕНИЕ: СКРЫТЬ ПУЗЫРЁК НА ШАГЕ 1 ==================== */
+.bottom-nav.tutorial-hide-bubble .nav-bubble {
+    opacity: 0 !important;
+    transition: opacity 0.3s ease;
 }

@@ -1125,6 +1125,68 @@ const exercisesData = {
                 { name: 'Поза верблюда', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' },
                 { name: 'Складка с захватом стоп', category: 'Спина', reps: '30 сек', sets: '4', icon: 'stretching' }
             ]
+        },
+        'Растяжка позвоночника': {
+            '1 LVL': {
+                core: [
+                    { name: 'Наклоны вперёд сидя', category: 'Спина', reps: '20 сек', sets: '3', icon: 'stretching' },
+                    { name: 'Кошка-корова', category: 'Спина', reps: '10', sets: '3', icon: 'stretching' },
+                    { name: 'Растяжка спины на полу (скручивание)', category: 'Спина', reps: '20 сек', sets: '3', icon: 'stretching' },
+                    { name: 'Поза ребёнка', category: 'Спина', reps: '20 сек', sets: '3', icon: 'stretching' },
+                    { name: 'Наклоны в стороны стоя', category: 'Спина', reps: '15 сек', sets: '3', icon: 'stretching' }
+                ],
+                pullup: [
+                    { name: 'Вис на турнике', category: 'Спина', reps: '15 сек', sets: '3', icon: 'stretching' },
+                    { name: 'Подтягивания', category: 'Спина', reps: '5', sets: '3', weight: 0, icon: 'back' }
+                ],
+                noEquipment: [
+                    { name: 'Скручивание лёжа', category: 'Спина', reps: '20 сек', sets: '3', icon: 'stretching' },
+                    { name: 'Поза голубя', category: 'Ягодицы', reps: '20 сек', sets: '3', icon: 'stretching' }
+                ]
+            },
+            '2 LVL': {
+                core: [
+                    { name: 'Глубокий наклон вперёд с захватом ног', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' },
+                    { name: 'Кошка-корова с задержкой', category: 'Спина', reps: '15', sets: '4', icon: 'stretching' },
+                    { name: 'Скручивание лёжа (позвоночник)', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' },
+                    { name: 'Поза голубя', category: 'Ягодицы', reps: '25 сек', sets: '4', icon: 'stretching' },
+                    { name: 'Растяжка спины на фитболе', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' }
+                ],
+                pullup: [
+                    { name: 'Вис на турнике', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' },
+                    { name: 'Подтягивания', category: 'Спина', reps: '8', sets: '4', weight: 0, icon: 'back' }
+                ],
+                dumbbells: [
+                    { name: 'Наклоны с гантелью в стороны', category: 'Спина', reps: '15', sets: '4', weight: 0, icon: 'stretching' },
+                    { name: 'Тяга гантели к поясу', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' }
+                ],
+                noEquipment: [
+                    { name: 'Скручивание позвоночника сидя', category: 'Спина', reps: '30 сек', sets: '4', icon: 'stretching' },
+                    { name: 'Поза лука', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' }
+                ]
+            },
+            '3 LVL': {
+                core: [
+                    { name: 'Глубокий наклон с захватом стоп', category: 'Спина', reps: '35 сек', sets: '4', icon: 'stretching' },
+                    { name: 'Поза верблюда', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' },
+                    { name: 'Скручивание позвоночника сидя', category: 'Спина', reps: '30 сек', sets: '4', icon: 'stretching' },
+                    { name: 'Поза лука', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' },
+                    { name: 'Мост (позвоночник)', category: 'Спина', reps: '30 сек', sets: '4', icon: 'stretching' },
+                    { name: 'Стойка на лопатках (плечи)', category: 'Плечи', reps: '25 сек', sets: '4', icon: 'stretching' }
+                ],
+                pullup: [
+                    { name: 'Вис на турнике', category: 'Спина', reps: '30 сек', sets: '4', icon: 'stretching' },
+                    { name: 'Подтягивания', category: 'Спина', reps: '10', sets: '4', weight: 0, icon: 'back' }
+                ],
+                dumbbells: [
+                    { name: 'Наклоны с гантелью в стороны', category: 'Спина', reps: '20', sets: '4', weight: 0, icon: 'stretching' },
+                    { name: 'Тяга гантели к поясу', category: 'Спина', reps: '15', sets: '4', weight: 0, icon: 'back' }
+                ],
+                noEquipment: [
+                    { name: 'Скручивание лёжа глубокое', category: 'Спина', reps: '35 сек', sets: '4', icon: 'stretching' },
+                    { name: 'Поза голубя глубокая', category: 'Ягодицы', reps: '30 сек', sets: '4', icon: 'stretching' }
+                ]
+            },
         }
     },
 
@@ -1380,81 +1442,275 @@ const exercisesData = {
             },
             '_premium': true
         },
-        'Растяжка позвоночника': {
-            '1 LVL': {
-                core: [
-                    { name: 'Наклоны вперёд сидя', category: 'Спина', reps: '20 сек', sets: '3', icon: 'stretching' },
-                    { name: 'Кошка-корова', category: 'Спина', reps: '10', sets: '3', icon: 'stretching' },
-                    { name: 'Растяжка спины на полу (скручивание)', category: 'Спина', reps: '20 сек', sets: '3', icon: 'stretching' },
-                    { name: 'Поза ребёнка', category: 'Спина', reps: '20 сек', sets: '3', icon: 'stretching' },
-                    { name: 'Наклоны в стороны стоя', category: 'Спина', reps: '15 сек', sets: '3', icon: 'stretching' }
-                ],
-                pullup: [
-                    { name: 'Вис на турнике', category: 'Спина', reps: '15 сек', sets: '3', icon: 'stretching' },
-                    { name: 'Подтягивания', category: 'Спина', reps: '5', sets: '3', weight: 0, icon: 'back' }
-                ],
-                noEquipment: [
-                    { name: 'Скручивание лёжа', category: 'Спина', reps: '20 сек', sets: '3', icon: 'stretching' },
-                    { name: 'Поза голубя', category: 'Ягодицы', reps: '20 сек', sets: '3', icon: 'stretching' }
-                ]
-            },
-            '2 LVL': {
-                core: [
-                    { name: 'Глубокий наклон вперёд с захватом ног', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' },
-                    { name: 'Кошка-корова с задержкой', category: 'Спина', reps: '15', sets: '4', icon: 'stretching' },
-                    { name: 'Скручивание лёжа (позвоночник)', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' },
-                    { name: 'Поза голубя', category: 'Ягодицы', reps: '25 сек', sets: '4', icon: 'stretching' },
-                    { name: 'Растяжка спины на фитболе', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' }
-                ],
-                pullup: [
-                    { name: 'Вис на турнике', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' },
-                    { name: 'Подтягивания', category: 'Спина', reps: '8', sets: '4', weight: 0, icon: 'back' }
-                ],
-                dumbbells: [
-                    { name: 'Наклоны с гантелью в стороны', category: 'Спина', reps: '15', sets: '4', weight: 0, icon: 'stretching' },
-                    { name: 'Тяга гантели к поясу', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' }
-                ],
-                noEquipment: [
-                    { name: 'Скручивание позвоночника сидя', category: 'Спина', reps: '30 сек', sets: '4', icon: 'stretching' },
-                    { name: 'Поза лука', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' }
-                ]
-            },
-            '3 LVL': {
-                core: [
-                    { name: 'Глубокий наклон с захватом стоп', category: 'Спина', reps: '35 сек', sets: '4', icon: 'stretching' },
-                    { name: 'Поза верблюда', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' },
-                    { name: 'Скручивание позвоночника сидя', category: 'Спина', reps: '30 сек', sets: '4', icon: 'stretching' },
-                    { name: 'Поза лука', category: 'Спина', reps: '25 сек', sets: '4', icon: 'stretching' },
-                    { name: 'Мост (позвоночник)', category: 'Спина', reps: '30 сек', sets: '4', icon: 'stretching' },
-                    { name: 'Стойка на лопатках (плечи)', category: 'Плечи', reps: '25 сек', sets: '4', icon: 'stretching' }
-                ],
-                pullup: [
-                    { name: 'Вис на турнике', category: 'Спина', reps: '30 сек', sets: '4', icon: 'stretching' },
-                    { name: 'Подтягивания', category: 'Спина', reps: '10', sets: '4', weight: 0, icon: 'back' }
-                ],
-                dumbbells: [
-                    { name: 'Наклоны с гантелью в стороны', category: 'Спина', reps: '20', sets: '4', weight: 0, icon: 'stretching' },
-                    { name: 'Тяга гантели к поясу', category: 'Спина', reps: '15', sets: '4', weight: 0, icon: 'back' }
-                ],
-                noEquipment: [
-                    { name: 'Скручивание лёжа глубокое', category: 'Спина', reps: '35 сек', sets: '4', icon: 'stretching' },
-                    { name: 'Поза голубя глубокая', category: 'Ягодицы', reps: '30 сек', sets: '4', icon: 'stretching' }
-                ]
-            },
-            '_premium': true
-        },
-        'ГТО': {
-            _gender: true,
-            _premium: true,
-            'Женский': {
-                '1 СТУПЕНЬ': [ /* оставляем как есть — ГТО не адаптируем */ ],
-                // ... остальные ступени без изменений
-            },
-            'Мужской': {
-                '1 СТУПЕНЬ': [ /* оставляем как есть */ ],
-                // ...
-            }
-        }
+'ГТО': {
+    _gender: true,
+    _premium: true,
+    'Женский': {
+        '1 СТУПЕНЬ': [
+            { name: 'Бег на месте', category: 'Кардио', reps: '30 сек', sets: '3', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '20 сек', sets: '3', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '20 сек', sets: '3', weight: 0, icon: 'cardio' },
+            { name: 'Прыжки на месте', category: 'Кардио', reps: '15', sets: '3', weight: 0, icon: 'cardio' },
+            { name: 'Подтягивания', category: 'Спина', reps: '2', sets: '3', weight: 0, icon: 'back' },
+            { name: 'Отжимания от пола', category: 'Руки', reps: '4', sets: '3', weight: 0, icon: 'bodybuilding' },
+            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '10', sets: '3', weight: 0, icon: 'stretching' },
+            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '6', sets: '3', weight: 0, icon: 'bodybuilding' }
+        ],
+        '2 СТУПЕНЬ': [
+            { name: 'Бег на месте', category: 'Кардио', reps: '40 сек', sets: '3', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '30 сек', sets: '3', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '30 сек', sets: '3', weight: 0, icon: 'cardio' },
+            { name: 'Прыжки на месте', category: 'Кардио', reps: '20', sets: '3', weight: 0, icon: 'cardio' },
+            { name: 'Подтягивания', category: 'Спина', reps: '3', sets: '3', weight: 0, icon: 'back' },
+            { name: 'Отжимания от пола', category: 'Руки', reps: '6', sets: '3', weight: 0, icon: 'bodybuilding' },
+            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '12', sets: '3', weight: 0, icon: 'stretching' },
+            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '8', sets: '3', weight: 0, icon: 'bodybuilding' }
+        ],
+        '3 СТУПЕНЬ': [
+            { name: 'Бег на месте', category: 'Кардио', reps: '50 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '40 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '40 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Прыжки на месте', category: 'Кардио', reps: '25', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Подтягивания', category: 'Спина', reps: '5', sets: '4', weight: 0, icon: 'back' },
+            { name: 'Отжимания от пола', category: 'Руки', reps: '10', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '15', sets: '4', weight: 0, icon: 'stretching' },
+            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '10', sets: '4', weight: 0, icon: 'bodybuilding' }
+        ],
+        '4 СТУПЕНЬ': [
+            { name: 'Бег на месте', category: 'Кардио', reps: '60 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '50 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '50 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Прыжки на месте', category: 'Кардио', reps: '30', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Подтягивания', category: 'Спина', reps: '7', sets: '4', weight: 0, icon: 'back' },
+            { name: 'Отжимания от пола', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '18', sets: '4', weight: 0, icon: 'stretching' },
+            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' }
+        ],
+        '5 СТУПЕНЬ': [
+            { name: 'Бег на месте', category: 'Кардио', reps: '70 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '60 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '60 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Прыжки на месте', category: 'Кардио', reps: '35', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Подтягивания', category: 'Спина', reps: '8', sets: '4', weight: 0, icon: 'back' },
+            { name: 'Отжимания от пола', category: 'Руки', reps: '15', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '20', sets: '4', weight: 0, icon: 'stretching' },
+            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '14', sets: '4', weight: 0, icon: 'bodybuilding' }
+        ],
+        '6 СТУПЕНЬ': [
+            { name: 'Бег на месте', category: 'Кардио', reps: '90 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '70 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '70 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Прыжки на месте', category: 'Кардио', reps: '40', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Подтягивания', category: 'Спина', reps: '10', sets: '4', weight: 0, icon: 'back' },
+            { name: 'Отжимания от пола', category: 'Руки', reps: '20', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '22', sets: '4', weight: 0, icon: 'stretching' },
+            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '16', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Сгибание рук с гантелями', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Скручивания лёжа', category: 'Пресс', reps: '20', sets: '4', weight: 0, icon: 'press' }
+        ],
+        '7 СТУПЕНЬ': [
+            { name: 'Бег на месте', category: 'Кардио', reps: '100 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '80 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '80 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Прыжки на месте', category: 'Кардио', reps: '45', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Подтягивания', category: 'Спина', reps: '11', sets: '4', weight: 0, icon: 'back' },
+            { name: 'Отжимания от пола', category: 'Руки', reps: '25', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '25', sets: '4', weight: 0, icon: 'stretching' },
+            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '18', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Сгибание рук с гантелями', category: 'Руки', reps: '14', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Скручивания лёжа', category: 'Пресс', reps: '25', sets: '4', weight: 0, icon: 'press' },
+            { name: 'Молотковые сгибания', category: 'Руки', reps: '14', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Подъём ног лёжа', category: 'Пресс', reps: '15', sets: '4', weight: 0, icon: 'press' }
+        ],
+        '8 СТУПЕНЬ': [
+            { name: 'Бег на месте', category: 'Кардио', reps: '110 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '90 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '90 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Прыжки на месте', category: 'Кардио', reps: '50', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Подтягивания', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' },
+            { name: 'Отжимания от пола', category: 'Руки', reps: '28', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '28', sets: '4', weight: 0, icon: 'stretching' },
+            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '20', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Сгибание рук с гантелями', category: 'Руки', reps: '16', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Скручивания лёжа', category: 'Пресс', reps: '30', sets: '4', weight: 0, icon: 'press' },
+            { name: 'Молотковые сгибания', category: 'Руки', reps: '16', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Подъём ног лёжа', category: 'Пресс', reps: '18', sets: '4', weight: 0, icon: 'press' },
+            { name: 'Отжимания широким хватом', category: 'Грудь', reps: '15', sets: '4', weight: 0, icon: 'breast' },
+            { name: 'Скручивания с вытянутыми руками', category: 'Пресс', reps: '20', sets: '4', weight: 0, icon: 'press' }
+        ],
+        '9 СТУПЕНЬ': [
+            { name: 'Бег на месте', category: 'Кардио', reps: '120 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '100 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '100 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Прыжки на месте', category: 'Кардио', reps: '55', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Подтягивания', category: 'Спина', reps: '12', sets: '5', weight: 0, icon: 'back' },
+            { name: 'Отжимания от пола', category: 'Руки', reps: '32', sets: '5', weight: 0, icon: 'bodybuilding' },
+            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '30', sets: '5', weight: 0, icon: 'stretching' },
+            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '22', sets: '5', weight: 0, icon: 'bodybuilding' },
+            { name: 'Сгибание рук с гантелями', category: 'Руки', reps: '18', sets: '5', weight: 0, icon: 'bodybuilding' },
+            { name: 'Скручивания лёжа', category: 'Пресс', reps: '35', sets: '5', weight: 0, icon: 'press' },
+            { name: 'Молотковые сгибания', category: 'Руки', reps: '18', sets: '5', weight: 0, icon: 'bodybuilding' },
+            { name: 'Подъём ног лёжа', category: 'Пресс', reps: '20', sets: '5', weight: 0, icon: 'press' },
+            { name: 'Отжимания широким хватом', category: 'Грудь', reps: '18', sets: '5', weight: 0, icon: 'breast' },
+            { name: 'Скручивания с вытянутыми руками', category: 'Пресс', reps: '25', sets: '5', weight: 0, icon: 'press' },
+            { name: 'Подтягивания узким хватом', category: 'Спина', reps: '8', sets: '5', weight: 0, icon: 'back' },
+            { name: 'Выпады с прыжком', category: 'Ноги', reps: '15', sets: '5', weight: 0, icon: 'legs' }
+        ],
+        '10 СТУПЕНЬ': [
+            { name: 'Бег на месте', category: 'Кардио', reps: '130 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '110 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '110 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Прыжки на месте', category: 'Кардио', reps: '60', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Подтягивания', category: 'Спина', reps: '12', sets: '5', weight: 0, icon: 'back' },
+            { name: 'Отжимания от пола', category: 'Руки', reps: '35', sets: '5', weight: 0, icon: 'bodybuilding' },
+            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '32', sets: '5', weight: 0, icon: 'stretching' },
+            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '24', sets: '5', weight: 0, icon: 'bodybuilding' },
+            { name: 'Сгибание рук с гантелями', category: 'Руки', reps: '20', sets: '5', weight: 0, icon: 'bodybuilding' },
+            { name: 'Скручивания лёжа', category: 'Пресс', reps: '40', sets: '5', weight: 0, icon: 'press' },
+            { name: 'Молотковые сгибания', category: 'Руки', reps: '20', sets: '5', weight: 0, icon: 'bodybuilding' },
+            { name: 'Подъём ног лёжа', category: 'Пресс', reps: '22', sets: '5', weight: 0, icon: 'press' },
+            { name: 'Отжимания широким хватом', category: 'Грудь', reps: '20', sets: '5', weight: 0, icon: 'breast' },
+            { name: 'Скручивания с вытянутыми руками', category: 'Пресс', reps: '28', sets: '5', weight: 0, icon: 'press' },
+            { name: 'Подтягивания узким хватом', category: 'Спина', reps: '10', sets: '5', weight: 0, icon: 'back' },
+            { name: 'Выпады с прыжком', category: 'Ноги', reps: '18', sets: '5', weight: 0, icon: 'legs' },
+            { name: 'Подтягивания широким хватом', category: 'Спина', reps: '8', sets: '5', weight: 0, icon: 'back' },
+            { name: 'Бёрпи с прыжком вверх', category: 'Всё тело', reps: '12', sets: '5', weight: 0, icon: 'WholeBody' }
+        ]
+        
+    },
+    'Мужской': {
+        '1 СТУПЕНЬ': [
+            { name: 'Бег на месте', category: 'Кардио', reps: '30 сек', sets: '3', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '20 сек', sets: '3', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '20 сек', sets: '3', weight: 0, icon: 'cardio' },
+            { name: 'Прыжки на месте', category: 'Кардио', reps: '15', sets: '3', weight: 0, icon: 'cardio' },
+            { name: 'Подтягивания', category: 'Спина', reps: '3', sets: '3', weight: 0, icon: 'back' },
+            { name: 'Отжимания от пола', category: 'Руки', reps: '5', sets: '3', weight: 0, icon: 'bodybuilding' },
+            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '10', sets: '3', weight: 0, icon: 'stretching' },
+            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '8', sets: '3', weight: 0, icon: 'bodybuilding' }
+        ],
+        '2 СТУПЕНЬ': [
+            { name: 'Бег на месте', category: 'Кардио', reps: '40 сек', sets: '3', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '30 сек', sets: '3', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '30 сек', sets: '3', weight: 0, icon: 'cardio' },
+            { name: 'Прыжки на месте', category: 'Кардио', reps: '20', sets: '3', weight: 0, icon: 'cardio' },
+            { name: 'Подтягивания', category: 'Спина', reps: '5', sets: '3', weight: 0, icon: 'back' },
+            { name: 'Отжимания от пола', category: 'Руки', reps: '8', sets: '3', weight: 0, icon: 'bodybuilding' },
+            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '12', sets: '3', weight: 0, icon: 'stretching' },
+            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '10', sets: '3', weight: 0, icon: 'bodybuilding' }
+        ],
+        '3 СТУПЕНЬ': [
+            { name: 'Бег на месте', category: 'Кардио', reps: '50 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '40 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '40 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Прыжки на месте', category: 'Кардио', reps: '25', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Подтягивания', category: 'Спина', reps: '7', sets: '4', weight: 0, icon: 'back' },
+            { name: 'Отжимания от пола', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '15', sets: '4', weight: 0, icon: 'stretching' },
+            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '12', sets: '4', weight: 0, icon: 'bodybuilding' }
+        ],
+        '4 СТУПЕНЬ': [
+            { name: 'Бег на месте', category: 'Кардио', reps: '60 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '50 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '50 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Прыжки на месте', category: 'Кардио', reps: '30', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Подтягивания', category: 'Спина', reps: '9', sets: '4', weight: 0, icon: 'back' },
+            { name: 'Отжимания от пола', category: 'Руки', reps: '15', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '18', sets: '4', weight: 0, icon: 'stretching' },
+            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '14', sets: '4', weight: 0, icon: 'bodybuilding' }
+        ],
+        '5 СТУПЕНЬ': [
+            { name: 'Бег на месте', category: 'Кардио', reps: '70 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '60 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '60 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Прыжки на месте', category: 'Кардио', reps: '35', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Подтягивания', category: 'Спина', reps: '10', sets: '4', weight: 0, icon: 'back' },
+            { name: 'Отжимания от пола', category: 'Руки', reps: '20', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '20', sets: '4', weight: 0, icon: 'stretching' },
+            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '16', sets: '4', weight: 0, icon: 'bodybuilding' }
+        ],
+        '6 СТУПЕНЬ': [
+            { name: 'Бег на месте', category: 'Кардио', reps: '90 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '70 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '70 сек', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Прыжки на месте', category: 'Кардио', reps: '40', sets: '4', weight: 0, icon: 'cardio' },
+            { name: 'Подтягивания', category: 'Спина', reps: '12', sets: '4', weight: 0, icon: 'back' },
+            { name: 'Отжимания от пола', category: 'Руки', reps: '25', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '22', sets: '4', weight: 0, icon: 'stretching' },
+            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '18', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Сгибание рук с гантелями', category: 'Руки', reps: '15', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Скручивания лёжа', category: 'Пресс', reps: '25', sets: '4', weight: 0, icon: 'press' }
+        ],
+        '7 СТУПЕНЬ': [
+            { name: 'Бег на месте', category: 'Кардио', reps: '100 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '80 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '80 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Прыжки на месте', category: 'Кардио', reps: '45', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Подтягивания', category: 'Спина', reps: '14', sets: '4', weight: 0, icon: 'back' },
+            { name: 'Отжимания от пола', category: 'Руки', reps: '30', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '25', sets: '4', weight: 0, icon: 'stretching' },
+            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '20', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Сгибание рук с гантелями', category: 'Руки', reps: '18', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Скручивания лёжа', category: 'Пресс', reps: '30', sets: '4', weight: 0, icon: 'press' },
+            { name: 'Молотковые сгибания', category: 'Руки', reps: '18', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Подъём ног лёжа', category: 'Пресс', reps: '18', sets: '4', weight: 0, icon: 'press' }
+        ],
+        '8 СТУПЕНЬ': [
+            { name: 'Бег на месте', category: 'Кардио', reps: '110 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '90 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '90 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Прыжки на месте', category: 'Кардио', reps: '50', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Подтягивания', category: 'Спина', reps: '15', sets: '4', weight: 0, icon: 'back' },
+            { name: 'Отжимания от пола', category: 'Руки', reps: '35', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '28', sets: '4', weight: 0, icon: 'stretching' },
+            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '22', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Сгибание рук с гантелями', category: 'Руки', reps: '20', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Скручивания лёжа', category: 'Пресс', reps: '35', sets: '4', weight: 0, icon: 'press' },
+            { name: 'Молотковые сгибания', category: 'Руки', reps: '20', sets: '4', weight: 0, icon: 'bodybuilding' },
+            { name: 'Подъём ног лёжа', category: 'Пресс', reps: '20', sets: '4', weight: 0, icon: 'press' },
+            { name: 'Отжимания широким хватом', category: 'Грудь', reps: '20', sets: '4', weight: 0, icon: 'breast' },
+            { name: 'Скручивания с вытянутыми руками', category: 'Пресс', reps: '25', sets: '4', weight: 0, icon: 'press' }
+        ],
+        '9 СТУПЕНЬ': [
+            { name: 'Бег на месте', category: 'Кардио', reps: '120 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '100 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '100 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Прыжки на месте', category: 'Кардио', reps: '55', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Подтягивания', category: 'Спина', reps: '15', sets: '5', weight: 0, icon: 'back' },
+            { name: 'Отжимания от пола', category: 'Руки', reps: '40', sets: '5', weight: 0, icon: 'bodybuilding' },
+            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '30', sets: '5', weight: 0, icon: 'stretching' },
+            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '24', sets: '5', weight: 0, icon: 'bodybuilding' },
+            { name: 'Сгибание рук с гантелями', category: 'Руки', reps: '22', sets: '5', weight: 0, icon: 'bodybuilding' },
+            { name: 'Скручивания лёжа', category: 'Пресс', reps: '40', sets: '5', weight: 0, icon: 'press' },
+            { name: 'Молотковые сгибания', category: 'Руки', reps: '22', sets: '5', weight: 0, icon: 'bodybuilding' },
+            { name: 'Подъём ног лёжа', category: 'Пресс', reps: '22', sets: '5', weight: 0, icon: 'press' },
+            { name: 'Отжимания широким хватом', category: 'Грудь', reps: '22', sets: '5', weight: 0, icon: 'breast' },
+            { name: 'Скручивания с вытянутыми руками', category: 'Пресс', reps: '30', sets: '5', weight: 0, icon: 'press' },
+            { name: 'Подтягивания узким хватом', category: 'Спина', reps: '10', sets: '5', weight: 0, icon: 'back' },
+            { name: 'Выпады с прыжком', category: 'Ноги', reps: '18', sets: '5', weight: 0, icon: 'legs' }
+        ],
+        '10 СТУПЕНЬ': [
+            { name: 'Бег на месте', category: 'Кардио', reps: '130 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с высокими коленями', category: 'Кардио', reps: '110 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Бег на месте с захлёстом голеней', category: 'Кардио', reps: '110 сек', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Прыжки на месте', category: 'Кардио', reps: '60', sets: '5', weight: 0, icon: 'cardio' },
+            { name: 'Подтягивания', category: 'Спина', reps: '14', sets: '5', weight: 0, icon: 'back' },
+            { name: 'Отжимания от пола', category: 'Руки', reps: '45', sets: '5', weight: 0, icon: 'bodybuilding' },
+            { name: 'Наклоны к ногам стоя', category: 'Гибкость', reps: '32', sets: '5', weight: 0, icon: 'stretching' },
+            { name: 'Французский жим с гантелью стоя', category: 'Руки', reps: '26', sets: '5', weight: 0, icon: 'bodybuilding' },
+            { name: 'Сгибание рук с гантелями', category: 'Руки', reps: '24', sets: '5', weight: 0, icon: 'bodybuilding' },
+            { name: 'Скручивания лёжа', category: 'Пресс', reps: '45', sets: '5', weight: 0, icon: 'press' },
+            { name: 'Молотковые сгибания', category: 'Руки', reps: '24', sets: '5', weight: 0, icon: 'bodybuilding' },
+            { name: 'Подъём ног лёжа', category: 'Пресс', reps: '25', sets: '5', weight: 0, icon: 'press' },
+            { name: 'Отжимания широким хватом', category: 'Грудь', reps: '25', sets: '5', weight: 0, icon: 'breast' },
+            { name: 'Скручивания с вытянутыми руками', category: 'Пресс', reps: '35', sets: '5', weight: 0, icon: 'press' },
+            { name: 'Подтягивания узким хватом', category: 'Спина', reps: '12', sets: '5', weight: 0, icon: 'back' },
+            { name: 'Выпады с прыжком', category: 'Ноги', reps: '20', sets: '5', weight: 0, icon: 'legs' },
+            { name: 'Подтягивания широким хватом', category: 'Спина', reps: '10', sets: '5', weight: 0, icon: 'back' },
+            { name: 'Бёрпи с прыжком вверх', category: 'Всё тело', reps: '15', sets: '5', weight: 0, icon: 'WholeBody' }
+        ]
+    }
+},
     }
 };
 
