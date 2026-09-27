@@ -2451,7 +2451,7 @@ body.theme-dark-mode .nav-item-active { color: var(--accent); }
 /* ===================TOAST ==================== */
 #toast {
     position: fixed;
-    bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(70px + env(safe-area-inset-bottom, 0px));
     left: 50%;
     transform: translate(-50%, 20px) scale(0.9);
     background: var(--bg-primary);
