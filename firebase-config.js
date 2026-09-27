@@ -2,7 +2,7 @@
 // firebase-config.js
 // ============================================================
 
-const firebaseConfig = { 
+const firebaseConfig = {
   apiKey: "AIzaSyD6uUMfXa3MA6wa3RoatzYFex4M6QAo4Iw",
   authDomain: "sportapp-f3e54.firebaseapp.com",
   projectId: "sportapp-f3e54",
@@ -15,21 +15,12 @@ const firebaseConfig = {
 // Инициализация Firebase
 firebase.initializeApp(firebaseConfig);
 
-// ★★★ ВКЛЮЧАЕМ ПЕРСИСТЕНТНОСТЬ С ОБРАБОТКОЙ ОШИБОК ★★★
-firebase.firestore().enablePersistence({ 
-    synchronizeTabs: false 
-})
-.then(() => {
-    console.log('✅ Офлайн-режим включён');
-})
-.catch((err) => {
-    if (err.code === 'failed-precondition') {
-        console.warn('⚠️ Офлайн-режим не включён (уже открыто в другой вкладке)');
-    } else if (err.code === 'unimplemented') {
-        console.warn('⚠️ Офлайн-режим не поддерживается этим браузером');
-    } else {
-        console.error('❌ Ошибка включения офлайн-режима:', err);
-    }
-});
+// Включаем офлайн-персистентность (кеширование)
+// synchronizeTabs: false — отключаем синхронизацию между вкладками,
+// чтобы избежать проблем с обновлением слушателей
+firebase.firestore().enablePersistence({ synchronizeTabs: false })
+  .catch((err) => {
+    console.warn('Офлайн-режим не включён:', err.code);
+  });
 
 console.log('✅ Firebase подключен!');
