@@ -704,14 +704,87 @@
             </div>
         </div>
 
-                   <!-- Пляшки -->          
-    <div class="stats-banner" data-stat-id="users">
-        <div class="stats-banner-icon"><i class="fa-solid fa-earth-americas"></i></div>
-        <div class="stats-banner-text">
-            <span class="stats-banner-title">В SportApp уже тренируются</span>
-            <span class="stats-banner-value"><span id="globalTotalUsers">—</span> <span id="globalTotalUsersLabel">пользователей</span>.</span>
+    <!-- Пляшки (в одну строку) -->
+    <div class="stats-banners-row">
+        <div class="stats-banner" data-stat-id="users">
+            <div class="stats-banner-icon"><i class="fa-solid fa-user-group"></i></div>
+            <div class="stats-banner-text">
+                <span class="stats-banner-title">Зарегистрировано</span>
+                <span class="stats-banner-value">
+                    <span id="globalTotalUsers">—</span>
+                    <span id="globalTotalUsersLabel">пользователей</span>
+                </span>
+            </div>
+        </div>
+
+        <div class="stats-banner" data-stat-id="online">
+            <div class="stats-banner-icon" style="position:relative;">
+                <i class="fa-solid fa-satellite-dish"></i>
+            </div>
+            <div class="stats-banner-text">
+                <span class="stats-banner-title">Онлайн сейчас</span>
+                <span class="stats-banner-value">
+                    <span id="globalOnlineUsers">—</span>
+                    <span id="globalOnlineUsersLabel">человек</span>
+                </span>
+            </div>
         </div>
     </div>
+
+<!-- Блок: Достижения сообщества (единая стенка) -->
+<div class="section-block" data-block-id="community-achievements">
+    <div class="section-header">
+        <h2 class="section-title">Редкость достижений</h2>
+        <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
+        <button class="section-drag" touch-action="none"><i class="fa-solid fa-grip-lines"></i></button>
+    </div>
+    <div class="section-body" onclick="openMuscleGroupsModal('communityAchievements')">
+        <div class="community-achievements-wall" id="communityAchievementsContainer">
+            <div class="community-achievement-tile" data-achievement="friendly">
+                <div class="community-achievement-icon locked">
+                    <i class="fa-solid fa-user-group"></i>
+                </div>
+                <div class="community-achievement-percent" id="communityPercFriendly">—</div>
+            </div>
+            <div class="community-achievement-tile" data-achievement="marathoner">
+                <div class="community-achievement-icon locked">
+                    <i class="fa-solid fa-dumbbell"></i>
+                </div>
+                <div class="community-achievement-percent" id="communityPercMarathoner">—</div>
+            </div>
+            <div class="community-achievement-tile" data-achievement="fitnessMaster">
+                <div class="community-achievement-icon locked">
+                    <i class="fa-solid fa-heart-pulse"></i>
+                </div>
+                <div class="community-achievement-percent" id="communityPercFitnessMaster">—</div>
+            </div>
+            <div class="community-achievement-tile" data-achievement="unstoppable">
+                <div class="community-achievement-icon locked">
+                    <i class="fa-solid fa-fire"></i>
+                </div>
+                <div class="community-achievement-percent" id="communityPercUnstoppable">—</div>
+            </div>
+            <div class="community-achievement-tile" data-achievement="ironEndurance">
+                <div class="community-achievement-icon locked">
+                    <i class="fa-solid fa-stopwatch"></i>
+                </div>
+                <div class="community-achievement-percent" id="communityPercIronEndurance">—</div>
+            </div>
+            <div class="community-achievement-tile" data-achievement="masterOfStyles">
+                <div class="community-achievement-icon locked">
+                    <i class="fa-solid fa-award"></i>
+                </div>
+                <div class="community-achievement-percent" id="communityPercMasterOfStyles">—</div>
+            </div>
+            <div class="community-achievement-tile" data-achievement="vip">
+                <div class="community-achievement-icon locked">
+                    <i class="fa-solid fa-crown"></i>
+                </div>
+                <div class="community-achievement-percent" id="communityPercVip">—</div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Блок: Общая цель сообщества -->
 <div class="section-block" data-block-id="community-goal" style="cursor: pointer;">
@@ -737,61 +810,6 @@
 </div>
             </div>
         </div>
-    </div>
-</div>
-
-    <!-- Блок: Достижения сообщества -->
-<div class="section-block" data-block-id="community-achievements">
-    <div class="section-header">
-        <h2 class="section-title">Редкость достижений</h2>
-        <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
-        <button class="section-drag" touch-action="none"><i class="fa-solid fa-grip-lines"></i></button>
-    </div>
-    <div class="section-body" onclick="openMuscleGroupsModal('communityAchievements')">
-<div class="community-achievements-grid" id="communityAchievementsContainer">
-    <div class="community-achievement-tile" data-achievement="friendly">
-        <div class="community-achievement-icon locked">
-            <i class="fa-solid fa-user-group"></i>
-        </div>
-        <div class="community-achievement-percent" id="communityPercFriendly">—</div>
-    </div>
-    <div class="community-achievement-tile" data-achievement="marathoner">
-        <div class="community-achievement-icon locked">
-            <i class="fa-solid fa-dumbbell"></i>
-        </div>
-        <div class="community-achievement-percent" id="communityPercMarathoner">—</div>
-    </div>
-    <div class="community-achievement-tile" data-achievement="fitnessMaster">
-        <div class="community-achievement-icon locked">
-            <i class="fa-solid fa-heart-pulse"></i>
-        </div>
-        <div class="community-achievement-percent" id="communityPercFitnessMaster">—</div>
-    </div>
-    <div class="community-achievement-tile" data-achievement="unstoppable">
-        <div class="community-achievement-icon locked">
-            <i class="fa-solid fa-fire"></i>
-        </div>
-        <div class="community-achievement-percent" id="communityPercUnstoppable">—</div>
-    </div>
-    <div class="community-achievement-tile" data-achievement="ironEndurance">
-        <div class="community-achievement-icon locked">
-            <i class="fa-solid fa-stopwatch"></i>
-        </div>
-        <div class="community-achievement-percent" id="communityPercIronEndurance">—</div>
-    </div>
-    <div class="community-achievement-tile" data-achievement="masterOfStyles">
-        <div class="community-achievement-icon locked">
-            <i class="fa-solid fa-award"></i>
-        </div>
-        <div class="community-achievement-percent" id="communityPercMasterOfStyles">—</div>
-    </div>
-    <div class="community-achievement-tile" data-achievement="vip">
-        <div class="community-achievement-icon locked">
-            <i class="fa-solid fa-crown"></i>
-        </div>
-        <div class="community-achievement-percent" id="communityPercVip">—</div>
-    </div>
-</div>
     </div>
 </div>
 

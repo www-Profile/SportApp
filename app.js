@@ -2197,7 +2197,7 @@ function getDefaultStatsLayout() {
         exerciseMuscleStats: ['Руки', 'Плечи', 'Пресс', 'Грудь', 'Спина', 'Ноги', 'Ягодицы'],
         categoriesStats: ['Руки', 'Плечи', 'Пресс', 'Грудь', 'Спина', 'Ноги', 'Ягодицы', 'Кардио', 'Гибкость', 'Всё тело'],
         globalStatsContainer: ['minutes', 'workouts', 'exercises'],  // ★ ДОБАВИЛИ
-        worldStatsBlocksContainer: ['community-goal', 'community-achievements', 'world-leaderboard', 'friends-leaderboard']
+        worldStatsBlocksContainer: ['community-achievements', 'community-goal', 'world-leaderboard', 'friends-leaderboard']
     };
 }
 
@@ -3172,8 +3172,9 @@ function updateStats(tab) {
     try {
 if (currentTab === 'world') {
     loadGlobalStats();
-    loadGlobalUsersCount();           // из прошлого шага
-    loadCommunityAchievements();      // ← ★★★ ДОБАВИЛИ ★★★
+    loadGlobalUsersCount();
+    loadOnlineUsersCount();           // ← ★★★ НОВАЯ ПЛЯШКА ★★★
+    loadCommunityAchievements();
     loadCommunityGoal();
     loadWorldLeaderboard();
     loadFriendsLeaderboard();
@@ -5987,6 +5988,15 @@ firebase.auth().onAuthStateChanged(async (user) => {
             }, { merge: true });
         } catch (e) {
             console.warn('Не удалось сохранить emailVerified:', e);
+        }
+
+                // ★★★ ОБНОВЛЯЕМ lastSeenAt — ДЛЯ ПЛЯШКИ "ОНЛАЙН СЕЙЧАС" ★★★
+        try {
+            await firebase.firestore().collection('users').doc(user.uid).set({
+                lastSeenAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        } catch (e) {
+            console.warn('Не удалось обновить lastSeenAt:', e);
         }
 
         // ★★★ ПОЧТА ПОДТВЕРЖДЕНА — УДАЛЯЕМ ИЗ PENDING ★★★
@@ -9169,6 +9179,30 @@ setTimeout(() => loadSupportCooldown(), 2500);
     setInterval(async () => {
         await checkAndDeleteExpiredAccounts();
     }, 60000); // Каждую минуту
+
+    // ★★★ HEARTBEAT: ОБНОВЛЯЕМ lastSeenAt КАЖДЫЕ 5 МИНУТ ★★★
+    setInterval(async () => {
+        try {
+            const user = firebase.auth().currentUser;
+            if (!user) return;
+            if (document.hidden) return; // вкладка свёрнута — не тратим запросы
+            await firebase.firestore().collection('users').doc(user.uid).set({
+                lastSeenAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        } catch (e) {}
+    }, 5 * 60 * 1000);
+
+    // ★★★ ОБНОВЛЯЕМ lastSeenAt ПРИ ВОЗВРАТЕ НА ВКЛАДКУ ★★★
+    document.addEventListener('visibilitychange', async () => {
+        if (document.hidden) return;
+        try {
+            const user = firebase.auth().currentUser;
+            if (!user) return;
+            await firebase.firestore().collection('users').doc(user.uid).set({
+                lastSeenAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        } catch (e) {}
+    });
 });
 
 // ===================МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ С ПАРОЛЕМ ===================
@@ -9774,7 +9808,7 @@ window.statsEditor = new PageEditor({
         exerciseMuscleStats: ['Руки', 'Плечи', 'Пресс', 'Грудь', 'Спина', 'Ноги', 'Ягодицы'],
         categoriesStats: ['Руки', 'Плечи', 'Пресс', 'Грудь', 'Спина', 'Ноги', 'Ягодицы', 'Кардио', 'Гибкость', 'Всё тело'],
         globalStatsContainer: ['minutes', 'workouts', 'exercises'],  // ★ ДОБАВИЛИ
-        worldStatsBlocksContainer: ['community-goal', 'community-achievements', 'world-leaderboard', 'friends-leaderboard']
+        worldStatsBlocksContainer: ['community-achievements', 'community-goal', 'world-leaderboard', 'friends-leaderboard']
     }
 });
 // ===================ЕДИНЫЙ РЕДАКТОР тренировок ===================
@@ -15501,7 +15535,6 @@ async function loadGlobalUsersCount() {
 
         let total = 0;
 
-        // ★★★ ПРОБУЕМ count() ★★★
         try {
             const snap = await firebase.firestore()
                 .collection('users')
@@ -15509,7 +15542,6 @@ async function loadGlobalUsersCount() {
                 .get();
             total = snap.data().count;
         } catch (e) {
-            // ★★★ FALLBACK: обычный get() ★★★
             console.warn('count() не сработал, используем get():', e);
             const snap = await firebase.firestore()
                 .collection('users')
@@ -15517,18 +15549,50 @@ async function loadGlobalUsersCount() {
             total = snap.size;
         }
 
-el.textContent = formatBigNumber(total);
+        el.textContent = formatBigNumber(total);
 
-// ★★★ ПРАВИЛЬНОЕ СКЛОНЕНИЕ СЛОВА "ПОЛЬЗОВАТЕЛЬ" ★★★
-const labelEl = document.getElementById('globalTotalUsersLabel');
-if (labelEl) {
-    labelEl.textContent = declOfNum(total, ['пользователь', 'пользователя', 'пользователей']);
-}
+        const labelEl = document.getElementById('globalTotalUsersLabel');
+        if (labelEl) {
+            labelEl.textContent = declOfNum(total, ['человек', 'человека', 'человек']);
+        }
 
-console.log(`👥 Всего пользователей: ${total}`);
+        console.log(`👥 Всего пользователей: ${total}`);
 
     } catch (error) {
         console.error('❌ Ошибка загрузки пользователей:', error);
+        el.textContent = '—';
+    }
+}
+
+// =================== ПЛАШКА: ОНЛАЙН СЕЙЧАС ===================
+async function loadOnlineUsersCount() {
+    const el = document.getElementById('globalOnlineUsers');
+    const labelEl = document.getElementById('globalOnlineUsersLabel');
+    if (!el) return;
+    el.textContent = '...';
+
+    try {
+        const user = await getFirebaseUser();
+        if (!user) { el.textContent = '—'; return; }
+
+        const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000);
+
+        const snapshot = await firebase.firestore()
+            .collection('users')
+            .where('lastSeenAt', '>=', fifteenMinAgo)
+            .get();
+
+        const count = snapshot.size;
+        el.textContent = formatBigNumber(count);
+
+        if (labelEl) {
+            labelEl.textContent = declOfNum(count, ['человек', 'человека', 'человек']);
+        }
+
+        console.log(`🟢 Онлайн сейчас: ${count}`);
+
+    } catch (error) {
+        console.error('❌ Ошибка загрузки онлайн-пользователей:', error);
         el.textContent = '—';
     }
 }
@@ -15641,9 +15705,9 @@ const counts = {
 
 // =================== ОБЩАЯ ЦЕЛЬ СООБЩЕСТВА ===================
 const COMMUNITY_GOAL = {
-    target: 100,
+    target: 1000,
     topCount: 10,
-    title: 'Выполнить 100 тренировок',
+    title: 'Выполнить 1000 тренировок',
 
     getRewardByPosition(position) {
         if (position === 1) return 100;

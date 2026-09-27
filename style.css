@@ -4136,61 +4136,115 @@ body.theme-dark-mode .stats-banner-icon { background: var(--accent-dark); }
 body.theme-dark-mode .stats-banner-title { color: var(--text-primary); }
 body.theme-dark-mode .stats-banner-value { color: var(--text-secondary); }
 
-/* =================== ДОСТИЖЕНИЯ СООБЩЕСТВА =================== */
-.community-achievements-grid {
+/* =================== ДВЕ ПЛЯШКИ В ОДНУ СТРОКУ =================== */
+.stats-banners-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin: 0.5rem 0;
+}
+
+.stats-banners-row .stats-banner {
+    margin: 0;
+    padding: 0.5rem;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+.stats-banners-row .stats-banner-icon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    font-size: 1.05rem;
+}
+
+.stats-banners-row .stats-banner-title {
+    font-size: 0.8rem;
+    white-space: normal;
+    line-height: 1.2;
+    max-height: 2.4em;      /* ≈ 2 строки (line-height 1.2 × 2) */
+    overflow: hidden;
+}
+
+.stats-banners-row .stats-banner-value {
+    font-size: 0.7rem;
+    white-space: normal;
+    line-height: 1.2;
+}
+
+body.theme-dark-mode .stats-banners-row .stats-banner {
+    background: var(--bg-secondary);
+    box-shadow: var(--shadow-card-dark);
+}
+
+/* =================== ДОСТИЖЕНИЯ СООБЩЕСТВА (ЕДИНАЯ СТЕНКА) =================== */
+.community-achievements-wall {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 0.3rem;
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: var(--shadow-card);
+    padding: 0.4rem 0;
     cursor: pointer;
+    overflow: hidden;
 }
 
 .community-achievement-tile {
-    background: var(--white);
-    border-radius: 12px;
-    padding: 0.5rem 0.2rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.1rem;
-    box-shadow: var(--shadow-card);
-    border-top: 3px solid var(--accent);
-    min-height: 70px;
+    gap: 0.25rem;
+    padding: 0.3rem 0.1rem;
+    min-height: 56px;
+    position: relative;
+    min-width: 0;
     overflow: hidden;
 }
 
-#communityAchievementsContainer,
-#communityAchievementsContainer .community-achievement-tile {
-    overflow: visible !important;
+/* ★★★ СТЕНКИ МЕЖДУ ЯЧЕЙКАМИ ★★★ */
+.community-achievement-tile:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 20%;
+    bottom: 20%;
+    width: 1px;
+    background: var(--light-grey);
 }
 
-.section-block[data-block-id="community-achievements"],
-.section-block[data-block-id="community-achievements"] .section-body,
-.community-achievements-grid {
-    overflow: visible !important;
+.community-achievement-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+    line-height: 1;
 }
 
-.community-achievement-icon { font-size: 1rem; }
 .community-achievement-icon.unlocked { color: var(--gold); }
-.community-achievement-icon.locked { color: var(--light-grey); }
+.community-achievement-icon.locked   { color: var(--light-grey); }
 
 .community-achievement-percent {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 700;
     color: var(--dark);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 100%;
+    line-height: 1.1;
 }
 
-body.theme-dark-mode .community-achievement-tile {
+/* ── Тёмная тема ── */
+body.theme-dark-mode .community-achievements-wall {
     background: var(--bg-secondary);
     box-shadow: var(--shadow-card-dark);
 }
 
+body.theme-dark-mode .community-achievement-tile:not(:last-child)::after {
+    background: var(--border-color);
+}
+
 body.theme-dark-mode .community-achievement-icon.locked { color: var(--border-color); }
-body.theme-dark-mode .community-achievement-percent { color: var(--text-primary); }
+body.theme-dark-mode .community-achievement-percent      { color: var(--text-primary); }
 
 /* =================== ОБЩАЯ ЦЕЛЬ СООБЩЕСТВА =================== */
 .community-goal {
