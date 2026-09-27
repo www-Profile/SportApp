@@ -8086,13 +8086,15 @@ async function loadWorldLeaderboard() {
             
             let infoHtml = '';
             if (visible) {
-                const achievementIcons = [
-                    { id: 'friendly', icon: 'fa-solid fa-user-group' },
-                    { id: 'marathoner', icon: 'fa-solid fa-dumbbell' },
-                    { id: 'unstoppable', icon: 'fa-solid fa-fire' },
-                    { id: 'ironEndurance', icon: 'fa-solid fa-stopwatch' },
-                    { id: 'masterOfStyles', icon: 'fa-solid fa-award' }
-                ];
+const achievementIcons = [
+    { id: 'friendly', icon: 'fa-solid fa-user-group' },
+    { id: 'marathoner', icon: 'fa-solid fa-dumbbell' },
+    { id: 'fitnessMaster', icon: 'fa-solid fa-heart-pulse' },
+    { id: 'unstoppable', icon: 'fa-solid fa-fire' },
+    { id: 'ironEndurance', icon: 'fa-solid fa-stopwatch' },
+    { id: 'masterOfStyles', icon: 'fa-solid fa-award' },
+    { id: 'vip', icon: 'fa-solid fa-crown' }
+];
                 infoHtml = achievementIcons.map(a => {
                     const unlocked = achievements[a.id] === true;
                     return `<span class="achievement-icon-top ${unlocked ? 'unlocked' : 'locked'}"><i class="${a.icon}"></i></span>`;
@@ -8182,13 +8184,15 @@ async function loadFriendsLeaderboard() {
             
             let infoHtml = '';
             if (visible) {
-                const achievementIcons = [
-                    { id: 'friendly', icon: 'fa-solid fa-user-group' },
-                    { id: 'marathoner', icon: 'fa-solid fa-dumbbell' },
-                    { id: 'unstoppable', icon: 'fa-solid fa-fire' },
-                    { id: 'ironEndurance', icon: 'fa-solid fa-stopwatch' },
-                    { id: 'masterOfStyles', icon: 'fa-solid fa-award' }
-                ];
+const achievementIcons = [
+    { id: 'friendly', icon: 'fa-solid fa-user-group' },
+    { id: 'marathoner', icon: 'fa-solid fa-dumbbell' },
+    { id: 'fitnessMaster', icon: 'fa-solid fa-heart-pulse' },
+    { id: 'unstoppable', icon: 'fa-solid fa-fire' },
+    { id: 'ironEndurance', icon: 'fa-solid fa-stopwatch' },
+    { id: 'masterOfStyles', icon: 'fa-solid fa-award' },
+    { id: 'vip', icon: 'fa-solid fa-crown' }
+];
                 infoHtml = achievementIcons.map(a => {
                     const unlocked = achievements[a.id] === true;
                     return `<span class="achievement-icon-top ${unlocked ? 'unlocked' : 'locked'}"><i class="${a.icon}"></i></span>`;
@@ -10935,6 +10939,34 @@ closeModal('editPasswordModal');
     });
 }
 // =================== ДОСТИЖЕНИЯ ===================
+
+// =================== ХЕЛПЕР: РОДИТЕЛЬСКАЯ КАТЕГОРИЯ ПО ИКОНКЕ ===================
+const ICON_TO_PARENT = {
+    // Силовые
+    'bodybuilding': 'strength',
+    'shoulder':     'strength',
+    'press':        'strength',
+    'breast':       'strength',
+    'back':         'strength',
+    'legs':         'strength',
+    'WholeBody':    'strength',
+    // Фитнес
+    'cardio':       'fitness',
+    'stretching':   'fitness',
+    'charging':     'fitness',
+    'Pilates':      'fitness',
+    'stretching-back': 'fitness',
+    // Особые (считаем premium, не попадают в силовые/фитнес)
+    'crossfit':     'premium',
+    'men':          'premium',
+    'woman':        'premium'
+};
+
+function getParentCategory(icon) {
+    if (!icon) return null;
+    return ICON_TO_PARENT[icon] || null;
+}
+
 const ACHIEVEMENTS_CONFIG = [
     {
         id: 'friendly',
@@ -10950,23 +10982,36 @@ const ACHIEVEMENTS_CONFIG = [
         id: 'marathoner',
         icon: 'fa-solid fa-dumbbell',
         name: 'Марафонец',
-        description: 'Выполнить 100 тренировок',  // ← ИЗМЕНЕНО (было 50)
+        description: 'Выполнить 100 силовых тренировок',
         check: async (userId, profile, workouts) => {
             const filtered = workouts.filter(w => {
                 const icon = getWorkoutIcon(w);
-                return icon && icon !== 'charging';
+                return getParentCategory(icon) === 'strength';
             });
-            return filtered.length >= 100;  // ← ИЗМЕНЕНО (было 50)
+            return filtered.length >= 100;
+        }
+    },
+    {
+        id: 'fitnessMaster',
+        icon: 'fa-solid fa-heart-pulse',
+        name: 'Фитнес-мастер',
+        description: 'Выполнить 100 фитнес-тренировок',
+        check: async (userId, profile, workouts) => {
+            const filtered = workouts.filter(w => {
+                const icon = getWorkoutIcon(w);
+                return getParentCategory(icon) === 'fitness';
+            });
+            return filtered.length >= 100;
         }
     },
     {
         id: 'unstoppable',
         icon: 'fa-solid fa-fire',
         name: 'Неудержимый',
-        description: 'Выполнить 21 дневную серию тренировок',  // ← ИЗМЕНЕНО (было 14)
+        description: 'Выполнить 21 дневную серию тренировок',
         check: async (userId, profile, workouts) => {
             const streak = profile.streakDays || 0;
-            return streak >= 21;  // ← ИЗМЕНЕНО (было 14)
+            return streak >= 21;
         }
     },
     {
@@ -10997,6 +11042,15 @@ const ACHIEVEMENTS_CONFIG = [
                 }
             });
             return categories.every(c => (counts[c] || 0) >= 10);
+        }
+    },
+    {
+        id: 'vip',
+        icon: 'fa-solid fa-crown',
+        name: 'PREMIUM',
+        description: 'Купить PREMIUM',
+        check: async (userId, profile, workouts) => {
+            return profile.premium === true;
         }
     }
 ];
@@ -11108,11 +11162,20 @@ switch (ach.id) {
         progress = `${friends.length}/10`;
         break;
     }
-    case 'marathoner': {
-        const filtered = workouts.filter(w => getWorkoutIcon(w) !== 'charging');
-        progress = `${filtered.length}/100`;  // ← ИЗМЕНЕНО (было /50)
-        break;
-    }
+case 'marathoner': {
+    const filtered = workouts.filter(w => getParentCategory(getWorkoutIcon(w)) === 'strength');
+    progress = `${filtered.length}/100`;
+    break;
+}
+case 'fitnessMaster': {
+    const filtered = workouts.filter(w => getParentCategory(getWorkoutIcon(w)) === 'fitness');
+    progress = `${filtered.length}/100`;
+    break;
+}
+case 'vip': {
+    progress = profile.premium === true ? '✓' : '—';
+    break;
+}
     case 'unstoppable': {
         const streak = profile.streakDays || 0;
         progress = `${streak}/21`;  // ← ИЗМЕНЕНО (было /14)
@@ -15481,13 +15544,15 @@ async function loadCommunityAchievements() {
     const container = document.getElementById('communityAchievementsContainer');
     if (!container) return;
 
-    const achievementsMap = {
-        friendly: 'communityPercFriendly',
-        marathoner: 'communityPercMarathoner',
-        unstoppable: 'communityPercUnstoppable',
-        ironEndurance: 'communityPercIronEndurance',
-        masterOfStyles: 'communityPercMasterOfStyles'
-    };
+const achievementsMap = {
+    friendly: 'communityPercFriendly',
+    marathoner: 'communityPercMarathoner',
+    fitnessMaster: 'communityPercFitnessMaster',
+    unstoppable: 'communityPercUnstoppable',
+    ironEndurance: 'communityPercIronEndurance',
+    masterOfStyles: 'communityPercMasterOfStyles',
+    vip: 'communityPercVip'
+};
 
     // Показываем загрузку
     Object.values(achievementsMap).forEach(id => {
@@ -15521,13 +15586,15 @@ async function loadCommunityAchievements() {
         }
 
         // ★★★ 2. СЧИТАЕМ СКОЛЬКО У КОГО ЕСТЬ + СВОИ ДОСТИЖЕНИЯ ★★★
-        const counts = {
-            friendly: 0,
-            marathoner: 0,
-            unstoppable: 0,
-            ironEndurance: 0,
-            masterOfStyles: 0
-        };
+const counts = {
+    friendly: 0,
+    marathoner: 0,
+    fitnessMaster: 0,
+    unstoppable: 0,
+    ironEndurance: 0,
+    masterOfStyles: 0,
+    vip: 0
+};
 
         let myAchievements = {};
 
@@ -15862,13 +15929,15 @@ async function loadCommunityGoalTop() {
 
             let infoHtml = '';
             if (visible) {
-                const achievementIcons = [
-                    { id: 'friendly', icon: 'fa-solid fa-user-group' },
-                    { id: 'marathoner', icon: 'fa-solid fa-dumbbell' },
-                    { id: 'unstoppable', icon: 'fa-solid fa-fire' },
-                    { id: 'ironEndurance', icon: 'fa-solid fa-stopwatch' },
-                    { id: 'masterOfStyles', icon: 'fa-solid fa-award' }
-                ];
+const achievementIcons = [
+    { id: 'friendly', icon: 'fa-solid fa-user-group' },
+    { id: 'marathoner', icon: 'fa-solid fa-dumbbell' },
+    { id: 'fitnessMaster', icon: 'fa-solid fa-heart-pulse' },
+    { id: 'unstoppable', icon: 'fa-solid fa-fire' },
+    { id: 'ironEndurance', icon: 'fa-solid fa-stopwatch' },
+    { id: 'masterOfStyles', icon: 'fa-solid fa-award' },
+    { id: 'vip', icon: 'fa-solid fa-crown' }
+];
                 infoHtml = achievementIcons.map(a => {
                     const unlocked = u.achievements[a.id] === true;
                     return `<span class="achievement-icon-top ${unlocked ? 'unlocked' : 'locked'}"><i class="${a.icon}"></i></span>`;

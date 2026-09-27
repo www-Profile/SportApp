@@ -1108,7 +1108,7 @@ body.theme-dark-mode .level-block {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0rem;
     min-height: 1.8rem;
 }
 
@@ -3516,8 +3516,10 @@ body.theme-dark-mode .achievement-modal-progress-text.unlocked { color: var(--te
 .achievements-container {
     display: flex;
     justify-content: center;
+    flex-wrap: nowrap;
     margin-top: 0.8rem;
-    gap: 2rem;
+    gap: 1rem;
+    overflow: hidden;
 }
 
 .achievements-container.hidden { display: none !important; }
@@ -3538,7 +3540,7 @@ body.theme-dark-mode .achievement-modal-progress-text.unlocked { color: var(--te
     font-size: 0.7rem;
     width: 20px;
     height: 20px;
-    margin-right: 2px;
+    margin-right: 0px;
     flex-shrink: 0;
 }
 
@@ -4134,7 +4136,7 @@ body.theme-dark-mode .stats-banner-value { color: var(--text-secondary); }
 /* =================== ДОСТИЖЕНИЯ СООБЩЕСТВА =================== */
 .community-achievements-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(7, 1fr);
     gap: 0.3rem;
     cursor: pointer;
 }
