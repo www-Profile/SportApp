@@ -1,7 +1,7 @@
 // =================== УПРАВЛЕНИЕ ЛОГАМИ ===================
 // DEBUG_LOGS = false → все console.log заглушены, ошибки и предупреждения видны
 // DEBUG_LOGS = true  → показывать все логи (для отладки)
-const DEBUG_LOGS = false;
+const DEBUG_LOGS = true;
 
 (function setupQuietLogging() {
     if (DEBUG_LOGS) return;
@@ -5307,16 +5307,6 @@ function saveEditExercisesState() {
     }
 }
 
-document.getElementById('sessionEditBtn')?.addEventListener('click', function() {
-    const currentExerciseIndex = sessionCurrentIndex;
-    if (currentExerciseIndex !== undefined && sessionExercises[currentExerciseIndex]) {
-        // Открываем модалку редактирования через универсальную функцию
-        openSessionEditExerciseModal(currentExerciseIndex);
-    } else {
-        showToast('⚠️ Упражнение не найдено');
-    }
-});
-
 // =================== УПРАВЛЕНИЕ УПРАЖНЕНИЯМИ В РЕДАКТИРОВАНИИ ===================
 
 function openEditExerciseModal(index) {
@@ -5330,6 +5320,7 @@ function openEditExerciseModal(index) {
         saveEditExercisesState();
     });
 }
+window.openEditExerciseModal = openEditExerciseModal;
 
 window.addEditExercise = function() {
     const maxExercises = getMaxExercisesForLevel(editLevel, editIsCustom);
@@ -13292,14 +13283,16 @@ function openUniversalExerciseModal(mode = 'create', source = 'edit', index = nu
     }
     
     // Показываем модалку
-    modal.style.display = 'flex';
+    openModal('exerciseUniversalModal');
 }
+window.openUniversalExerciseModal = openUniversalExerciseModal;
 
 // Закрыть универсальную модалку
 function closeUniversalExerciseModal() {
     document.getElementById('exerciseUniversalModal').style.display = 'none';
     universalModalState = { mode: 'create', source: 'edit', index: null, exercises: null, callback: null };
 }
+window.closeUniversalExerciseModal = closeUniversalExerciseModal;
 
 // ★★★ КОРРЕКТИРОВКА ВЕСА ★★★
 function adjustUniversalWeight(delta) {
@@ -13521,6 +13514,7 @@ function openSessionEditExerciseModal(index) {
         showToast('✅ Упражнение обновлено');
     });
 }
+window.openSessionEditExerciseModal = openSessionEditExerciseModal;
 
 // ★★★ НОВАЯ ФУНКЦИЯ: СОХРАНЕНИЕ УПРАЖНЕНИЯ В ИСХОДНЫЙ ИСТОЧНИК ★★★
 function saveExerciseToSource(index, exercise) {
@@ -13967,9 +13961,11 @@ function openTaskResultModal(sessionData, actualSeconds) {
             </div>
         </div>
     `;
-    document.body.appendChild(modal);
+document.body.appendChild(modal);
+void modal.offsetWidth;
+modal.classList.add('modal-overlay-visible');
 
-    let currentValue = sessionData.target;
+let currentValue = sessionData.target;
     const minValue = 0;
     const maxValue = 999;
 
