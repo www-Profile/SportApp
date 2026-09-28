@@ -1121,7 +1121,7 @@ function showFriendSelectModal(friends) {
 overlay.innerHTML = `
         <div class="modal-content" style="max-width: 400px;">
                 <div class="modal-title">Выберите друга</div>
-                <div class="scroll-wrapper" style="max-height: 300px; overflow-y: auto; margin-bottom: 0.5rem;">
+                <div class="scroll-wrapper-modal" style=" margin-bottom: 0.5rem;">
 ${friends.map(f => {
     const level = getCurrentLevel(f.totalXp || 0).id;
     const xp = Math.round(f.totalXp || 0); // ← ИСПРАВЛЕНО: используем f.totalXp
@@ -2210,8 +2210,7 @@ function clearSeenNotifications() {
 function getDefaultStatsLayout() {
     return {
         statsSummary: ['minutes', 'workouts', 'exercises'],
-        statsBlocksContainer: ['muscles', 'categories', 'calendar', 'weekly-load', 'history', 'monthly-badges', 'world-leaderboard', 'friends-leaderboard'],
-        exerciseMuscleStats: ['Руки', 'Плечи', 'Пресс', 'Грудь', 'Спина', 'Ноги', 'Ягодицы'],
+statsBlocksContainer: ['muscles', 'categories', 'calendar', 'weekly-load', 'body-progress', 'history', 'monthly-badges', 'world-leaderboard', 'friends-leaderboard'],        exerciseMuscleStats: ['Руки', 'Плечи', 'Пресс', 'Грудь', 'Спина', 'Ноги', 'Ягодицы'],
         categoriesStats: ['Руки', 'Плечи', 'Пресс', 'Грудь', 'Спина', 'Ноги', 'Ягодицы', 'Кардио', 'Гибкость', 'Всё тело'],
         globalStatsContainer: ['minutes', 'workouts', 'exercises'],  // ★ ДОБАВИЛИ
         worldStatsBlocksContainer: ['community-achievements', 'community-goal', 'world-leaderboard', 'friends-leaderboard']
@@ -2277,6 +2276,22 @@ function applySavedWorkoutsOrder() {
 function applySavedStatsOrder() {
     const layout = JSON.parse(localStorage.getItem('statsLayout'));
     if (!layout) return;
+
+    // ★ Миграция: если body-progress ещё нет в layout — добавим его
+    if (layout.statsBlocksContainer && !layout.statsBlocksContainer.includes('body-progress')) {
+        const historyIdx = layout.statsBlocksContainer.indexOf('history');
+        if (historyIdx !== -1) {
+            // Вставляем сразу после 'history'
+            layout.statsBlocksContainer.splice(historyIdx + 1, 0, 'body-progress');
+        } else {
+            // Fallback — в конец
+            layout.statsBlocksContainer.push('body-progress');
+        }
+        // Сохраняем обновлённый layout обратно
+        localStorage.setItem('statsLayout', JSON.stringify(layout));
+        saveLayoutToFirestore('statsLayout', layout);
+        console.log('✅ body-progress добавлен в statsLayout');
+    }
 
     const summary = document.getElementById('statsSummary');
     if (summary && layout.statsSummary) {
@@ -3289,6 +3304,17 @@ document.querySelectorAll('.item-card').forEach(card => {
 
 // ===================СТРАНИЦА ВЫБОРА УРОВНЯ ===================
 function loadLevelSelect(category, params = {}) {
+    // ★ Зарядка — без уровней, сразу к тренировке
+    if (category === 'Зарядка') {
+        window.navigateTo('workout-detail', {
+            category: 'Зарядка',
+            level: '1 LVL',
+            parentCategory: 'Фитнес'
+        });
+        return;
+    }
+
+    // ... остальной код функции без изменений
     let parentCategory = null;
     for (const parent in exercisesData) {
         if (exercisesData[parent] && exercisesData[parent][category]) {
@@ -5595,23 +5621,23 @@ async function loadStats() {
     if (totalMinutesEl) totalMinutesEl.textContent = totalMinutes;
     if (totalExercisesEl) totalExercisesEl.textContent = totalExercises;
 
-    // === УПРАЖНЕНИЯ ПО ГРУППАМ МЫШЦ (ТОЛЬКО ПО ИКОНКАМ) ===
-    const exerciseCounts = {};
-    allWorkouts.forEach(w => {
-        (w.exercises || []).forEach(ex => {
-            if (ex.completed) {
-                const icon = ex.icon || getExerciseIcon(ex.name);
-                const category = getCategoryByIcon(icon);
-                if (category && category !== 'Зарядка') {
-                    exerciseCounts[category] = (exerciseCounts[category] || 0) + 1;
-                }
+const exerciseCounts = {};
+allWorkouts.forEach(w => {
+    (w.exercises || []).forEach(ex => {
+        if (ex.completed) {
+            // ★ Сначала пробуем category, fallback на иконку
+            const icon = ex.icon || getExerciseIcon(ex.name);
+            const category = ex.category || getCategoryByIcon(icon);
+            if (category && category !== 'Зарядка') {
+                exerciseCounts[category] = (exerciseCounts[category] || 0) + 1;
             }
-        });
+        }
     });
+});
 
     const exercisesContainer = document.getElementById('exerciseMuscleStats');
     if (exercisesContainer) {
-        const displayCategories = ['Руки', 'Плечи', 'Пресс', 'Грудь', 'Спина', 'Ноги', 'Ягодицы', 'Кардио', 'Гибкость', 'Всё тело'];
+const displayCategories = ['Руки', 'Плечи', 'Пресс', 'Грудь', 'Спина', 'Ноги', 'Ягодицы'];
         const maxCount = Math.max(1, ...Object.values(exerciseCounts));
         exercisesContainer.innerHTML = displayCategories.map(cat => {
             const count = exerciseCounts[cat] || 0;
@@ -5671,6 +5697,9 @@ workouts.forEach(w => {
 applyStatsTab(activeStatsTab);
 initAccordion();
 loadPremiumStats();
+
+// ★ Загружаем прогресс тела
+loadBodyMeasurements();
 
 // ★★★ РЕНДЕРИМ ЕЖЕМЕСЯЧНЫЕ ЗНАЧКИ ★★★
 renderMonthlyBadges();
@@ -6287,19 +6316,29 @@ function switchToPage(pageId) {
 // Шаг 1: Имя
 document.getElementById('registerFormStep1')?.addEventListener('submit', function(e) {
     e.preventDefault();
-    
+
     const nameInput = document.getElementById('regName');
+    const consentCheckbox = document.getElementById('regConsentCheckbox');
+
     const name = nameInput.value.trim();
-    
+
     if (!name) {
         nameInput.classList.add('error');
         showToast('⚠️ Введите ваше имя');
         return;
     }
     nameInput.classList.remove('error');
-    
+
+    // ★★★ ПРОВЕРЯЕМ СОГЛАСИЕ ★★★
+    if (!consentCheckbox.checked) {
+        consentCheckbox.classList.add('error');
+        showToast('⚠️ Примите условия, чтобы продолжить');
+        return;
+    }
+    consentCheckbox.classList.remove('error');
+
     registerData.name = name;
-    
+
     switchToPage('page-register-email');
     document.getElementById('regEmail').focus();
 });
@@ -6528,20 +6567,11 @@ window.selectGenderRegister = function(gender) {
 
 // Кнопка «Далее» на шаге с полом
 document.getElementById('registerGenderBtn')?.addEventListener('click', function() {
-    // Сохраняем пол в localStorage — чтобы потом записать в Firestore после входа
     localStorage.setItem('pendingGender', registerGender);
-
     console.log('💾 Пол сохранён:', registerGender);
 
-    // Переходим на шаг с инвентарём
-    switchToPage('page-inventory');
-
-    // Загружаем сохранённый выбор инвентаря (если был)
-    setTimeout(() => {
-        if (typeof loadInventorySelection === 'function') {
-            loadInventorySelection();
-        }
-    }, 100);
+    // ★ Переходим на шаг «Данные тела»
+    switchToPage('page-register-body');
 });
 
 // ★★★ ОБРАБОТЧИК ШАГА 5 (ВЫБОР ИНВЕНТАРЯ) ★★★
@@ -6555,6 +6585,99 @@ document.getElementById('inventoryForm')?.addEventListener('submit', function(e)
     // ★★★ ПЕРЕХОДИМ НА СТРАНИЦУ ЗАГРУЗКИ ★★★
     switchToPage('page-loading');
     document.getElementById('bottomNav').style.display = 'none';
+});
+
+// =================== РЕГИСТРАЦИЯ: ШАГ 6 (ДАННЫЕ ТЕЛА) ===================
+
+/** Очистить поля данных тела */
+function resetRegBodyFields() {
+    ['regBodyHeight', 'regBodyWeight', 'regBodyChest',
+     'regBodyWaist', 'regBodyHips', 'regBodyArm']
+        .forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.value = ''; el.classList.remove('error'); }
+        });
+}
+
+/** Кнопка «Пропустить» */
+document.getElementById('regBodySkipBtn')?.addEventListener('click', function() {
+    resetRegBodyFields();
+    switchToPage('page-inventory');
+    setTimeout(() => {
+        if (typeof loadInventorySelection === 'function') {
+            loadInventorySelection();
+        }
+    }, 100);
+});
+
+/** Кнопка «>» — сохранить и продолжить */
+document.getElementById('regBodyNextBtn')?.addEventListener('click', async function() {
+    const getVal = (id) => {
+        const el = document.getElementById(id);
+        if (!el) return null;
+        const v = el.value.trim();
+        return v === '' ? null : parseFloat(v);
+    };
+
+    const data = {
+        height: getVal('regBodyHeight'),
+        weight: getVal('regBodyWeight'),
+        chest:  getVal('regBodyChest'),
+        waist:  getVal('regBodyWaist'),
+        hips:   getVal('regBodyHips'),
+        arm:    getVal('regBodyArm')
+    };
+
+    const hasAny = ['height', 'weight', 'chest', 'waist', 'hips', 'arm']
+        .some(k => data[k] !== null);
+
+    if (hasAny) {
+        // Валидация диапазонов
+        const limits = {
+            height: [100, 250],
+            weight: [20, 500],
+            chest:  [30, 300],
+            waist:  [30, 300],
+            hips:   [30, 300],
+            arm:    [10, 100]
+        };
+        for (const key in limits) {
+            if (data[key] !== null) {
+                const [min, max] = limits[key];
+                if (data[key] < min || data[key] > max) {
+                    showToast(`⚠️ Значение должно быть от ${min} до ${max}`);
+                    return;
+                }
+            }
+        }
+
+        // ★ Сохраняем как обычный замер в Firestore
+        try {
+            const user = await getFirebaseUser();
+            if (user) {
+                data.userId = user.uid;
+                data.date = new Date().toISOString();
+                data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                await firebase.firestore().collection('measurements').add(data);
+                console.log('✅ Данные тела сохранены:', data);
+                showToast('✅ Параметры сохранены');
+            }
+        } catch (e) {
+            console.warn('Ошибка сохранения данных тела:', e);
+            showToast('⚠️ Не удалось сохранить параметры');
+        }
+    }
+
+    // Сбрасываем поля перед переходом
+    resetRegBodyFields();
+
+    // Переход на инвентарь
+    switchToPage('page-inventory');
+    setTimeout(() => {
+        if (typeof loadInventorySelection === 'function') {
+            loadInventorySelection();
+        }
+    }, 100);
 });
 
 // =================== ПОВТОРНАЯ ОТПРАВКА ПИСЬМА ===================
@@ -6917,7 +7040,6 @@ async function sendPasswordReset() {
 // =================== ОБНОВЛЁННЫЕ ФУНКЦИИ НАВИГАЦИИ ===================
 
 function showRegister() {
-    // Показываем первый шаг регистрации
     document.querySelectorAll('.page').forEach(p => {
         p.classList.remove('page-active');
         p.style.display = 'none';
@@ -6925,12 +7047,19 @@ function showRegister() {
     const registerPage = document.getElementById('page-register');
     registerPage.classList.add('page-active');
     registerPage.style.display = 'block';
-    
-    // Очищаем поля
+
     document.getElementById('regName').value = '';
     document.getElementById('regEmail').value = '';
     document.getElementById('regPassword').value = '';
     registerData = { name: '', email: '', password: '' };
+
+    // ★ Сброс чекбокса согласия
+    const consent = document.getElementById('regConsentCheckbox');
+    if (consent) {
+        consent.checked = false;
+        consent.classList.remove('error');
+    }
+
     clearAuthFields();
 }
 
@@ -9821,7 +9950,7 @@ window.statsEditor = new PageEditor({
     ],
     defaultLayout: {
         statsSummary: ['minutes', 'workouts', 'exercises'],
-        statsBlocksContainer: ['muscles', 'categories', 'calendar', 'weekly-load', 'history', 'monthly-badges', 'world-leaderboard', 'friends-leaderboard'],
+statsBlocksContainer: ['muscles', 'categories', 'calendar', 'weekly-load', 'body-progress', 'history', 'monthly-badges', 'world-leaderboard', 'friends-leaderboard'],        exerciseMuscleStats: ['Руки', 'Плечи', 'Пресс', 'Грудь', 'Спина', 'Ноги', 'Ягодицы'],
         exerciseMuscleStats: ['Руки', 'Плечи', 'Пресс', 'Грудь', 'Спина', 'Ноги', 'Ягодицы'],
         categoriesStats: ['Руки', 'Плечи', 'Пресс', 'Грудь', 'Спина', 'Ноги', 'Ягодицы', 'Кардио', 'Гибкость', 'Всё тело'],
         globalStatsContainer: ['minutes', 'workouts', 'exercises'],  // ★ ДОБАВИЛИ
@@ -15283,7 +15412,7 @@ function applyLanguage() {
 // ★★★ КОНФИГУРАЦИЯ ТЕКСТОВ ДЛЯ РАЗНЫХ БЛОКОВ ★★★
 const MUSCLE_MODAL_CONFIG = {
     muscles: {
-        title: 'Упражнения по группам мышц',
+        title: 'Нагрузка по группам мышц',
         text1: 'Этот блок показывает, сколько упражнений вы выполнили на каждую группу мышц за всё время тренировок.',
         text2: 'Это помогает понять, какие мышцы вы прорабатываете чаще, а какие - отстают и требуют больше внимания.',
         text3: 'Если какая-то группа мышц заполнена слабо - добавьте в свою программу больше упражнений на неё. Так вы сделаете тренировки сбалансированными и будете развиваться равномерно.'
@@ -15306,6 +15435,20 @@ const MUSCLE_MODAL_CONFIG = {
         text1: 'Этот блок показывает, у какого процента пользователей SportApp есть каждое достижение.',
         text2: 'Золотая иконка - достижение есть у вас. Серая иконка - вы его ещё не получили. Процент рядом показывает, насколько достижение распространено среди всех пользователей.',
         text3: 'Чем меньше процент - тем реже встречается достижение. Соберите все пять и станьте одним из немногих, кто прошёл весь путь!'
+    },
+        // ★★★ НОВЫЕ ★★★
+    personalStats: {
+        title: 'Личная статистика',
+        text1: 'Здесь собрана основная статистика по всем вашим тренировкам за всё время.',
+        text2: '«Минут» - суммарное время всех тренировок. «Тренировок» - общее количество завершённых тренировок. «Упражнений» - сколько упражнений вы выполнили суммарно.',
+        text3: 'Данные обновляются автоматически после каждой завершённой тренировки. Зарядка и одиночные упражнения в счётчик тренировок не входят, но упражнения из них учитываются.'
+    },
+
+    worldStats: {
+        title: 'Мировая статистика',
+        text1: 'Здесь собрана статистика всего сообщества SportApp - всех пользователей приложения.',
+        text2: '«Минут» - суммарное время всех тренировок сообщества. «Тренировок» - сколько раз пользователи тренировались. «Упражнений» - общее количество выполненных упражнений.',
+        text3: 'Данные обновляются в реальном времени по мере того, как пользователи завершают тренировки. Это помогает увидеть, насколько активно тренируется сообщество в целом.'
     }
 };
 
@@ -15314,9 +15457,10 @@ const MUSCLE_MODAL_CONFIG = {
  * @param {string} type - тип блока: 'muscles' или 'categories'
  */
 function openMuscleGroupsModal(type = 'muscles') {
+    // ★ Не открываем при редактировании страницы статистики
+    if (window.statsEditor && window.statsEditor.isEditing) return;
+
     const config = MUSCLE_MODAL_CONFIG[type];
-    
-    // ★★★ ЕСЛИ КЛЮЧА НЕТ — НИЧЕГО НЕ ДЕЛАЕМ ★★★
     if (!config) {
         console.warn('⚠️ Нет конфига для модалки:', type);
         return;
@@ -18553,3 +18697,765 @@ ${supportData.message}
         console.error('Не удалось отправить VK уведомление:', error);
     }
 }
+
+// =================== ПРОГРЕСС ТЕЛА (ЗАМЕРЫ) ===================
+let _cachedMeasurements = [];
+let _bodyProgressMonthOffset = 0;
+
+const BODY_PARAMS = [
+    { key: 'weight', label: 'Вес',    unit: 'кг', color: '#DC143C' },
+    { key: 'height', label: 'Рост',   unit: 'см', color: '#3B82F6' },
+    { key: 'chest',  label: 'Грудь',  unit: 'см', color: '#22C55E' },
+    { key: 'waist',  label: 'Талия',  unit: 'см', color: '#F59E0B' },
+    { key: 'hips',   label: 'Бёдра',  unit: 'см', color: '#8B5CF6' },
+    { key: 'arm',    label: 'Бицепс', unit: 'см', color: '#EC4899' }
+];
+
+const MONTH_NAMES_RU = ['Январь','Февраль','Март','Апрель','Май','Июнь',
+                        'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+
+async function loadBodyMeasurements() {
+    const user = await getFirebaseUser();
+    if (!user) return;
+
+    try {
+        const snap = await firebase.firestore()
+            .collection('measurements')
+            .where('userId', '==', user.uid)
+            .orderBy('date', 'desc')
+            .limit(300)
+            .get();
+
+        const list = [];
+        snap.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+
+        _cachedMeasurements = list;
+        renderBodyProgress(list);
+    } catch (e) {
+        console.error('Ошибка загрузки замеров:', e);
+    }
+}
+
+function changeBodyProgressMonth(delta) {
+    _bodyProgressMonthOffset += delta;
+    renderBodyProgress(_cachedMeasurements);
+}
+window.changeBodyProgressMonth = changeBodyProgressMonth;
+
+function renderBodyProgress(list) {
+    const chartBox = document.getElementById('bodyProgressChart');
+    const titleEl = document.getElementById('bodyProgressMonthTitle');
+    if (!chartBox) return;
+
+    // ★ Отображаемый месяц
+    const now = new Date();
+    now.setDate(1);
+    now.setMonth(now.getMonth() + _bodyProgressMonthOffset);
+    const year = now.getFullYear();
+    const month = now.getMonth();
+
+    if (titleEl) titleEl.textContent = MONTH_NAMES_RU[month] + ' ' + year;
+
+    // ★ Диапазон месяца
+    const monthStart = new Date(year, month, 1, 0, 0, 0, 0);
+    const monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999);
+
+    const monthMeasurements = (list || [])
+        .filter(m => {
+            const d = new Date(m.date);
+            return d >= monthStart && d <= monthEnd;
+        })
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // ★ Активные параметры = те, по которым есть хотя бы одна точка за месяц
+    const activeParams = BODY_PARAMS.filter(p =>
+        monthMeasurements.some(m => typeof m[p.key] === 'number' && m[p.key] > 0)
+    );
+
+    if (activeParams.length === 0) {
+        chartBox.innerHTML = `
+            <div class="body-progress-empty-state">
+                <div class="body-progress-empty-icon">📏</div>
+                <div class="body-progress-empty-title">Нет замеров за ${MONTH_NAMES_RU[month].toLowerCase()}</div>
+                <div class="body-progress-empty-text">
+                    Добавьте первый замер, чтобы увидеть динамику на графике.
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    // ★ Рисуем SVG
+    chartBox.innerHTML = buildBodyChartSVG(activeParams, monthMeasurements, monthStart, monthEnd);
+}
+
+function buildBodyChartSVG(activeParams, monthMeasurements, monthStart, monthEnd) {
+    const W = 500;
+    const H = 260;
+    const PAD = { left: 34, right: 14, top: 30, bottom: 28 };
+    const innerW = W - PAD.left - PAD.right;
+    const innerH = H - PAD.top - PAD.bottom;
+
+    const totalMs = monthEnd.getTime() - monthStart.getTime();
+    const getX = (date) => PAD.left + ((date.getTime() - monthStart.getTime()) / totalMs) * innerW;
+
+    // Все значения всех параметров — для общей Y-шкалы
+    const allValues = [];
+    activeParams.forEach(param => {
+        monthMeasurements
+            .filter(m => typeof m[param.key] === 'number' && m[param.key] > 0)
+            .forEach(m => allValues.push(m[param.key]));
+    });
+
+    if (allValues.length === 0) return '';
+
+    const minAll = Math.min(...allValues);
+    const maxAll = Math.max(...allValues);
+    const rangeAll = maxAll - minAll || 1;
+    const padV = Math.max(rangeAll * 0.1, 3);
+    const yMin = minAll - padV;
+    const yMax = maxAll + padV;
+    const yRange = yMax - yMin;
+
+    const getY = (val) => PAD.top + ((yMax - val) / yRange) * innerH;
+
+    // ── Y-метки ──
+    const ySteps = 6;
+    let yLabels = '';
+    for (let i = 0; i <= ySteps; i++) {
+        const val = yMin + (yRange / ySteps) * i;
+        const y = getY(val);
+        const r = Math.round(val * 10) / 10;
+        yLabels += `<text x="${PAD.left - 10}" y="${y + 3}" text-anchor="end" font-size="9" fill="#94A3B8">${Number.isInteger(r) ? r : r.toFixed(1)}</text>`;
+    }
+
+    // ── ★ X-метки — только реальные даты замеров ──
+    const uniqueDates = [...new Set(
+        monthMeasurements.map(m => new Date(m.date).getTime())
+    )].sort((a, b) => a - b);
+
+    const MAX_LABELS = 6;
+    const labelStep = Math.max(1, Math.ceil(uniqueDates.length / MAX_LABELS));
+
+    let xLabels = '';
+    uniqueDates.forEach((ts, i) => {
+        const isFirst = i === 0;
+        const isLast  = i === uniqueDates.length - 1;
+        if (!isFirst && !isLast && i % labelStep !== 0) return;
+
+        const x = getX(new Date(ts));
+        const d = new Date(ts);
+        const label = `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getFullYear()).slice(-2)}`;
+
+        let anchor = 'middle';
+        if (isFirst && uniqueDates.length > 1) anchor = 'start';
+        if (isLast  && uniqueDates.length > 1) anchor = 'end';
+
+        xLabels += `<text x="${x}" y="${H - 8}" text-anchor="${anchor}" font-size="9" fill="#94A3B8">${label}</text>`;
+    });
+
+    // ── Линии по параметрам ──
+    let lines = '';
+    activeParams.forEach(param => {
+        const pts = monthMeasurements
+            .filter(m => typeof m[param.key] === 'number' && m[param.key] > 0)
+            .map(m => ({ date: new Date(m.date), value: m[param.key] }));
+
+        if (pts.length === 0) return;
+
+        const xy = pts.map(p => ({ x: getX(p.date), y: getY(p.value), v: p.value }));
+
+        if (xy.length >= 2) {
+            let path = `M ${xy[0].x},${xy[0].y}`;
+            for (let j = 0; j < xy.length - 1; j++) {
+                const p0 = xy[j - 1] || xy[j];
+                const p1 = xy[j];
+                const p2 = xy[j + 1];
+                const p3 = xy[j + 2] || p2;
+                const cp1x = p1.x + (p2.x - p0.x) / 6;
+                const cp1y = p1.y + (p2.y - p0.y) / 6;
+                const cp2x = p2.x - (p3.x - p1.x) / 6;
+                const cp2y = p2.y - (p3.y - p1.y) / 6;
+                path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+            }
+            lines += `<path d="${path}" fill="none" stroke="${param.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.9" />`;
+        }
+
+        xy.forEach(p => {
+            lines += `<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="${param.color}" stroke="var(--chart-dot-stroke)" stroke-width="1.5" />`;
+        });
+    });
+
+    const legendHtml = activeParams.map(p =>
+        `<span style="color:${p.color};font-weight:700;flex:1;text-align:center;white-space:nowrap;">${p.label}</span>`
+    ).join('');
+
+    return `
+        <div class="weekly-load-Chart">
+            <div style="position:relative; padding:0.5rem;
+                background-image:
+                    linear-gradient(rgba(100, 100, 100, 0.1) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(100, 100, 100, 0.1) 1px, transparent 1px);
+                background-size: 20px 20px;
+                border-radius:12px;">
+                <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="width:100%; height:auto; display:block;">
+                    ${yLabels}
+                    ${xLabels}
+                    ${lines}
+                </svg>
+
+<!-- ★ ЛЕГЕНДА ★ -->
+<div class="weekly-load-info">
+    ${legendHtml}
+</div>
+            </div>
+        </div>
+    `;
+}
+
+function openAddMeasurementModal() {
+    window._editingMeasurementId = null;
+
+    // ★ Меняем заголовок на «Новый замер»
+    const titleEl = document.getElementById('measurementModalTitle');
+    if (titleEl) titleEl.textContent = 'Новый замер';
+
+    ['measureHeight', 'measureWeight', 'measureChest', 'measureWaist', 'measureHips', 'measureArm']
+        .forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.value = ''; el.classList.remove('error'); }
+        });
+    openModal('addMeasurementModal');
+}
+window.openAddMeasurementModal = openAddMeasurementModal;
+
+async function saveMeasurement() {
+    const user = await getFirebaseUser();
+    if (!user) { showToast('❌ Не авторизован'); return; }
+
+    const getVal = (id) => {
+        const el = document.getElementById(id);
+        if (!el) return null;
+        const v = el.value.trim();
+        return v === '' ? null : parseFloat(v);
+    };
+
+    const data = {
+        userId: user.uid,
+        date: new Date().toISOString(),
+        height: getVal('measureHeight'),
+        weight: getVal('measureWeight'),
+        chest:  getVal('measureChest'),
+        waist:  getVal('measureWaist'),
+        hips:   getVal('measureHips'),
+        arm:    getVal('measureArm')
+    };
+
+    const hasAny = ['height', 'weight', 'chest', 'waist', 'hips', 'arm'].some(k => data[k] !== null);
+    if (!hasAny) { showToast('⚠️ Заполни хотя бы одно поле'); return; }
+
+    const limits = {
+        height: [100, 250],
+        weight: [20, 500],
+        chest:  [30, 300],
+        waist:  [30, 300],
+        hips:   [30, 300],
+        arm:    [10, 100]
+    };
+    for (const key in limits) {
+        if (data[key] !== null) {
+            const [min, max] = limits[key];
+            if (data[key] < min || data[key] > max) {
+                showToast(`⚠️ Значение должно быть от ${min} до ${max}`);
+                return;
+            }
+        }
+    }
+
+    try {
+        if (window._editingMeasurementId) {
+            // ★ ОБНОВЛЕНИЕ ★
+            await firebase.firestore()
+                .collection('measurements')
+                .doc(window._editingMeasurementId)
+                .update(data);
+            window._editingMeasurementId = null;
+            showToast('✅ Замер обновлён');
+        } else {
+            // ★ СОЗДАНИЕ ★
+            data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            await firebase.firestore().collection('measurements').add(data);
+            showToast('✅ Замер сохранён');
+        }
+
+        closeModal('addMeasurementModal');
+        await loadBodyMeasurements();
+
+        // Если открыта модалка просмотра — обновляем её
+        const viewModal = document.getElementById('bodyProgressViewModal');
+        if (viewModal && viewModal.classList.contains('modal-overlay-visible')) {
+            renderBodyProgressView();
+        }
+    } catch (e) {
+        console.error('Ошибка сохранения замера:', e);
+        showToast('❌ Не удалось сохранить');
+    }
+}
+window.saveMeasurement = saveMeasurement;
+
+function openBodyProgressInfo() {
+    openModal('bodyProgressInfoModal');
+}
+window.openBodyProgressInfo = openBodyProgressInfo;
+
+// =================== ПРОСМОТР ДАННЫХ: ГРАФИК + ИСТОРИЯ ===================
+
+let _bodyViewSelectedParam = 'weight'; // по умолчанию — вес
+
+/**
+ * Заменяем старую scrollToBodyProgress — теперь открывает НОВУЮ модалку
+ */
+function scrollToBodyProgress() {
+    closeModal('bodyProgressInfoModal');
+    setTimeout(() => {
+        // Сброс на вес при каждом открытии
+        _bodyViewSelectedParam = 'weight';
+        renderBodyProgressView();
+        openModal('bodyProgressViewModal');
+    }, 250);
+}
+window.scrollToBodyProgress = scrollToBodyProgress;
+
+/**
+ * Полный рендер модалки
+ */
+function renderBodyProgressView() {
+    renderBodyParamButtons();
+    renderBodyViewChart();
+    renderBodyViewHistory();
+}
+
+/**
+ * Кнопки параметров
+ */
+function renderBodyParamButtons() {
+    const container = document.getElementById('bodyParamsRow');
+    if (!container) return;
+
+    container.innerHTML = BODY_PARAMS.map(p => `
+        <button class="body-param-btn ${p.key === _bodyViewSelectedParam ? 'active' : ''}"
+                data-param="${p.key}"
+                onclick="selectBodyViewParam('${p.key}')">
+            ${p.label}
+        </button>
+    `).join('');
+}
+
+function selectBodyViewParam(key) {
+    _bodyViewSelectedParam = key;
+    renderBodyParamButtons();
+    renderBodyViewChart();
+    renderBodyViewHistory();
+}
+window.selectBodyViewParam = selectBodyViewParam;
+
+/**
+ * График — только для выбранного параметра
+ */
+function renderBodyViewChart() {
+    const chartBox = document.getElementById('bodyViewChart');
+    if (!chartBox) return;
+
+    const param = BODY_PARAMS.find(p => p.key === _bodyViewSelectedParam);
+    if (!param) return;
+
+    // Берём замеры, где есть это значение
+    const withValues = (_cachedMeasurements || []).filter(m =>
+        typeof m[param.key] === 'number' && m[param.key] > 0
+    );
+
+    if (withValues.length === 0) {
+        chartBox.innerHTML = `
+            <div class="body-progress-empty-state" style="min-height:180px;">
+                <div class="body-progress-empty-icon">📏</div>
+                <div class="body-progress-empty-title">Нет данных по параметру «${param.label}»</div>
+                <div class="body-progress-empty-text">Добавьте первый замер, чтобы увидеть динамику.</div>
+            </div>
+        `;
+        return;
+    }
+
+    chartBox.innerHTML = buildSingleParamChart(param, withValues);
+}
+
+/**
+ * SVG-график по одному параметру (все даты)
+ */
+function buildSingleParamChart(param, measurements) {
+    const W = 500;
+    const H = 220;
+    const PAD = { left: 34, right: 14, top: 20, bottom: 28 };
+    const innerW = W - PAD.left - PAD.right;
+    const innerH = H - PAD.top - PAD.bottom;
+
+    const sorted = [...measurements].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const startMs = new Date(sorted[0].date).getTime();
+    const endMs   = new Date(sorted[sorted.length - 1].date).getTime();
+    const totalMs = Math.max(1, endMs - startMs);
+
+    const getX = (date) => PAD.left + ((new Date(date).getTime() - startMs) / totalMs) * innerW;
+
+    const values = sorted.map(m => m[param.key]);
+    const minV = Math.min(...values);
+    const maxV = Math.max(...values);
+    const range = maxV - minV || 1;
+    const padV = Math.max(range * 0.15, 1);
+    const yMin = minV - padV;
+    const yMax = maxV + padV;
+    const yRange = yMax - yMin;
+
+    const getY = (val) => PAD.top + ((yMax - val) / yRange) * innerH;
+
+    // Y-метки
+    let yLabels = '';
+    const ySteps = 4;
+    for (let i = 0; i <= ySteps; i++) {
+        const val = yMin + (yRange / ySteps) * i;
+        const y = getY(val);
+        const r = Math.round(val * 10) / 10;
+        yLabels += `<text x="${PAD.left - 10}" y="${y + 3}" text-anchor="end" font-size="9" fill="#94A3B8">${Number.isInteger(r) ? r : r.toFixed(1)}</text>`;
+    }
+
+// X-метки — реальные даты замеров
+let xLabels = '';
+const totalPoints = sorted.length;
+
+sorted.forEach((m, i) => {
+    const isFirst = i === 0;
+    const isLast  = i === totalPoints - 1;
+    const x = getX(m.date);
+    const d = new Date(m.date);
+    const label = `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getFullYear()).slice(-2)}`;
+
+    let anchor = 'middle';
+    if (isFirst && totalPoints > 1) anchor = 'start';
+    if (isLast  && totalPoints > 1) anchor = 'end';
+
+    xLabels += `<text x="${x}" y="${H - 8}" text-anchor="${anchor}" font-size="9" fill="#94A3B8">${label}</text>`;
+});
+
+    // Точки + сглаженная линия
+    const pts = sorted.map(m => ({ x: getX(m.date), y: getY(m[param.key]) }));
+
+    let path = '';
+    if (pts.length >= 2) {
+        path = `M ${pts[0].x},${pts[0].y}`;
+        for (let j = 0; j < pts.length - 1; j++) {
+            const p0 = pts[j - 1] || pts[j];
+            const p1 = pts[j];
+            const p2 = pts[j + 1];
+            const p3 = pts[j + 2] || p2;
+            const cp1x = p1.x + (p2.x - p0.x) / 6;
+            const cp1y = p1.y + (p2.y - p0.y) / 6;
+            const cp2x = p2.x - (p3.x - p1.x) / 6;
+            const cp2y = p2.y - (p3.y - p1.y) / 6;
+            path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+        }
+    }
+
+    const pointsHtml = pts.map(p =>
+        `<circle cx="${p.x}" cy="${p.y}" r="4" fill="${param.color}" stroke="var(--chart-dot-stroke)" stroke-width="2" />`
+    ).join('');
+
+    return `
+        <div style="position:relative; padding:0.5rem;
+            background-image:
+                linear-gradient(rgba(100, 100, 100, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(100, 100, 100, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            border-radius:12px;">
+            <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="width:100%; height:auto; display:block;">
+                ${yLabels}
+                ${xLabels}
+                ${path ? `<path d="${path}" fill="none" stroke="${param.color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />` : ''}
+                ${pointsHtml}
+            </svg>
+        </div>
+    `;
+}
+
+/**
+ * История замеров по выбранному параметру
+ */
+function renderBodyViewHistory() {
+    const container = document.getElementById('bodyViewHistory');
+    if (!container) return;
+
+    const param = BODY_PARAMS.find(p => p.key === _bodyViewSelectedParam);
+    if (!param) return;
+
+    const items = (_cachedMeasurements || [])
+        .filter(m => typeof m[param.key] === 'number' && m[param.key] > 0)
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    if (items.length === 0) {
+        container.innerHTML = `<div style="text-align:center; color: var(--slate); padding: 1rem; font-size: 0.8rem;">Нет замеров по этому параметру</div>`;
+        return;
+    }
+
+    container.innerHTML = items.map(m => {
+const d = new Date(m.date);
+const dateStr = d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+return `
+    <div class="body-history-item">
+        <div class="body-history-info">
+            <div class="body-history-date">${dateStr}</div>
+            <div class="body-history-value">${m[param.key]} ${param.unit}</div>
+        </div>
+                <div class="body-history-actions">
+                    <button class="body-history-btn edit" onclick="editMeasurement('${m.id}')" title="Изменить">
+                        <i class="fa-regular fa-pen-to-square"></i>
+                    </button>
+                    <button class="body-history-btn delete" onclick="deleteMeasurement('${m.id}')" title="Удалить">
+                        <i class="fa-regular fa-trash-can"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function editMeasurement(id) {
+    const m = _cachedMeasurements.find(x => x.id === id);
+    if (!m) { showToast('❌ Замер не найден'); return; }
+
+    closeModal('bodyProgressViewModal');
+
+    const fields = {
+        measureHeight: 'height',
+        measureWeight: 'weight',
+        measureChest:  'chest',
+        measureWaist:  'waist',
+        measureHips:   'hips',
+        measureArm:    'arm'
+    };
+
+    Object.entries(fields).forEach(([elId, key]) => {
+        const el = document.getElementById(elId);
+        if (el) {
+            el.value = (m[key] !== null && m[key] !== undefined) ? m[key] : '';
+            el.classList.remove('error');
+        }
+    });
+
+    window._editingMeasurementId = id;
+
+    // ★ Меняем заголовок на «Редактировать замер»
+    const titleEl = document.getElementById('measurementModalTitle');
+    if (titleEl) titleEl.textContent = 'Редактировать замер';
+
+    setTimeout(() => openModal('addMeasurementModal'), 250);
+}
+window.editMeasurement = editMeasurement;
+
+function deleteMeasurement(id) {
+    const param = BODY_PARAMS.find(p => p.key === _bodyViewSelectedParam);
+    if (!param) return;
+
+    // ★★★ Находим замер, чтобы взять его дату ★★★
+    const measurement = _cachedMeasurements.find(m => m.id === id);
+    if (!measurement) {
+        showToast('❌ Замер не найден');
+        return;
+    }
+
+    const d = new Date(measurement.date);
+    const dateStr = d.toLocaleDateString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+
+    showConfirmModal(
+        `Удалить «${param.label} ${dateStr}»?`,
+        `Это действие нельзя отменить.`,
+        async function() {
+            try {
+                const docRef = firebase.firestore()
+                    .collection('measurements')
+                    .doc(id);
+
+                const docSnap = await docRef.get();
+                if (!docSnap.exists) {
+                    showToast('❌ Замер не найден');
+                    return;
+                }
+
+                const data = docSnap.data();
+
+                // ★★★ Проверяем: остались ли ещё какие-то значения? ★★★
+                const allKeys = ['height', 'weight', 'chest', 'waist', 'hips', 'arm'];
+                const hasOtherValues = allKeys.some(k =>
+                    k !== param.key &&
+                    typeof data[k] === 'number' && data[k] > 0
+                );
+
+                if (hasOtherValues) {
+                    // ★ В документе есть другие параметры — обнуляем только наш ★
+                    const update = {};
+                    update[param.key] = null;
+                    await docRef.update(update);
+                    showToast(`🗑️ Параметр «${param.label}» удалён`);
+                } else {
+                    // ★ В документе больше ничего нет — удаляем целиком ★
+                    await docRef.delete();
+                    showToast('🗑️ Замер удалён');
+                }
+
+                // Обновляем кэш и перерисовываем
+                await loadBodyMeasurements();
+                renderBodyProgressView();
+
+            } catch (e) {
+                console.error('Ошибка удаления замера:', e);
+                showToast('❌ Не удалось удалить');
+            }
+        },
+        'Удалить'
+    );
+}
+window.deleteMeasurement = deleteMeasurement;
+
+// =================== ЮРИДИЧЕСКИЕ ДОКУМЕНТЫ ===================
+
+/** Открыть Пользовательское соглашение */
+function openTermsModal() {
+    openModal('termsModal');
+}
+window.openTermsModal = openTermsModal;
+
+/** Открыть Политику конфиденциальности */
+function openPrivacyModal() {
+    openModal('privacyModal');
+}
+window.openPrivacyModal = openPrivacyModal;
+
+// ─────────────────────────────────────────────────────────────
+// ★★★ ТЕКСТЫ-ЗАГЛУШКИ ★★★
+// Перед публикацией заменить на реальные документы от юриста!
+// ─────────────────────────────────────────────────────────────
+
+const LEGAL_UPDATED_DATE = '28.09.2026';
+
+// ---------- ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ ----------
+const TERMS_TEXT = `
+    <span class="legal-updated">Редакция от ${LEGAL_UPDATED_DATE}</span>
+
+    <h3>1. Общие положения</h3>
+    <p>
+        Настоящее Пользовательское соглашение (далее — «Соглашение») регулирует
+        отношения между администрацией приложения <strong>SportApp</strong>
+        (далее — «Администрация») и пользователем (далее — «Пользователь»).
+    </p>
+    <p>
+        Используя приложение, Пользователь подтверждает, что ознакомлен с условиями
+        Соглашения и принимает их в полном объёме.
+    </p>
+
+    <h3>2. Предмет соглашения</h3>
+    <p>
+        Администрация предоставляет Пользователю доступ к функционалу приложения
+        для ведения учёта тренировок, отслеживания прогресса и взаимодействия
+        с другими пользователями.
+    </p>
+
+    <h3>3. Права и обязанности Пользователя</h3>
+    <ul>
+        <li>предоставлять достоверные данные при регистрации;</li>
+        <li>не использовать приложение в противоправных целях;</li>
+        <li>не передавать доступ к своему аккаунту третьим лицам;</li>
+        <li>соблюдать правила общения с другими пользователями.</li>
+    </ul>
+
+    <h3>4. Ответственность</h3>
+    <p>
+        Приложение предоставляется «как есть». Администрация не несёт ответственности
+        за возможный вред здоровью, полученный в результате выполнения тренировок.
+        Пользователь самостоятельно оценивает свои физические возможности.
+    </p>
+
+    <h3>5. Изменение условий</h3>
+    <p>
+        Администрация вправе изменять условия Соглашения. Актуальная версия всегда
+        доступна внутри приложения.
+    </p>
+
+    <h3>6. Контакты</h3>
+    <p>
+        По всем вопросам — через раздел «Связь с администрацией» в настройках приложения.
+    </p>
+`;
+
+// ---------- ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ ----------
+const PRIVACY_TEXT = `
+    <span class="legal-updated">Редакция от ${LEGAL_UPDATED_DATE}</span>
+
+    <h3>1. Какие данные мы собираем</h3>
+    <ul>
+        <li><strong>Email</strong> — для авторизации и связи;</li>
+        <li><strong>Имя</strong> — для отображения в профиле и рейтингах;</li>
+        <li><strong>Пол</strong> — для подбора тренировок (например, ГТО);</li>
+        <li><strong>Данные о тренировках</strong> — для статистики и прогресса;</li>
+        <li><strong>Параметры тела</strong> (вес, рост, обхваты) — по желанию, для отслеживания прогресса;</li>
+        <li><strong>Список друзей</strong> — для социальных функций.</li>
+    </ul>
+
+    <h3>2. Как мы используем данные</h3>
+    <p>
+        Данные используются исключительно для работы функционала приложения:
+        отображения статистики, подбора тренировок, рейтингов, уведомлений.
+    </p>
+
+    <h3>3. Кому мы передаём данные</h3>
+    <p>
+        Данные хранятся в защищённой облачной инфраструктуре (Google Firebase).
+        Мы не продаём и не передаём данные третьим лицам в маркетинговых целях.
+    </p>
+
+    <h3>4. Хранение и защита</h3>
+    <p>
+        Все данные передаются по защищённому протоколу HTTPS. Доступ к аккаунту
+        защищён паролем, который хранится в зашифрованном виде.
+    </p>
+
+    <h3>5. Ваши права</h3>
+    <ul>
+        <li>изменить или удалить свои данные в любой момент;</li>
+        <li>запросить полное удаление аккаунта через настройки приложения;</li>
+        <li>отозвать согласие, прекратив использование приложения.</li>
+    </ul>
+
+    <h3>6. Cookie и локальное хранилище</h3>
+    <p>
+        Приложение использует localStorage браузера для сохранения настроек
+        (тема, цвет, раскладки страниц). Эти данные не передаются на сервер
+        без вашего действия.
+    </p>
+
+    <h3>7. Контакты</h3>
+    <p>
+        По вопросам, связанным с обработкой персональных данных — через раздел
+        «Связь с администрацией» в настройках приложения.
+    </p>
+`;
+
+/** Заполнить модалки текстами при загрузке */
+document.addEventListener('DOMContentLoaded', () => {
+    const termsEl = document.getElementById('termsText');
+    if (termsEl) termsEl.innerHTML = TERMS_TEXT;
+
+    const privacyEl = document.getElementById('privacyText');
+    if (privacyEl) privacyEl.innerHTML = PRIVACY_TEXT;
+});
