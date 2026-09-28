@@ -8053,7 +8053,7 @@ container.innerHTML = filtered.map(ex => {
             <h3 class="item-title">${ex.name}</h3>
             <p class="item-desc">${detailsText}</p>
         </div>
-        ${disabled ? '<span class="premium-badge">PREMIUM</span>' : ''}
+        ${disabled ? '<span class="premium-badge">PR</span>' : ''}
         <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
     </div>`;
 }).join('');
