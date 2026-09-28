@@ -1,3 +1,20 @@
+// =================== УПРАВЛЕНИЕ ЛОГАМИ ===================
+// DEBUG_LOGS = false → все console.log заглушены, ошибки и предупреждения видны
+// DEBUG_LOGS = true  → показывать все логи (для отладки)
+const DEBUG_LOGS = false;
+
+(function setupQuietLogging() {
+    if (DEBUG_LOGS) return;
+
+    const originalLog = console.log.bind(console);
+
+    // Заменяем console.log на «тихий»
+    console.log = function () {
+        // Всё молчит
+    };
+
+    // console.warn и console.error не трогаем — они показывают реальные проблемы
+})();
 // =================== МАППИНГ ИКОНОК В КАТЕГОРИИ ДЛЯ СТАТИСТИКИ ===================
 const ICON_TO_CATEGORY = {
     'bodybuilding': 'Руки',
@@ -15533,21 +15550,8 @@ async function loadGlobalUsersCount() {
         const user = await getFirebaseUser();
         if (!user) { el.textContent = '—'; return; }
 
-        let total = 0;
-
-        try {
-            const snap = await firebase.firestore()
-                .collection('users')
-                .count()
-                .get();
-            total = snap.data().count;
-        } catch (e) {
-            console.warn('count() не сработал, используем get():', e);
-            const snap = await firebase.firestore()
-                .collection('users')
-                .get();
-            total = snap.size;
-        }
+const snap = await firebase.firestore().collection('users').get();
+const total = snap.size;
 
         el.textContent = formatBigNumber(total);
 
@@ -16948,6 +16952,17 @@ async function sendSupportMessage() {
         });
 
         console.log('✅ Сообщение сохранено в Firestore');
+
+        // После сохранения в Firestore
+const supportDataForVk = {
+    userName: profile.displayName || 'Пользователь',
+    userEmail: user.email,
+    userContact: contact, // из формы
+    subject: subject,     // из формы
+    message: message      // из формы
+};
+// Отправляем уведомление в VK (не дожидаясь завершения, чтобы не тормозить UI)
+sendVkNotification(supportDataForVk);
 
         // ★★★ 2. СОХРАНЯЕМ ВРЕМЯ ОТПРАВКИ ★★★
         const sentAt = Date.now();
@@ -18388,6 +18403,72 @@ async function openCoopShareModal() {
     window.refreshNavBubble = syncBubbleToActive;
 })();
 
+// =================== AUTO-HIDE BOTTOM NAV ON SCROLL ===================
+(function initAutoHideNav() {
+    const nav = document.getElementById('bottomNav');
+    if (!nav) return;
+
+    const HIDE_THRESHOLD = 10;  // минимальный сдвиг (px), чтобы реагировать
+    const TOP_ZONE = 80;        // в верхней зоне не скрываем
+    let lastScrollY = window.scrollY || window.pageYOffset;
+    let ticking = false;
+    let isHidden = false;
+
+    function updateNav() {
+        const currentY = window.scrollY || window.pageYOffset;
+        const delta = currentY - lastScrollY;
+
+        // Скроллим вверх ИЛИ мы у самого верха → показываем
+        if (delta < -HIDE_THRESHOLD || currentY < TOP_ZONE) {
+            if (isHidden) {
+                nav.classList.remove('bottom-nav-hidden');
+                isHidden = false;
+            }
+        }
+        // Скроллим вниз и мы уже не в верхней зоне → скрываем
+        else if (delta > HIDE_THRESHOLD && currentY > TOP_ZONE) {
+            if (!isHidden) {
+                nav.classList.add('bottom-nav-hidden');
+                isHidden = true;
+            }
+        }
+
+        lastScrollY = currentY;
+        ticking = false;
+    }
+
+    window.addEventListener('scroll', () => {
+        if (!ticking) {
+            requestAnimationFrame(updateNav);
+            ticking = true;
+        }
+    }, { passive: true });
+
+    console.log('📜 Авто-скрытие нижнего меню активно');
+})();
+
+// =================== HAPTIC FEEDBACK ===================
+(function initHaptics() {
+    // Проверяем поддержку вибрации один раз
+    const canVibrate = 'vibrate' in navigator;
+    if (!canVibrate) {
+        console.log('ℹ️ Вибрация не поддерживается на этом устройстве');
+        return;
+    }
+
+    function vibrateTap() {
+        try { navigator.vibrate(10); } catch (e) {}
+    }
+
+    // Один глобальный обработчик на все клики по вкладкам
+    document.addEventListener('click', (e) => {
+        const el = e.target.closest('.nav-item, .tab-btn, .profile-tab-btn');
+        if (el) vibrateTap();
+    }, { passive: true });
+
+    console.log('📳 Haptic-отклик активен');
+})();
+
 // =================== ВЫБОР ПОЛА ===================
 let tempGender = null;
 
@@ -18421,4 +18502,54 @@ function applyGenderToUI(gender) {
     document.querySelectorAll('#profileEdit .toggle-btn[data-gender]').forEach(btn => {
         btn.classList.toggle('toggle-btn-active', btn.dataset.gender === g);
     });
+}
+
+/**
+ * Отправляет уведомление о новом сообщении в поддержку в личные сообщения VK.
+ * @param {Object} supportData - Данные из формы поддержки.
+ */
+async function sendVkNotification(supportData) {
+    // ⚠️ ВАЖНО: Замените на ваш реальный токен и ID.
+    // В целях безопасности лучше хранить их в переменных окружения (например, на сервере),
+    // а не в клиентском коде.
+    const VK_ACCESS_TOKEN = 'vk1.a.wpCQAKqGslU2sTOYFF0tmcf-sHMcCCvTVB_vgKireR3-ja-tDd5XD495bbfWebuBO9xloM04YIRuiq3FbQRyZRent8GWydI0yfvOwKWT84WfUY9uUfV5FfomyxWpS1wpYkTfMm37Ih8ElWhggH3_IiUErNGFPnmSnx6LvrkImIzm75E_5OrjFF5ec9-GHEKP_7ZZq0byF8FbTZT-B6p0Zg'; 
+    const YOUR_VK_USER_ID = '624264487'; // Числовой ID, например 12345678
+    const VK_API_VERSION = '5.199';
+
+    // Формируем текст уведомления
+    const message = `
+🔔 Новое сообщение из SportApp!
+
+👤 От: ${supportData.userName || 'Пользователь'} (${supportData.userEmail || 'без email'})
+📞 Контакт: ${supportData.userContact || 'не указан'}
+📂 Тема: ${supportData.subject}
+
+💬 Сообщение:
+${supportData.message}
+    `.trim();
+
+    try {
+        const response = await fetch('https://api.vk.com/method/messages.send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                'user_id': YOUR_VK_USER_ID,      // Кому отправляем
+                'message': message,              // Текст сообщения
+                'access_token': VK_ACCESS_TOKEN, // Токен сообщества
+                'v': VK_API_VERSION,             // Версия API
+                'random_id': Math.floor(Math.random() * 2**31) // Уникальный ID, чтобы избежать дублей
+            })
+        });
+
+        const result = await response.json();
+        if (result.error) {
+            console.error('VK API error:', result.error);
+        } else {
+            console.log('VK уведомление отправлено!', result);
+        }
+    } catch (error) {
+        console.error('Не удалось отправить VK уведомление:', error);
+    }
 }
