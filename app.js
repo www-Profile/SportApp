@@ -3067,9 +3067,28 @@ window.navigateTo = function(page, params) {
         target.classList.add('page-active');
     }
 
-    document.querySelectorAll('.nav-item').forEach(btn => {
-        btn.classList.toggle('nav-item-active', btn.dataset.page === page);
-    });
+// ★ Маппинг вложенных страниц на разделы меню
+const NAV_SECTION_MAP = {
+    'workouts':            'workouts',
+    'workout-detail':      'workouts',
+    'level-select':        'workouts',
+    'workout-edit':        'workouts',
+    'exercise-list':       'workouts',
+    'training-session':    'workouts',
+    'training-waiting':    'workouts',
+    'finish':              'workouts',
+    'coop-finish':         'workouts',
+    'coop-waiting':        'workouts',
+    'task-session':        'workouts',
+    'stats':               'stats',
+    'profile':             'profile'
+};
+
+const activeSection = NAV_SECTION_MAP[page] || page;
+
+document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.classList.toggle('nav-item-active', btn.dataset.page === activeSection);
+});
 
     // ===== ВЫЗОВЫ СТРАНИЦ =====
     if (page === 'profile') {
@@ -4673,16 +4692,19 @@ document.getElementById('quickEditCancelBtn')?.addEventListener('click', functio
 
 // ===================ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ РЕДАКТИРОВАНИЯ ===================
 function getExercisesForEdit(category, level, isCustom, id) {
+    // Личные тренировки
     if (isCustom && id && id !== 'new') {
         const workout = getWorkoutById(id);
         if (workout) return JSON.parse(JSON.stringify(workout.exercises || []));
         return [];
     }
+
+    // Готовые тренировки
     if (!isCustom) {
         const targetLevel = level || '1 LVL';
         let levelData = null;
 
-        // Ищем levelData в новой структуре
+        // Ищем levelData в структуре exercisesData
         for (const parent in exercisesData) {
             if (exercisesData[parent] && exercisesData[parent][category]) {
                 levelData = exercisesData[parent][category][targetLevel];
@@ -4694,21 +4716,25 @@ function getExercisesForEdit(category, level, isCustom, id) {
         }
 
         if (levelData) {
-            if (levelData.core && Array.isArray(levelData.core)) {
-                // ★★★ Собираем по инвентарю пользователя ★★★
-                const userInventory = getUserInventoryFromStorage();
-                return JSON.parse(JSON.stringify(
-                    buildWorkoutForUser(levelData, userInventory)
-                ));
-            }
+            // ★ 1. Старый формат — просто массив
             if (Array.isArray(levelData)) {
                 return JSON.parse(JSON.stringify(levelData));
             }
+
+            // ★ 2. Пользовательское переопределение с _exercises
             if (levelData._exercises) {
                 return JSON.parse(JSON.stringify(levelData._exercises));
             }
+
+            // ★ 3. Новый адаптивный формат — собираем по инвентарю
+            if (typeof levelData === 'object') {
+                const userInventory = getUserInventoryFromStorage();
+                const built = buildWorkoutForUser(levelData, userInventory);
+                return JSON.parse(JSON.stringify(built));
+            }
         }
     }
+
     return [];
 }
 
@@ -7910,9 +7936,19 @@ function openExerciseList() {
 
 // ===================РЕНДЕР СТРАНИЦЫ СПИСКА УПРАЖНЕНИЙ ===================
 function renderExerciseListPage() {
+    const premium = hasPremium();
+
+    // ★ Обновляем активное состояние + подсветку премиума
     document.querySelectorAll('#exerciseCategoryFilter .icon-option').forEach(el => {
         el.classList.toggle('icon-option-active', el.dataset.category === currentCategoryFilter);
+
+        // ★ Помечаем премиум-категории классом locked, если нет премиума
+        if (el.classList.contains('icon-option-premium')) {
+            el.classList.toggle('locked', !premium);
+        }
     });
+
+    // ★ Обработчик клика
     document.querySelectorAll('#exerciseCategoryFilter .icon-option').forEach(el => {
         el.onclick = function() {
             document.querySelectorAll('#exerciseCategoryFilter .icon-option').forEach(e => e.classList.remove('icon-option-active'));
@@ -7987,16 +8023,12 @@ function renderExerciseListPageContent() {
     const premiumCategories = ['Кроссфит', 'Мужская сила', 'Женское счастье', 'ГТО'];
     const hasPremiumAccess = hasPremium();  // ← проверяем актуальный статус
     
-    if (!hasPremiumAccess) {
-        filtered = filtered.filter(ex => !premiumCategories.includes(ex.category));
-    }
-    
     filtered.sort((a, b) => a.name.localeCompare(b.name));
     
     if (filtered.length === 0) {
         let message = 'Упражнения не найдены';
         if (!hasPremiumAccess && currentCategoryFilter !== 'all' && premiumCategories.includes(currentCategoryFilter)) {
-            message = 'PREMIUM упражнения недоступны. Купите PREMIUM, чтобы открыть их!';
+            message = 'Купите PREMIUM, чтобы открыть их!';
         }
         container.innerHTML = `<div class="empty-state"><span class="empty-icon">📋</span><h3 class="empty-title">${message}</h3><p class="empty-text">По вашему запросу ничего не нашлось.</p></div>`;
         return;
@@ -8006,22 +8038,22 @@ container.innerHTML = filtered.map(ex => {
     const icon = ex.icon || getExerciseIcon(ex.name);
     const isPremium = premiumCategories.includes(ex.category);
     const disabled = isPremium && !hasPremiumAccess;
-    
-    // ★★★ ФОРМИРУЕМ ОПИСАНИЕ С ВЕСОМ (ТОЛЬКО ЕСЛИ > 0) ★★★
+
     let detailsText = `${formatSets(ex.sets)} × ${formatReps(ex.reps)}`;
     if (hasWeight(ex) && ex.weight > 0) {
         detailsText += ` · ${ex.weight} кг`;
     }
-    
-    return `<div class="item-card ${disabled ? 'premium-locked' : ''}" onclick="${disabled ? 'openPremiumModal()' : `addExerciseFromList('${ex.name}', ${ex.sets}, '${ex.reps}')`}" style="${disabled ? 'opacity:0.6;' : ''}">
-        <div class="item-icon" style="width:44px;height:44px;min-width:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;${disabled ? 'background:#E2E8F0;' : ''}">
-            ${icon ? `<img src="images/${icon}.png" style="width:28px;height:28px;object-fit:contain;${disabled ? 'filter:grayscale(1);' : ''}">` : ''}
+
+    return `<div class="item-card exercise-list-card ${disabled ? 'premium-locked' : ''}"
+                 onclick="${disabled ? 'openPremiumModal()' : `addExerciseFromList('${ex.name}', ${ex.sets}, '${ex.reps}')`}">
+        <div class="item-icon">
+            ${icon ? `<img src="images/${icon}.png">` : ''}
         </div>
         <div class="item-info">
             <h3 class="item-title">${ex.name}</h3>
             <p class="item-desc">${detailsText}</p>
         </div>
-        ${disabled ? '<span style="font-size:0.6rem;color:var(--gold);font-weight:700;padding:0.2rem 0.6rem;border:1px solid var(--gold);border-radius:4px;">PREMIUM</span>' : ''}
+        ${disabled ? '<span class="premium-badge">PREMIUM</span>' : ''}
         <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
     </div>`;
 }).join('');
