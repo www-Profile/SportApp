@@ -5163,3 +5163,46 @@ body.theme-dark-mode .consent-row input[type="checkbox"]:checked {
     background: var(--accent);
     border-color: var(--accent);
 }
+
+/* =================== ЗАПРЕТ СКРОЛЛА НА СЕССИИ ==================== */
+html.no-scroll,
+body.no-scroll {
+    overflow: hidden !important;
+    height: 100% !important;
+    overscroll-behavior: none !important;
+    touch-action: pan-y;   /* вертикальные жесты не скроллят страницу */
+}
+
+/* =================== КНОПКА ПОДЕЛИТЬСЯ ТРЕНИРОВКОЙ ==================== */
+.workout-share-btn {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border: none;
+    background: var(--light);
+    color: var(--slate);
+    font-size: 1rem;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.workout-share-btn:active {
+    background: var(--accent-light);
+    color: var(--accent);
+    transform: scale(0.92);
+}
+
+body.theme-dark-mode .workout-share-btn {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+body.theme-dark-mode .workout-share-btn:active {
+    background: var(--accent-dark);
+    color: var(--accent);
+}

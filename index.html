@@ -260,8 +260,13 @@
         <header class="dashboard-header">
             <h1 class="dashboard-title" id="workoutDetailTitle">ТРЕНИРОВКА</h1>
         </header>
-        <h3 class="section-title">Упражнения</h3>
-        <div id="exercisesContainer" class="item-grid" style="border-radius: 16px;"></div>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+    <h3 class="section-title" style="margin: 0;">Упражнения</h3>
+    <button class="workout-share-btn" id="shareWorkoutLinkBtn" title="Поделиться тренировкой">
+        <i class="fa-solid fa-link"></i>
+    </button>
+</div>
+<div id="exercisesContainer" class="item-grid" style="border-radius: 16px;"></div>
         
         <!-- ДВЕ КНОПКИ В ОДНОЙ СТРОКЕ -->
         <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">

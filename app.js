@@ -3067,6 +3067,15 @@ window.navigateTo = function(page, params) {
         target.classList.add('page-active');
     }
 
+    // ★★★ БЛОКИРОВКА СКРОЛЛА НА СТРАНИЦАХ СЕССИИ ★★★
+    if (page === 'training-session' || page === 'task-session') {
+        document.body.classList.add('no-scroll');
+        document.documentElement.classList.add('no-scroll');
+    } else {
+        document.body.classList.remove('no-scroll');
+        document.documentElement.classList.remove('no-scroll');
+    }
+
 // ★ Маппинг вложенных страниц на разделы меню
 const NAV_SECTION_MAP = {
     'workouts':            'workouts',
@@ -3182,6 +3191,75 @@ function closeModal(modalId) {
         modal.classList.remove('modal-overlay-closing');
     }, 600);
 }
+
+// =================== ОЧЕРЕДЬ МОДАЛОК (АНТИ-ЛАГ) ===================
+const _modalQueue = [];
+let _activeModalId = null;
+let _closingModalId = null;
+
+const _rawOpenModal = openModal;
+const _rawCloseModal = closeModal;
+
+function _tryShowNextModal() {
+    if (_activeModalId !== null || _closingModalId !== null) return;
+    if (_modalQueue.length === 0) return;
+
+    // На всякий случай проверяем DOM — нет ли «посторонней» модалки,
+    // открытой напрямую (без openModal)
+    const busy = document.querySelector(
+        '.modal-overlay.modal-overlay-visible, .modal-overlay.modal-overlay-closing'
+    );
+    if (busy) return;
+
+    const next = _modalQueue.shift();
+    _activeModalId = next;
+    _rawOpenModal(next);
+}
+
+window.openModal = function(modalId) {
+    // Эта же модалка уже открыта — игнор
+    if (_activeModalId === modalId) return;
+
+    // Что-то уже показывается / закрывается / в очереди → в очередь
+    if (_activeModalId !== null || _closingModalId !== null || _modalQueue.length > 0) {
+        if (!_modalQueue.includes(modalId)) _modalQueue.push(modalId);
+        return;
+    }
+
+    // Проверяем DOM на «посторонние» модалки (созданные без openModal)
+    const busy = document.querySelector(
+        '.modal-overlay.modal-overlay-visible, .modal-overlay.modal-overlay-closing'
+    );
+    if (busy && busy.id !== modalId) {
+        if (!_modalQueue.includes(modalId)) _modalQueue.push(modalId);
+        return;
+    }
+
+    _activeModalId = modalId;
+    _rawOpenModal(modalId);
+};
+
+window.closeModal = function(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+
+    const wasActive = (_activeModalId === modalId);
+    _rawCloseModal(modalId);
+
+    if (wasActive) {
+        _activeModalId = null;
+        _closingModalId = modalId;
+        setTimeout(() => {
+            if (_closingModalId === modalId) _closingModalId = null;
+            _tryShowNextModal();
+        }, 650);
+    } else {
+        // Закрываем неактивную — на всякий случай убираем из очереди
+        const idx = _modalQueue.indexOf(modalId);
+        if (idx !== -1) _modalQueue.splice(idx, 1);
+        setTimeout(_tryShowNextModal, 650);
+    }
+};
 
 // ===================ГЛОБАЛЬНАЯ ФУНКЦИЯ ДЛЯ ПЕРЕКЛЮЧЕНИЯ ВКЛАДОК СТАТИСТИКИ ===================
 window.switchStatsTab = function(tab) {
@@ -3665,6 +3743,14 @@ if (levelData) {
             }).join('');
         }
     }
+
+    // ★★★ КНОПКА ПОДЕЛИТЬСЯ ССЫЛКОЙ ★★★
+const shareLinkBtn = document.getElementById('shareWorkoutLinkBtn');
+if (shareLinkBtn) {
+    shareLinkBtn.onclick = function() {
+        shareWorkoutLink(displayTitle, exercises, workoutIcon, restTime);
+    };
+}
 
     const editWorkoutBtn = document.getElementById('editWorkoutBtn');
     const workoutEditEnabled = localStorage.getItem(EDIT_WORKOUT_KEY) !== 'false';
@@ -5049,11 +5135,17 @@ function loadEditPage(category, isCustom, id, level, exercises) {
             }
         }
         
-        document.querySelectorAll('.icon-option').forEach(el => {
-            el.classList.toggle('icon-option-active', el.dataset.icon === iconToSet);
-        });
-        
-        localStorage.setItem('temp_edit_icon', iconToSet);
+// ★ Скоупим на пикер редактора — фильтр и универсальный пикер не трогаем
+document.querySelectorAll('#createExerciseIconPicker .icon-option').forEach(el => {
+    el.classList.toggle('icon-option-active', el.dataset.icon === iconToSet);
+});
+
+// ★ Не сохраняем "null" / "undefined" — только реальный ID иконки
+if (iconToSet && iconToSet !== 'null' && iconToSet !== 'undefined') {
+    localStorage.setItem('temp_edit_icon', iconToSet);
+} else {
+    localStorage.removeItem('temp_edit_icon');
+}
     }
 
     let savedRestTime = null;
@@ -5106,14 +5198,17 @@ function loadEditPage(category, isCustom, id, level, exercises) {
     }, 300);
 }
 
-// ===================ВЫБОР ЗНАЧКА ===================
-document.querySelectorAll('.icon-option').forEach(el => {
+// ===================ВЫБОР ЗНАЧКА (ТОЛЬКО В РЕДАКТОРЕ ТРЕНИРОВКИ) ===================
+document.querySelectorAll('#createExerciseIconPicker .icon-option').forEach(el => {
     el.addEventListener('click', function() {
-        document.querySelectorAll('.icon-option').forEach(e => e.classList.remove('icon-option-active'));
+        // ★ Сбрасываем активность ТОЛЬКО внутри этого пикера
+        document.querySelectorAll('#createExerciseIconPicker .icon-option').forEach(e => 
+            e.classList.remove('icon-option-active')
+        );
         this.classList.add('icon-option-active');
         
-        // ★★★ СОХРАНЯЕМ ВЫБРАННЫЙ ЗНАЧОК ★★★
-        if (editIsCustom || editWorkoutId === 'new') {
+        // ★ Сохраняем ТОЛЬКО если у иконки реально есть data-icon
+        if (this.dataset.icon && (editIsCustom || editWorkoutId === 'new')) {
             localStorage.setItem('temp_edit_icon', this.dataset.icon);
         }
     });
@@ -5363,8 +5458,8 @@ document.getElementById('saveEditBtn')?.addEventListener('click', function() {
     const nameInput = document.getElementById('editWorkoutName');
     const title = nameInput ? nameInput.value.trim() : (editCategory || 'Моя тренировка');
     if (!title) { showToast('⚠️ Введите название тренировки'); return; }
-    const selectedIcon = document.querySelector('.icon-option-active');
-    const icon = selectedIcon ? selectedIcon.dataset.icon : null;
+const selectedIcon = document.querySelector('#createExerciseIconPicker .icon-option-active');
+const icon = (selectedIcon && selectedIcon.dataset.icon) ? selectedIcon.dataset.icon : null;
     
     // ★★★ ПОЛУЧАЕМ РЕЗУЛЬТАТ С ID ★★★
     const result = saveWorkoutData(editCategory, editLevel, editIsCustom, editWorkoutId, title, icon, editExercises);
@@ -7914,7 +8009,7 @@ function openExerciseList() {
         localStorage.setItem('temp_edit_level', editLevel);
         localStorage.setItem('temp_edit_isCustom', editIsCustom);
         localStorage.setItem('temp_edit_id', editWorkoutId || '');
-        const selectedIcon = document.querySelector('.icon-option-active');
+        const selectedIcon = document.querySelector('#createExerciseIconPicker .icon-option-active');
         if (selectedIcon) localStorage.setItem('temp_edit_icon', selectedIcon.dataset.icon);
     }
     
@@ -7982,7 +8077,7 @@ function goBackToEditWorkout() {
         localStorage.setItem('temp_edit_level', editLevel);
         localStorage.setItem('temp_edit_isCustom', editIsCustom);
         localStorage.setItem('temp_edit_id', editWorkoutId || '');
-        const selectedIcon = document.querySelector('.icon-option-active');
+        const selectedIcon = document.querySelector('#createExerciseIconPicker .icon-option-active');
         if (selectedIcon) localStorage.setItem('temp_edit_icon', selectedIcon.dataset.icon);
     }
     
@@ -8069,7 +8164,7 @@ function openAddExerciseModal() {
         localStorage.setItem('temp_edit_level', editLevel);
         localStorage.setItem('temp_edit_isCustom', editIsCustom);
         localStorage.setItem('temp_edit_id', editWorkoutId || '');
-        const selectedIcon = document.querySelector('.icon-option-active');
+        const selectedIcon = document.querySelector('#createExerciseIconPicker .icon-option-active');
         if (selectedIcon) localStorage.setItem('temp_edit_icon', selectedIcon.dataset.icon);
     }
     
@@ -8138,7 +8233,7 @@ function addExerciseFromList(name, sets, reps) {
         localStorage.setItem('temp_edit_isCustom', editIsCustom);
         localStorage.setItem('temp_edit_id', editWorkoutId || '');
         
-        const selectedIcon = document.querySelector('.icon-option-active');
+        const selectedIcon = document.querySelector('#createExerciseIconPicker .icon-option-active');
         const iconToSave = selectedIcon ? selectedIcon.dataset.icon : 
                           (localStorage.getItem('temp_edit_icon') || null);
         localStorage.setItem('temp_edit_icon', iconToSave);
@@ -12256,7 +12351,7 @@ function renderDailyTasks() {
         console.warn('⚠️ Контейнер dailyTasksContainer не найден');
         return;
     }
-    
+
     if (!dailyTasksList || dailyTasksList.length === 0) {
         container.innerHTML = `
             <div class="empty-state" style="box-shadow: none;">
@@ -12267,31 +12362,38 @@ function renderDailyTasks() {
         `;
         return;
     }
-    
+
+    // ★★★ ПРОВЕРЯЕМ, ВСЕ ЛИ ЗАДАНИЯ ВЫПОЛНЕНЫ ★★★
+    const allCompleted = dailyTasksList.every(t => t.completed);
+
     let html = '';
     dailyTasksList.forEach((task) => {
         const isCompleted = task.completed || false;
         const iconClass = isCompleted ? 'fa-regular fa-square-check' : 'fa-regular fa-square';
         const iconColor = isCompleted ? 'var(--accent)' : 'var(--light-grey)';
-        
+
         let displayName = task.name;
         let displayDesc = task.description;
-        
-        // Кликабельны все ежедневные задания (кроме выполненных)
-        const isClickable = !isCompleted;
-        const cursorStyle = isClickable ? 'cursor: pointer;' : 'cursor: default;';
-        
-        // ДЛЯ ВСЕХ ЕЖЕДНЕВНЫХ ЗАДАНИЙ ИСПОЛЬЗУЕМ dailyTaskHelpModal
+
+        // ★★★ ЛОГИКА КЛИКА ★★★
         let clickHandler = '';
-        if (isClickable) {
+        let cursorStyle = 'cursor: default;';
+
+        if (!isCompleted) {
+            // Не выполнено → обычная подсказка
             clickHandler = `onclick="openDailyTaskHelpModal('${task.id}')"`;
+            cursorStyle = 'cursor: pointer;';
+        } else if (allCompleted) {
+            // Всё выполнено → показываем таймер до следующих
+            clickHandler = `onclick="openAllTasksDoneModal()"`;
+            cursorStyle = 'cursor: pointer;';
         }
-        
+        // Иначе (выполнено, но не всё) — не кликабельно
+
         if (task.type === 'exercise') {
             displayName = task.name;
             displayDesc = `Выполнить ${task.target} ${task.unit}`;
-        }
-        else if (task.type === 'smart_exercise') {
+        } else if (task.type === 'smart_exercise') {
             const template = DAILY_TASKS_CONFIG.smartStats.items[0];
             if (template) {
                 displayName = template.name.replace('{category}', task.category);
@@ -12299,36 +12401,32 @@ function renderDailyTasks() {
                     .replace('{count}', task.target)
                     .replace('{category}', task.category);
             }
-        }
-        else if (task.type === 'smart_workout') {
+        } else if (task.type === 'smart_workout') {
             const template = DAILY_TASKS_CONFIG.smartStats.items[1];
             if (template) {
                 displayName = template.name.replace('{category}', task.category);
                 displayDesc = template.description.replace('{category}', task.category);
             }
-        }
-        else if (task.type === 'friends') {
+        } else if (task.type === 'friends') {
             const configItem = DAILY_TASKS_CONFIG.friends.items.find(item => item.id === task.id);
             if (configItem) {
                 displayName = configItem.name;
                 displayDesc = configItem.description;
             }
-        }
-        else if (task.type === 'stats_exercise') {
+        } else if (task.type === 'stats_exercise') {
             const configItem = DAILY_TASKS_CONFIG.stats.exercises.items.find(item => item.id === task.id);
             if (configItem) {
                 displayName = configItem.name;
                 displayDesc = `Выполнить ${task.target} упражнений`;
             }
-        }
-        else if (task.type === 'stats_time') {
+        } else if (task.type === 'stats_time') {
             const configItem = DAILY_TASKS_CONFIG.stats.time.items.find(item => item.id === task.id);
             if (configItem) {
                 displayName = configItem.name;
                 displayDesc = `Тренироваться ${task.target} минут`;
             }
         }
-        
+
         html += `
             <div class="settings-item" style="${cursorStyle}" ${clickHandler} data-task-id="${task.id}">
                 <div class="settings-icon"><i class="${task.icon || 'fa-solid fa-tasks'}"></i></div>
@@ -12342,13 +12440,96 @@ function renderDailyTasks() {
             </div>
         `;
     });
-    
+
     container.innerHTML = html;
-    // ★★★ ОБНОВЛЯЕМ КАРУСЕЛЬ ★★★
+
     if (typeof refreshAutoCarousel === 'function') {
         refreshAutoCarousel();
     }
 }
+
+// =================== ВСЕ ЕЖЕДНЕВНЫЕ ЗАДАНИЯ ВЫПОЛНЕНЫ ===================
+let _allTasksDoneTimer = null;
+
+function openAllTasksDoneModal() {
+    // Удаляем старую, если есть
+    const old = document.getElementById('allTasksDoneModal');
+    if (old) old.remove();
+    if (_allTasksDoneTimer) {
+        clearInterval(_allTasksDoneTimer);
+        _allTasksDoneTimer = null;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'allTasksDoneModal';
+    overlay.innerHTML = `
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-title">Все задания выполнены!</div>
+
+            <div style="text-align:center; font-size: 3.5rem; color: var(--accent); margin: 0.3rem 0 0.5rem 0;">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+
+            <p class="modal-text" style="margin-bottom: 0.3rem;">
+                Отличная работа! Вы выполнили все задания на сегодня.
+            </p>
+            <p class="modal-text" style="margin-bottom: 0.8rem;">
+                Следующие задания появятся через
+            </p>
+
+            <div id="allTasksDoneTimer" style="
+                font-size: 2rem;
+                font-weight: 700;
+                color: var(--accent);
+                font-variant-numeric: tabular-nums;
+                letter-spacing: 0.05em;
+                margin-bottom: 1rem;
+            ">00:00:00</div>
+
+            <button class="btn btn-primary" id="allTasksDoneCloseBtn">Понятно</button>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.style.display = 'flex';
+    void overlay.offsetWidth;
+    overlay.classList.add('modal-overlay-visible');
+
+    document.getElementById('allTasksDoneCloseBtn').addEventListener('click', function() {
+        if (_allTasksDoneTimer) {
+            clearInterval(_allTasksDoneTimer);
+            _allTasksDoneTimer = null;
+        }
+        closeModal('allTasksDoneModal');
+    });
+
+    // Первый рендер + обновление каждую секунду
+    updateAllTasksDoneTimer();
+    _allTasksDoneTimer = setInterval(updateAllTasksDoneTimer, 1000);
+}
+
+function updateAllTasksDoneTimer() {
+    const el = document.getElementById('allTasksDoneTimer');
+    if (!el) {
+        if (_allTasksDoneTimer) {
+            clearInterval(_allTasksDoneTimer);
+            _allTasksDoneTimer = null;
+        }
+        return;
+    }
+
+    const now = new Date();
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const diff = tomorrow - now;
+
+    const hours = String(Math.floor(diff / (1000 * 60 * 60))).padStart(2, '0');
+    const minutes = String(Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
+    const seconds = String(Math.floor((diff % (1000 * 60)) / 1000)).padStart(2, '0');
+
+    el.textContent = `${hours}:${minutes}:${seconds}`;
+}
+
+window.openAllTasksDoneModal = openAllTasksDoneModal;
 
 // Начисление XP за ежедневное задание
 async function addDailyTaskXp() {
@@ -12483,35 +12664,35 @@ function checkDailyTasksAfterWorkout(workoutData) {
     });
     
     // ★★★ СЧИТАЕМ ПОВТОРЕНИЯ ПО ФИЗИЧЕСКИМ УПРАЖНЕНИЯМ ★★★
-    const exerciseRepsData = {};
-    workoutData.exercises?.forEach(function(e) {
-        if (e.completed) {
-            // Проверяем, есть ли это упражнение в конфиге ежедневных заданий
-            const isDailyExercise = DAILY_TASKS_CONFIG.exercise.items.some(function(item) {
-                return e.name.toLowerCase().includes(item.name.toLowerCase());
-            });
-            
-            if (isDailyExercise) {
-                const sets = parseInt(e.sets) || 0;
-                const repsStr = String(e.reps || '');
-                let repsValue = 0;
-                
-                // Проверяем, секунды это или повторения
-                if (repsStr.includes('сек') || repsStr.includes('с') || repsStr.includes('Секунд')) {
-                    repsValue = parseFloat(repsStr.replace(/[^0-9.]/g, '')) || 0;
-                } else {
-                    repsValue = parseFloat(repsStr) || 0;
-                }
-                
-                const totalReps = sets * repsValue;
-                
-                if (!exerciseRepsData[e.name]) {
-                    exerciseRepsData[e.name] = 0;
-                }
-                exerciseRepsData[e.name] += totalReps;
-            }
+const exerciseRepsData = {};
+workoutData.exercises?.forEach(function(e) {
+    if (e.completed) {
+        // ★ Ищем подходящую запись в конфиге
+        const configItem = DAILY_TASKS_CONFIG.exercise.items.find(function(item) {
+            return e.name.toLowerCase().includes(item.name.toLowerCase());
+        });
+        
+        if (!configItem) return;   // нет совпадения — пропускаем
+        
+        const sets = parseInt(e.sets) || 0;
+        const repsStr = String(e.reps || '');
+        let repsValue = 0;
+        
+        if (repsStr.includes('сек') || repsStr.includes('с') || repsStr.includes('Секунд')) {
+            repsValue = parseFloat(repsStr.replace(/[^0-9.]/g, '')) || 0;
+        } else {
+            repsValue = parseFloat(repsStr) || 0;
         }
-    });
+        
+        const totalReps = sets * repsValue;
+        
+        // ★★★ СОХРАНЯЕМ ПОД ИМЕНЕМ ИЗ КОНФИГА (а не из тренировки) ★★★
+        if (!exerciseRepsData[configItem.name]) {
+            exerciseRepsData[configItem.name] = 0;
+        }
+        exerciseRepsData[configItem.name] += totalReps;
+    }
+});
     
     // ★★★ ОБНОВЛЯЕМ ДНЕВНОЙ ПРОГРЕСС ★★★
     const dailyProgress = updateDailyProgress(completedExercises, durationMinutes, categoryCounts, exerciseRepsData);
@@ -12600,33 +12781,35 @@ function checkDailyTasksAfterCoopWorkout(workoutData) {
     });
     
     // ★★★ СЧИТАЕМ ПОВТОРЕНИЯ ПО ФИЗИЧЕСКИМ УПРАЖНЕНИЯМ ★★★
-    const exerciseRepsData = {};
-    workoutData.exercises?.forEach(function(e) {
-        if (e.completed) {
-            const isDailyExercise = DAILY_TASKS_CONFIG.exercise.items.some(function(item) {
-                return e.name.toLowerCase().includes(item.name.toLowerCase());
-            });
-            
-            if (isDailyExercise) {
-                const sets = parseInt(e.sets) || 0;
-                const repsStr = String(e.reps || '');
-                let repsValue = 0;
-                
-                if (repsStr.includes('сек') || repsStr.includes('с') || repsStr.includes('Секунд')) {
-                    repsValue = parseFloat(repsStr.replace(/[^0-9.]/g, '')) || 0;
-                } else {
-                    repsValue = parseFloat(repsStr) || 0;
-                }
-                
-                const totalReps = sets * repsValue;
-                
-                if (!exerciseRepsData[e.name]) {
-                    exerciseRepsData[e.name] = 0;
-                }
-                exerciseRepsData[e.name] += totalReps;
-            }
+const exerciseRepsData = {};
+workoutData.exercises?.forEach(function(e) {
+    if (e.completed) {
+        // ★ Ищем подходящую запись в конфиге
+        const configItem = DAILY_TASKS_CONFIG.exercise.items.find(function(item) {
+            return e.name.toLowerCase().includes(item.name.toLowerCase());
+        });
+        
+        if (!configItem) return;   // нет совпадения — пропускаем
+        
+        const sets = parseInt(e.sets) || 0;
+        const repsStr = String(e.reps || '');
+        let repsValue = 0;
+        
+        if (repsStr.includes('сек') || repsStr.includes('с') || repsStr.includes('Секунд')) {
+            repsValue = parseFloat(repsStr.replace(/[^0-9.]/g, '')) || 0;
+        } else {
+            repsValue = parseFloat(repsStr) || 0;
         }
-    });
+        
+        const totalReps = sets * repsValue;
+        
+        // ★★★ СОХРАНЯЕМ ПОД ИМЕНЕМ ИЗ КОНФИГА (а не из тренировки) ★★★
+        if (!exerciseRepsData[configItem.name]) {
+            exerciseRepsData[configItem.name] = 0;
+        }
+        exerciseRepsData[configItem.name] += totalReps;
+    }
+});
     
     // ★★★ ОБНОВЛЯЕМ ДНЕВНОЙ ПРОГРЕСС ★★★
     const dailyProgress = updateDailyProgress(completedExercises, durationMinutes, categoryCounts, exerciseRepsData);
@@ -17299,17 +17482,26 @@ function isInsideApp() {
 
 // ★★★ ОТКРЫВАЕМ ОТЛОЖЕННОЕ ПРИГЛАШЕНИЕ, КОГДА ПОЛЬЗОВАТЕЛЬ В ПРИЛОЖЕНИИ ★★★
 function tryOpenPendingInvite() {
+    // Сначала — приглашение в друзья
     const pendingInvite = localStorage.getItem('pendingFriendInvite');
-    if (!pendingInvite) return;
-
-    if (!isInsideApp()) {
-        console.log('⏸️ Пользователь ещё не в приложении, приглашение ждёт');
-        return;
+    if (pendingInvite && isInsideApp()) {
+        localStorage.removeItem('pendingFriendInvite');
+        console.log('🎯 Открываем отложенное приглашение:', pendingInvite);
+        setTimeout(() => openFriendInviteModal(pendingInvite), 500);
     }
 
-    localStorage.removeItem('pendingFriendInvite');
-    console.log('🎯 Открываем отложенное приглашение:', pendingInvite);
-    setTimeout(() => openFriendInviteModal(pendingInvite), 500);
+    // ★ Плюс — тренировка из ссылки
+    const pendingWorkout = localStorage.getItem('pendingSharedWorkout');
+    if (pendingWorkout && isInsideApp()) {
+        localStorage.removeItem('pendingSharedWorkout');
+        try {
+            const payload = JSON.parse(pendingWorkout);
+            console.log('🎯 Применяем отложенную тренировку из ссылки');
+            setTimeout(() => applySharedWorkout(payload), 800);
+        } catch (e) {
+            console.warn('Ошибка разбора отложенной тренировки:', e);
+        }
+    }
 }
 
 async function openFriendInviteModal(friendId) {
@@ -17498,6 +17690,7 @@ function renderFriendProfileActions(mode, friendId, status) {
 // ★★★ ЗАПУСКАЕМ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ ★★★
 document.addEventListener('DOMContentLoaded', () => {
     checkFriendInviteLink();
+    checkWorkoutShareLink();   // ★ добавили
 });
 
 // =================== МОДАЛКА БЕТА-ВЕРСИЯ ===================
@@ -19487,3 +19680,301 @@ document.addEventListener('DOMContentLoaded', () => {
     const privacyEl = document.getElementById('privacyText');
     if (privacyEl) privacyEl.innerHTML = PRIVACY_TEXT;
 });
+
+// =================== ПОДЕЛИТЬСЯ ТРЕНИРОВКОЙ ПО ССЫЛКЕ ===================
+
+/**
+ * Кодирует строку в URL-safe base64
+ */
+function _encodeShareBase64(str) {
+    return btoa(unescape(encodeURIComponent(str)))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+}
+
+/**
+ * Декодирует URL-safe base64 в строку
+ */
+function _decodeShareBase64(str) {
+    const b64 = str.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64 + '='.repeat((4 - b64.length % 4) % 4);
+    return decodeURIComponent(escape(atob(padded)));
+}
+
+/**
+ * Поделиться тренировкой через ссылку
+ */
+async function shareWorkoutLink(title, exercises, icon, restTime) {
+    if (!exercises || exercises.length === 0) {
+        showToast('⚠️ Нечего делиться — нет упражнений');
+        return;
+    }
+
+    // ★ Компактный формат: массив массивов вместо объектов
+    // [name, sets, reps, weight, icon]
+    const payload = {
+        t: title,
+        i: icon || null,
+        r: parseInt(restTime) || 30,
+        e: exercises.map(ex => [
+            String(ex.name || ''),
+            parseInt(ex.sets) || 3,
+            String(ex.reps || '12'),
+            parseFloat(ex.weight) || 0,
+            ex.icon || null
+        ])
+    };
+
+    let encoded;
+    try {
+        encoded = _encodeShareBase64(JSON.stringify(payload));
+    } catch (e) {
+        console.error('Ошибка кодирования:', e);
+        showToast('❌ Не удалось создать ссылку');
+        return;
+    }
+
+    const base = window.location.origin + window.location.pathname;
+    const url = `${base}?w=${encoded}`;
+    const text = `Тренировка "${title}" в SportApp. Открой ссылку, чтобы добавить её себе:`;
+
+    // ★ Если ссылка слишком длинная — предупреждаем
+    if (url.length > 1800) {
+        showToast('⚠️ Тренировка слишком большая для ссылки');
+        return;
+    }
+
+    // ★ Пробуем нативное меню «Поделиться»
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: 'Тренировка в SportApp',
+                text: text,
+                url: url
+            });
+            console.log('✅ Открыто системное меню «Поделиться»');
+            return;
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                // Пользователь сам закрыл меню — выходим тихо
+                return;
+            }
+            console.warn('Share API не сработал:', err);
+        }
+    }
+
+    // ★ Fallback — копируем в буфер + тост
+    const fullText = `${text}\n${url}`;
+
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(fullText);
+            showToast('✅ Тренировка скопирована!');
+            return;
+        }
+
+        // Старый способ через textarea
+        const ta = document.createElement('textarea');
+        ta.value = fullText;
+        ta.style.position = 'fixed';
+        ta.style.top = '-1000px';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+
+        if (ok) {
+            showToast('✅ Тренировка скопирована!');
+        } else {
+            showShareWorkoutLinkManual(url);
+        }
+    } catch (err) {
+        console.error('Копирование не удалось:', err);
+        showShareWorkoutLinkManual(url);
+    }
+}
+
+/**
+ * Резервная модалка со ссылкой для ручного копирования
+ */
+function showShareWorkoutLinkManual(url) {
+    const old = document.getElementById('manualWorkoutLinkModal');
+    if (old) old.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'manualWorkoutLinkModal';
+    overlay.innerHTML = `
+        <div class="modal-content" style="max-width:420px; width:95%;">
+            <div class="modal-title">Ссылка на тренировку</div>
+            <p class="modal-text" style="margin-bottom:1rem;">
+                Выделите ссылку и скопируйте вручную
+            </p>
+            <input type="text" id="manualWorkoutLinkInput"
+                   class="form-input"
+                   value="${url}"
+                   readonly
+                   style="margin-bottom:1rem; text-align:center; font-size:0.75rem;"
+                   onclick="this.select();" />
+            <button class="btn btn-primary" onclick="closeModal('manualWorkoutLinkModal')">
+                Понятно
+            </button>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.style.display = 'flex';
+    void overlay.offsetWidth;
+    overlay.classList.add('modal-overlay-visible');
+
+    setTimeout(() => {
+        const input = document.getElementById('manualWorkoutLinkInput');
+        if (input) {
+            input.focus();
+            input.select();
+        }
+    }, 100);
+}
+
+/**
+ * Применяет тренировку из ссылки — добавляет в личные
+ */
+async function applySharedWorkout(payload) {
+    if (!payload || !Array.isArray(payload.e) || payload.e.length === 0) {
+        showToast('❌ Тренировка пустая');
+        return;
+    }
+
+    // Восстанавливаем упражнения из компактного формата
+    const exercises = payload.e.map(arr => ({
+        name: String(arr[0] || 'Упражнение'),
+        sets: parseInt(arr[1]) || 3,
+        reps: String(arr[2] || '12'),
+        weight: parseFloat(arr[3]) || 0,
+        icon: arr[4] || null
+    }));
+
+    const title = payload.t || 'Тренировка из ссылки';
+    const icon = payload.i || null;
+    const restTime = parseInt(payload.r) || 30;
+
+    // ★ Проверяем дубликаты
+    const existing = getMyWorkouts();
+    const duplicate = existing.find(w =>
+        w.title === title &&
+        Array.isArray(w.exercises) &&
+        w.exercises.length === exercises.length
+    );
+
+    if (duplicate) {
+        console.log('ℹ️ Такая тренировка уже есть:', duplicate._id);
+        showSharedWorkoutAddedModal(duplicate, exercises.length, true);
+        return;
+    }
+
+    // ★ Добавляем
+    const newWorkout = {
+        _id: Date.now().toString(),
+        title: title,
+        icon: icon,
+        exercises: exercises,
+        restTime: restTime
+    };
+
+    existing.push(newWorkout);
+    saveMyWorkouts(existing);
+
+    console.log('✅ Тренировка добавлена в личные:', newWorkout._id);
+    showSharedWorkoutAddedModal(newWorkout, exercises.length, false);
+}
+
+/**
+ * Модалка после добавления тренировки из ссылки
+ */
+function showSharedWorkoutAddedModal(workout, exercisesCount, isDuplicate) {
+    const old = document.getElementById('sharedWorkoutModal');
+    if (old) old.remove();
+
+    const exercisesWord = declOfNum(exercisesCount, ['упражнение', 'упражнения', 'упражнений']);
+    const titleText = isDuplicate ? 'Тренировка уже у вас' : 'Тренировка добавлена!';
+    const messageText = isDuplicate
+        ? `Тренировка "${workout.title}" уже есть в ваших личных.`
+        : `Тренировка "${workout.title}" (${exercisesCount} ${exercisesWord}) добавлена в ваши личные тренировки.`;
+    const iconClass = isDuplicate ? 'fa-solid fa-circle-info' : 'fa-solid fa-circle-check';
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'sharedWorkoutModal';
+    overlay.innerHTML = `
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-title">${titleText}</div>
+            <div style="text-align:center; font-size:3rem; color: var(--accent); margin: 0.5rem 0;">
+                <i class="${iconClass}"></i>
+            </div>
+            <p class="modal-text">${messageText}</p>
+            <button class="btn btn-primary" id="sharedWorkoutOpenBtn" style="margin-bottom:0.4rem;">
+                Открыть
+            </button>
+            <button class="btn btn-secondary" id="sharedWorkoutCloseBtn">
+                Позже
+            </button>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.style.display = 'flex';
+    void overlay.offsetWidth;
+    overlay.classList.add('modal-overlay-visible');
+
+    document.getElementById('sharedWorkoutOpenBtn').addEventListener('click', () => {
+        closeModal('sharedWorkoutModal');
+        window.navigateTo('workout-detail', {
+            category: workout.title,
+            isCustom: true,
+            id: workout._id
+        });
+    });
+
+    document.getElementById('sharedWorkoutCloseBtn').addEventListener('click', () => {
+        closeModal('sharedWorkoutModal');
+        TabManager.workouts('my');
+        window.navigateTo('workouts');
+    });
+}
+
+/**
+ * Проверка ссылки ?w=... при загрузке страницы
+ */
+async function checkWorkoutShareLink() {
+    const params = new URLSearchParams(window.location.search);
+    const encoded = params.get('w');
+    if (!encoded) return;
+
+    // Убираем параметр из URL, чтобы не залипал
+    window.history.replaceState({}, '', window.location.pathname);
+
+    // Декодируем
+    let payload;
+    try {
+        payload = JSON.parse(_decodeShareBase64(encoded));
+    } catch (e) {
+        console.warn('Не удалось разобрать ссылку на тренировку:', e);
+        showToast('❌ Ссылка повреждена или устарела');
+        return;
+    }
+
+    // ★ Сохраняем на случай, если пользователь ещё не залогинен
+    localStorage.setItem('pendingSharedWorkout', JSON.stringify(payload));
+    console.log('💾 Тренировка из ссылки сохранена, применим после входа в приложение');
+
+    // Если уже в приложении — применяем сразу
+    const user = await getFirebaseUser();
+    if (user && isInsideApp()) {
+        localStorage.removeItem('pendingSharedWorkout');
+        await applySharedWorkout(payload);
+    }
+}
+
+// Экспорт
+window.shareWorkoutLink = shareWorkoutLink;
+window.applySharedWorkout = applySharedWorkout;
+window.checkWorkoutShareLink = checkWorkoutShareLink;
