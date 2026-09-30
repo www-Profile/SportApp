@@ -19912,12 +19912,14 @@ function showSharedWorkoutAddedModal(workout, exercisesCount, isDuplicate) {
                 <i class="${iconClass}"></i>
             </div>
             <p class="modal-text">${messageText}</p>
-            <button class="btn btn-primary" id="sharedWorkoutOpenBtn" style="margin-bottom:0.4rem;">
-                Открыть
-            </button>
-            <button class="btn btn-secondary" id="sharedWorkoutCloseBtn">
-                Позже
-            </button>
+            <div style="display: flex; gap: 0.5rem; width: 100%;">
+                <button class="btn btn-primary" id="sharedWorkoutOpenBtn" style="flex: 1;">
+                    Открыть
+                </button>
+                <button class="btn btn-secondary" id="sharedWorkoutCloseBtn" style="flex: 1;">
+                    Позже
+                </button>
+            </div>
         </div>
     `;
     document.body.appendChild(overlay);
@@ -19936,8 +19938,6 @@ function showSharedWorkoutAddedModal(workout, exercisesCount, isDuplicate) {
 
     document.getElementById('sharedWorkoutCloseBtn').addEventListener('click', () => {
         closeModal('sharedWorkoutModal');
-        TabManager.workouts('my');
-        window.navigateTo('workouts');
     });
 }
 
