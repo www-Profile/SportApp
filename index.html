@@ -1,6 +1,6 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
+<!DOCTYPE html>   
+<html lang="ru"> 
+<head> 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -8,16 +8,28 @@
     <meta name="Partypay" content="6a6f5e9de764e">
     <title>SportApp</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="images/icon-192.png">
+    <link rel="apple-touch-icon" href="images/preview.png">
+    <link rel="icon" type="image/png" href="images/preview.png">
+
+    <!-- ★★★ Open Graph (Telegram, WhatsApp, VK, Discord и т.д.) ★★★ -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="SportApp — тренируйся и соревнуйся">
+    <meta property="og:description" content="Отслеживай прогресс, создавай тренировки и соревнуйся с друзьями.">
+    <meta property="og:image" content="https://www-profile.github.io/SportApp/images/preview.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:url" content="https://www-profile.github.io/SportApp/">
+
+    <!-- ★★★ Twitter Card (на всякий случай) ★★★ -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="SportApp — тренируйся и соревнуйся">
+    <meta name="twitter:description" content="Отслеживай прогресс, создавай тренировки и соревнуйся с друзьями.">
+    <meta name="twitter:image" content="https://www-profile.github.io/SportApp/images/preview.png">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="theme-red">
-    <!-- PULL-TO-REFRESH -->
-    <div id="pullToRefresh" style="display:none; text-align:center; padding:1rem 0; color:var(--slate);">
-        <i class="fa-solid fa-spinner fa-spin"></i> Обновление...
-    </div>
-
     <!-- ===== СТРАНИЦА: ТРЕНИРОВКИ ===== -->
     <div id="page-workouts" class="page">
         <main class="dashboard-container">
@@ -30,6 +42,13 @@
                 <button class="tab-btn" data-tab="my">Личные</button>
             </div>
 
+<!-- ===== КАРУСЕЛЬ (АВТО-ЛИСТАНИЕ) ===== -->
+<div class="auto-carousel" id="autoCarousel">
+    <div class="auto-carousel-track" id="autoCarouselTrack">
+        <!-- Карточки будут добавлены через JS -->
+    </div>
+</div>
+
             <div id="tab-ready" class="tab-content tab-content-active">
                 <div id="workoutsBlocksContainer">
                     <!-- Блок: Силовые -->
@@ -37,7 +56,7 @@
                         <div class="section-header">
                             <h2 class="section-title">Силовые</h2>
                             <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
-                            <button class="section-drag"><i class="fa-solid fa-grip-lines"></i></button>
+                            <button class="section-drag" touch-action="none"><i class="fa-solid fa-grip-lines"></i></button>
                         </div>
                         <div class="section-body">
                             <div class="item-grid" id="catalogGridStrength">
@@ -106,43 +125,51 @@
                         <div class="section-header">
                             <h2 class="section-title">Фитнес</h2>
                             <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
-                            <button class="section-drag"><i class="fa-solid fa-grip-lines"></i></button>
+                            <button class="section-drag" touch-action="none"><i class="fa-solid fa-grip-lines"></i></button>
                         </div>
                         <div class="section-body">
-                            <div class="item-grid" id="catalogGridFitness">
-                                <div class="item-card" data-category="Зарядка">
-                                    <div class="item-icon"><img src="images/charging.png"></div>
-                                    <div class="item-info">
-                                        <h3 class="item-title">Зарядка</h3>
-                                        <p class="item-desc">Разминка · Тонус · Энергия</p>
-                                    </div>
-                                    <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
-                                </div>
-                                <div class="item-card" data-category="Кардио">
-                                    <div class="item-icon"><img src="images/cardio.png"></div>
-                                    <div class="item-info">
-                                        <h3 class="item-title">Кардио</h3>
-                                        <p class="item-desc">Бег · Прыжки · Бёрпи</p>
-                                    </div>
-                                    <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
-                                </div>
-                                <div class="item-card" data-category="Пилатес">
-                                    <div class="item-icon"><img src="images/Pilates.png"></div>
-                                    <div class="item-info">
-                                        <h3 class="item-title">Пилатес</h3>
-                                        <p class="item-desc">Контроль · Баланс · Кор</p>
-                                    </div>
-                                    <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
-                                </div>
-                                <div class="item-card" data-category="Растяжка">
-                                    <div class="item-icon"><img src="images/stretching.png"></div>
-                                    <div class="item-info">
-                                        <h3 class="item-title">Растяжка</h3>
-                                        <p class="item-desc">Гибкость · Шпагат · Наклоны</p>
-                                    </div>
-                                    <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
-                                </div>
-                            </div>
+<div class="item-grid" id="catalogGridFitness">
+    <div class="item-card" data-category="Зарядка">
+        <div class="item-icon"><img src="images/charging.png"></div>
+        <div class="item-info">
+            <h3 class="item-title">Зарядка</h3>
+            <p class="item-desc">Разминка · Тонус · Энергия</p>
+        </div>
+        <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+    <div class="item-card" data-category="Растяжка">
+        <div class="item-icon"><img src="images/stretching.png"></div>
+        <div class="item-info">
+            <h3 class="item-title">Растяжка</h3>
+            <p class="item-desc">Гибкость · Шпагат · Наклоны</p>
+        </div>
+        <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+    <div class="item-card" data-category="Растяжка позвоночника">
+        <div class="item-icon"><img src="images/stretching-back.png"></div>
+        <div class="item-info">
+            <h3 class="item-title">Растяжка позвоночника</h3>
+            <p class="item-desc">Вис · Наклоны · Скручивания</p>
+        </div>
+        <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+    <div class="item-card" data-category="Кардио">
+        <div class="item-icon"><img src="images/cardio.png"></div>
+        <div class="item-info">
+            <h3 class="item-title">Кардио</h3>
+            <p class="item-desc">Бег · Прыжки · Бёрпи</p>
+        </div>
+        <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+    <div class="item-card" data-category="Пилатес">
+        <div class="item-icon"><img src="images/Pilates.png"></div>
+        <div class="item-info">
+            <h3 class="item-title">Пилатес</h3>
+            <p class="item-desc">Контроль · Баланс · Кор</p>
+        </div>
+        <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+</div>
                         </div>
                     </div>
 
@@ -151,11 +178,11 @@
                         <div class="section-header">
                             <h2 class="section-title">PREMIUM</h2>
                             <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
-                            <button class="section-drag"><i class="fa-solid fa-grip-lines"></i></button>
+                            <button class="section-drag" touch-action="none"><i class="fa-solid fa-grip-lines"></i></button>
                         </div>
                         <div class="section-body">
                             <div class="item-grid" id="catalogGridPremium">
-                                <div class="item-card premium-card" data-category="Кроссфит" onclick="checkPremiumAndNavigate('Кроссфит')">
+                                <div class="item-card premium-card" data-category="Кроссфит">
                                     <div class="item-icon"><img src="images/crossfit.png"></div>
                                     <div class="item-info">
                                         <h3 class="item-title">Кроссфит</h3>
@@ -163,7 +190,15 @@
                                     </div>
                                     <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
                                 </div>
-                                <div class="item-card premium-card" data-category="Мужская сила" onclick="checkPremiumAndNavigate('Мужская сила')">
+                                <div class="item-card" data-category="ГТО">
+                                    <div class="item-icon"><img src="images/WholeBody.png"></div>
+                                    <div class="item-info">
+                                        <h3 class="item-title">ГТО</h3>
+                                        <p class="item-desc">Нормативы · Ступени · Зачёт</p>
+                                    </div>
+                                    <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
+                                </div>
+                                <div class="item-card premium-card" data-category="Мужская сила">
                                     <div class="item-icon"><img src="images/men.png"></div>
                                     <div class="item-info">
                                         <h3 class="item-title">Мужская сила</h3>
@@ -171,7 +206,7 @@
                                     </div>
                                     <button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>
                                 </div>
-                                <div class="item-card premium-card" data-category="Женское счастье" onclick="checkPremiumAndNavigate('Женское счастье')">
+                                <div class="item-card premium-card" data-category="Женское счастье">
                                     <div class="item-icon"><img src="images/woman.png"></div>
                                     <div class="item-info">
                                         <h3 class="item-title">Женское счастье</h3>
@@ -248,7 +283,7 @@
             <header class="dashboard-header">
                 <h1 class="dashboard-title" id="levelSelectTitle">ТРЕНИРОВКА</h1>
             </header>
-            <h3 class="section-title">Уровни тренировки</h3>
+            <h3 class="section-title" id="levelSelectSubtitle">Уровни тренировки</h3>
             <div id="levelsContainer" class="item-grid"></div>
         </main>
     </div>
@@ -257,28 +292,49 @@
 <div id="page-training-session" class="page">
     <main class="training-session-container">
         <header class="session-header"></header>
-        <div class="session-top">
-            <div class="session-progress-row">
-                <div class="session-progress" id="sessionProgress"></div>
-            </div>
-            <div class="session-bg">
-                <span class="session-bg-text">фото будет добавлено позже</span>
-                <button class="session-close-btn" id="sessionCloseBtn">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-                <div class="session-timer" id="sessionTimer">00:00</div>
-            </div>
+<div class="session-top">
+    <div class="session-progress-row">
+        <div class="session-progress" id="sessionProgress"></div>
+    </div>
+    <div class="session-bg">
+        <span class="session-bg-text">фото будет добавлено позже</span>
+        
+        <!-- ТАЙМЕР ОТДЫХА (поверх фото) -->
+        <div id="sessionRestTimer" style="display: none; font-size: 4.5rem; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; letter-spacing: 0.05em; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3;">
+            00:30
         </div>
+        
+<!-- ТАЙМЕР УПРАЖНЕНИЯ (поверх фото, в правом нижнем углу) -->
+<div id="sessionExerciseTimerWrapper" style="position: absolute; bottom: 0rem; right: 0.5rem; display: flex; align-items: center; gap: 0.2rem; z-index: 2; background: none; text-align: center;">
+    <div id="sessionSetCounter">
+        <span id="sessionSetCurrent">3</span> ×
+    </div>
+    <div id="sessionExerciseTimer">
+        00:20
+    </div>
+</div>
+        
+        <button class="session-close-btn" id="sessionCloseBtn">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="session-timer" id="sessionTimer">00:00</div>
+    </div>
+</div>
         <div class="session-bottom">
-            <div class="session-exercise-info">
-                <h2 id="sessionExerciseName">Жим лёжа</h2>
-                <div class="session-exercise-details-row">
-                    <p id="sessionExerciseDetails">3 × 12</p>
-                    <button class="session-edit-btn" id="sessionEditBtn">
-                        <i class="fa-regular fa-pen-to-square"></i>
-                    </button>
-                </div>
-            </div>
+<div class="session-exercise-info">
+    <h2 id="sessionExerciseName">Жим лёжа</h2>
+    <div class="session-exercise-details-row">
+        <p id="sessionExerciseDetails">3 × 12</p>
+        <button class="session-edit-btn" id="sessionEditBtn">
+            <i class="fa-regular fa-pen-to-square"></i>
+        </button>
+    </div>
+    <!-- ★★★ КНОПКИ УПРАВЛЕНИЯ ОТДЫХОМ ★★★ -->
+    <div id="sessionRestControls" style="display: none; margin-top: 0.5rem; justify-content: center; gap: 0.5rem;">
+        <button class="session-rest-control-btn" onclick="adjustRestTime(-15)">-15с</button>
+        <button class="session-rest-control-btn" onclick="adjustRestTime(15)">+15с</button>
+    </div>
+</div>
             <div class="session-controls">
                 <button class="session-btn session-btn-prev" id="sessionPrevBtn">
                     <i class="fa-solid fa-angle-left"></i>
@@ -287,6 +343,44 @@
                 <button class="session-btn session-btn-next" id="sessionNextBtn">
                     <i class="fa-solid fa-angle-right"></i>
                 </button>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- ===== СТРАНИЦА: ВЫПОЛНЕНИЕ ЗАДАНИЯ ===== -->
+<div id="page-task-session" class="page">
+    <main class="training-session-container">
+        <header class="session-header"></header>
+        <div class="session-top">
+            <div class="session-progress-row">
+                <div class="session-progress" id="taskSessionProgress"></div>
+            </div>
+            <div class="session-bg">
+                <span class="session-bg-text">фото будет добавлено позже</span>
+                
+                <!-- ★★★ ТАЙМЕР УПРАЖНЕНИЯ ★★★ -->
+                <div id="taskExerciseTimerWrapper" style="position: absolute; bottom: 0rem; right: 0.5rem; display: flex; align-items: center; z-index: 2; background: none; text-align: center;">
+                    <div id="taskExerciseTimer" style="font-size: 3rem; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; letter-spacing: 0.05em;">
+                        00:20
+                    </div>
+                </div>
+                
+                <div class="session-timer" id="taskSessionTimer">00:00</div>
+            </div>
+        </div>
+        <div class="session-bottom">
+            <div class="session-exercise-info">
+                <h2 id="taskExerciseName">Жим лёжа</h2>
+                <div class="session-exercise-details-row">
+                    <p id="taskExerciseDetails">12 повторений</p>
+                </div>
+            </div>
+            
+            <!-- ★★★ ДВЕ КНОПКИ ★★★ -->
+            <div class="session-controls" style="display: flex; gap: 0.5rem; justify-content: center; padding: 0 0.5rem;">
+                <button class="btn btn-secondary" id="taskQuitBtn" style="flex:1; max-width: 160px;">УЙТИ</button>
+                <button class="btn btn-primary" id="taskFinishBtn" style="flex:1; max-width: 160px;">ФИНИШ</button>
             </div>
         </div>
     </main>
@@ -314,7 +408,10 @@
                         <span class="finish-stat-value" id="finishXp">+0 XP</span>
                     </div>
                 </div>
-                <button class="btn btn-primary finish-btn" id="finishDoneBtn">Закончить</button>
+                <div class="finish-btn-container">
+    <button class="btn btn-primary" id="finishShareBtn" style="flex:1;">Поделиться</button>
+    <button class="btn btn-primary" id="finishDoneBtn" style="flex:1;">Закончить</button>
+</div>
             </div>
         </main>
     </div>
@@ -333,7 +430,10 @@
                 <!-- Сюда будут рендериться все участники -->
             </div>
 
-            <button class="btn btn-primary finish-btn" id="coopFinishDoneBtn" style="margin-top: 1rem;">Закончить</button>
+<div id="coopFinishButtons" class="finish-btn-container">
+    <button class="btn btn-primary" id="coopFinishShareBtn" style="flex:1;">Поделиться</button>
+    <button class="btn btn-primary" id="coopFinishDoneBtn" style="flex:1;">Закончить</button>
+</div>
         </div>
     </main>
 </div>
@@ -415,6 +515,18 @@
                 </div>
             </div>
         </div>
+
+        <!-- ===== БЛОК ВРЕМЯ ОТДЫХА ===== -->
+<div class="form-group" style="text-align:left; margin-bottom: 0.5rem;">
+    <h3 class="section-title">Время отдыха между упражнениями</h3>
+    <div class="rest-time-picker" id="restTimePicker">
+        <button class="rest-time-btn rest-time-active" data-seconds="30">30с</button>
+        <button class="rest-time-btn" data-seconds="45">45с</button>
+        <button class="rest-time-btn" data-seconds="60">60с</button>
+        <button class="rest-time-btn" data-seconds="90">90с</button>
+        <button class="rest-time-btn" data-seconds="120">120с</button>
+    </div>
+</div>
         
         <div id="editExercisesContainer" class="item-grid"></div>
         
@@ -439,7 +551,7 @@
             <div class="modal-title">Добавить упражнение</div>
 <div style="display:flex; gap:0.5rem;">
     <button class="btn btn-secondary" onclick="closeModal('addExerciseModal'); setTimeout(openCreateExerciseModal, 100);" style="flex:1;">Создать</button>
-        <button class="btn btn-primary" onclick="openExerciseList()" style="flex:1;">Список</button>
+    <button class="btn btn-primary" onclick="openExerciseList()" style="flex:1;">Список</button>
 </div>
         </div>
     </div>
@@ -451,53 +563,66 @@
                 <h1 class="dashboard-title">УПРАЖНЕНИЯ</h1>
             </header>
             <div class="exercise-search-block">
-                <div class="search-container">
-                    <input type="text" id="exerciseSearchInput" class="search-input" placeholder="Поиск по названию..." />
-                    <button class="btn btn-primary search-btn">Найти</button>
-                </div>
+<div class="search-container">
+    <input type="text" id="exerciseSearchInput" class="search-input" placeholder="Поиск по названию..." />
+    <button class="btn btn-primary search-btn" id="searchExerciseBtn">
+        <i class="fa-solid fa-magnifying-glass"></i>
+    </button>
+</div>
                 <div class="category-filter-header">
-                    <span class="category-filter-label">Категории</span>
+                    <span class="section-title">Категории</span>
                 </div>
-                <div class="icon-picker" id="exerciseCategoryFilter">
-                    <div class="icon-option active" data-category="all">
-                        <span style="font-size:1.2rem;">📋</span>
-                    </div>
-                    <div class="icon-option" data-category="Руки">
-                        <img src="images/bodybuilding.png">
-                    </div>
-                    <div class="icon-option" data-category="Пресс">
-                        <img src="images/press.png">
-                    </div>
-                    <div class="icon-option" data-category="Грудь">
-                        <img src="images/breast.png">
-                    </div>
-                    <div class="icon-option" data-category="Спина">
-                        <img src="images/back.png">
-                    </div>
-                    <div class="icon-option" data-category="Ноги">
-                        <img src="images/legs.png">
-                    </div>
-                    <div class="icon-option" data-category="Плечи">
-                        <img src="images/shoulder.png">
-                    </div>
-                    <div class="icon-option" data-category="Кардио">
-                        <img src="images/cardio.png">
-                    </div>
-                    <div class="icon-option" data-category="Растяжка">
-                        <img src="images/stretching.png">
-                    </div>
-                    <div class="icon-option" data-category="Всё тело">
-                        <img src="images/WholeBody.png">
-                    </div>
-                    <div class="icon-option" data-category="Зарядка">
-                        <img src="images/charging.png">
-                    </div>
-                    <div class="icon-option" data-category="Пилатес">
-                        <img src="images/Pilates.png">
-                    </div>
-                </div>
+<div class="icon-picker" id="exerciseCategoryFilter">
+    <div class="icon-option active" data-category="all">
+        <span class="icon-option-emoji">📋</span>
+    </div>
+    <div class="icon-option" data-category="Руки">
+        <img src="images/bodybuilding.png">
+    </div>
+    <div class="icon-option" data-category="Пресс">
+        <img src="images/press.png">
+    </div>
+    <div class="icon-option" data-category="Грудь">
+        <img src="images/breast.png">
+    </div>
+    <div class="icon-option" data-category="Спина">
+        <img src="images/back.png">
+    </div>
+    <div class="icon-option" data-category="Ноги">
+        <img src="images/legs.png">
+    </div>
+    <div class="icon-option" data-category="Плечи">
+        <img src="images/shoulder.png">
+    </div>
+    <div class="icon-option" data-category="Кардио">
+        <img src="images/cardio.png">
+    </div>
+    <div class="icon-option" data-category="Растяжка">
+        <img src="images/stretching.png">
+    </div>
+    <div class="icon-option" data-category="Всё тело">
+        <img src="images/WholeBody.png">
+    </div>
+    <div class="icon-option" data-category="Зарядка">
+        <img src="images/charging.png">
+    </div>
+    <div class="icon-option" data-category="Пилатес">
+        <img src="images/Pilates.png">
+    </div>
+
+    <!-- ★★★ PREMIUM-КАТЕГОРИИ ★★★ -->
+    <div class="icon-option icon-option-premium" data-category="Кроссфит">
+        <img src="images/crossfit.png">
+    </div>
+    <div class="icon-option icon-option-premium" data-category="Мужская сила">
+        <img src="images/men.png">
+    </div>
+    <div class="icon-option icon-option-premium" data-category="Женское счастье">
+        <img src="images/woman.png">
+    </div>
+</div>
             </div>
-            <h2 class="list-title">Каталог упражнений</h2>
+            <h2 class="section-title">Каталог упражнений</h2>
             <div id="exerciseListContainer" class="item-grid"></div>
             <div id="exerciseListBackBtn" style="margin-top: 1rem;">
     <button class="btn btn-primary" onclick="goBackToEditWorkout()">Вернуться к тренировке</button>
@@ -510,7 +635,7 @@
     <main class="training-session-container" style="justify-content: center;">
         <div style="text-align: center; padding: 2rem;">
             <i class="fa-solid fa-user-group" style="font-size: 4rem; color: var(--accent); margin-bottom: 1rem;"></i>
-            <h2 style="color: var(--dark); margin-bottom: 2rem;">Ожидание участников...</h2>
+            <h2 class="modal-title" style="margin-bottom: 2rem;">Ожидание участников...</h2>
             <button class="btn btn-primary" onclick="cancelInvite()">
                 Отменить приглашение
             </button>
@@ -528,7 +653,7 @@
             </div>
             <!-- Моя статистика -->
             <div style="width:100%; margin-bottom: 0.5rem;">
-                <div class="item-title" style="color: var(--slate); margin-left: 1rem; margin-bottom: 0.5rem;">
+                <div class="item-title" style="color: var(--slate); font-size: 0.9rem; margin-left: 1rem; margin-bottom: 0.5rem;">
                     <i class="fa-solid fa-user"></i> Вы
                 </div>
                 <div class="finish-stats" style="margin-bottom: 0.5rem;">
@@ -549,15 +674,10 @@
 
             <!-- СПИСОК ДРУЗЕЙ С ИХ СТАТУСОМ -->
             <div style="width:100%;">
-<div class="item-title" style="color: var(--slate); margin-left: 1rem; margin-bottom: 0.5rem;">
-    <i class="fa-solid fa-user-group"></i> Друзья
-</div>
-                <div id="coopFriendsStatus" style="display:flex;flex-direction:column;gap:0.5rem;width:100%;">
-                    <!-- Сюда будет рендериться:
-                         👤 Дима - тренируется
-                         👤 Саша - финиш
-                    -->
+                <div class="item-title" style="color: var(--slate); font-size: 0.9rem; margin-left: 1rem; margin-bottom: 0.5rem;">
+                    <i class="fa-solid fa-user-group"></i> Друзья
                 </div>
+                <div id="coopFriendsStatus" style="display:flex;flex-direction:column;gap:0.5rem;width:100%;"></div>
             </div>
         </div>
     </main>
@@ -570,7 +690,7 @@
                 <h1 class="dashboard-title">СТАТИСТИКА</h1>
             </header>
 
-            <div class="tabs" style="margin-bottom:0.3rem;">
+            <div class="tabs">
                 <button class="tab-btn" data-tab="world">Мировая</button>
                 <button class="tab-btn tab-btn-active" data-tab="personal">Личная</button>
             </div>
@@ -578,11 +698,137 @@
             <!-- Мировая статистика -->
             <div id="stats-world" class="stats-tab-content">
                 <div id="worldStatsBlocksContainer">
+
+<!-- Блок: Глобальные агрегаты -->
+<div class="stats-summary" data-stat-id="cards" id="globalStatsContainer" onclick="openMuscleGroupsModal('worldStats')" style="cursor:pointer;">
+    <div class="stat-card" data-stat-id="minutes">
+        <div class="stat-label">Минут</div>
+        <div class="stat-number" id="globalTotalMinutes">—</div>
+    </div>
+    <div class="stat-card" data-stat-id="workouts">
+        <div class="stat-label">Тренировок</div>
+        <div class="stat-number" id="globalTotalWorkouts">—</div>
+    </div>
+    <div class="stat-card" data-stat-id="exercises">
+        <div class="stat-label">Упражнений</div>
+        <div class="stat-number" id="globalTotalExercises">—</div>
+    </div>
+</div>
+
+    <!-- Пляшки (в одну строку) -->
+    <div class="stats-banners-row">
+        <div class="stats-banner" data-stat-id="users">
+            <div class="stats-banner-icon"><i class="fa-solid fa-user-group"></i></div>
+            <div class="stats-banner-text">
+                <span class="stats-banner-title">Зарегистрировано</span>
+                <span class="stats-banner-value">
+                    <span id="globalTotalUsers">—</span>
+                    <span id="globalTotalUsersLabel">пользователей</span>
+                </span>
+            </div>
+        </div>
+
+        <div class="stats-banner" data-stat-id="online">
+            <div class="stats-banner-icon" style="position:relative;">
+                <i class="fa-solid fa-satellite-dish"></i>
+            </div>
+            <div class="stats-banner-text">
+                <span class="stats-banner-title">Онлайн сейчас</span>
+                <span class="stats-banner-value">
+                    <span id="globalOnlineUsers">—</span>
+                    <span id="globalOnlineUsersLabel">человек</span>
+                </span>
+            </div>
+        </div>
+    </div>
+
+<!-- Блок: Достижения сообщества (единая стенка) -->
+<div class="section-block" data-block-id="community-achievements">
+    <div class="section-header">
+        <h2 class="section-title">Редкость достижений</h2>
+        <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
+        <button class="section-drag" touch-action="none"><i class="fa-solid fa-grip-lines"></i></button>
+    </div>
+    <div class="section-body" onclick="openMuscleGroupsModal('communityAchievements')">
+        <div class="community-achievements-wall" id="communityAchievementsContainer">
+            <div class="community-achievement-tile" data-achievement="friendly">
+                <div class="community-achievement-icon locked">
+                    <i class="fa-solid fa-user-group"></i>
+                </div>
+                <div class="community-achievement-percent" id="communityPercFriendly">—</div>
+            </div>
+            <div class="community-achievement-tile" data-achievement="marathoner">
+                <div class="community-achievement-icon locked">
+                    <i class="fa-solid fa-dumbbell"></i>
+                </div>
+                <div class="community-achievement-percent" id="communityPercMarathoner">—</div>
+            </div>
+            <div class="community-achievement-tile" data-achievement="fitnessMaster">
+                <div class="community-achievement-icon locked">
+                    <i class="fa-solid fa-heart-pulse"></i>
+                </div>
+                <div class="community-achievement-percent" id="communityPercFitnessMaster">—</div>
+            </div>
+            <div class="community-achievement-tile" data-achievement="unstoppable">
+                <div class="community-achievement-icon locked">
+                    <i class="fa-solid fa-fire"></i>
+                </div>
+                <div class="community-achievement-percent" id="communityPercUnstoppable">—</div>
+            </div>
+            <div class="community-achievement-tile" data-achievement="ironEndurance">
+                <div class="community-achievement-icon locked">
+                    <i class="fa-solid fa-stopwatch"></i>
+                </div>
+                <div class="community-achievement-percent" id="communityPercIronEndurance">—</div>
+            </div>
+            <div class="community-achievement-tile" data-achievement="masterOfStyles">
+                <div class="community-achievement-icon locked">
+                    <i class="fa-solid fa-award"></i>
+                </div>
+                <div class="community-achievement-percent" id="communityPercMasterOfStyles">—</div>
+            </div>
+            <div class="community-achievement-tile" data-achievement="vip">
+                <div class="community-achievement-icon locked">
+                    <i class="fa-solid fa-crown"></i>
+                </div>
+                <div class="community-achievement-percent" id="communityPercVip">—</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Блок: Общая цель сообщества -->
+<div class="section-block" data-block-id="community-goal" style="cursor: pointer;">
+    <div class="section-header">
+        <h2 class="section-title">Общая цель сообщества</h2>
+        <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
+        <button class="section-drag" touch-action="none"><i class="fa-solid fa-grip-lines"></i></button>
+    </div>
+    <div class="section-body" onclick="openCommunityGoalModal()">
+        <div class="community-goal">
+            <div class="community-goal-row">
+                <div class="community-goal-icon">
+                    <i class="fa-solid fa-crosshairs"></i>
+                </div>
+<div class="community-goal-content">
+    <div class="community-goal-text">
+        <span class="community-goal-title" id="communityGoalTitle">Выполнить 100 тренировок</span>
+        <span class="community-goal-progress" id="communityGoalProgress">0 / 100</span>
+    </div>
+    <div class="community-goal-bar">
+        <div class="community-goal-fill" id="communityGoalFill" style="width:0%;"></div>
+    </div>
+</div>
+            </div>
+        </div>
+    </div>
+</div>
+
                     <div class="section-block" data-block-id="world-leaderboard">
                         <div class="section-header">
                             <h2 class="section-title">Рейтинг пользователей</h2>
                             <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
-                            <button class="section-drag"><i class="fa-solid fa-grip-lines"></i></button>
+                            <button class="section-drag" touch-action="none"><i class="fa-solid fa-grip-lines"></i></button>
                         </div>
                         <div class="section-body">
                             <div  class="scroll-wrapper">
@@ -595,7 +841,7 @@
                         <div class="section-header">
                             <h2 class="section-title">Рейтинг друзей</h2>
                             <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
-                            <button class="section-drag"><i class="fa-solid fa-grip-lines"></i></button>
+                            <button class="section-drag" touch-action="none"><i class="fa-solid fa-grip-lines"></i></button>
                         </div>
                         <div class="section-body">
                             <div  class="scroll-wrapper">
@@ -608,29 +854,32 @@
 
             <!-- Личная статистика -->
             <div id="stats-personal" class="stats-tab-content stats-tab-content-active">
-                <div class="stats-summary" id="statsSummary">
-                    <div class="stat-card" data-stat-id="minutes">
-                        <span class="stat-label">Минут</span>
-                        <span class="stat-number" id="totalMinutes">0</span>
-                    </div>
-                    <div class="stat-card" data-stat-id="workouts">
-                        <span class="stat-label">Тренировок</span>
-                        <span class="stat-number" id="totalWorkouts">0</span>
-                    </div>
-                    <div class="stat-card" data-stat-id="exercises">
-                        <span class="stat-label">Упражнений</span>
-                        <span class="stat-number" id="totalExercises">0</span>
-                    </div>
-                </div>
+<div class="section-block">
+    <div class="stats-summary" id="statsSummary" onclick="openMuscleGroupsModal('personalStats')" style="cursor:pointer;">
+        <div class="stat-card" data-stat-id="minutes">
+            <span class="stat-label">Минут</span>
+            <span class="stat-number" id="totalMinutes">0</span>
+        </div>
+        <div class="stat-card" data-stat-id="workouts">
+            <span class="stat-label">Тренировок</span>
+            <span class="stat-number" id="totalWorkouts">0</span>
+        </div>
+        <div class="stat-card" data-stat-id="exercises">
+            <span class="stat-label">Упражнений</span>
+            <span class="stat-number" id="totalExercises">0</span>
+        </div>
+    </div>
+</div>
+
 
                 <div id="statsBlocksContainer">
                     <div class="section-block" data-block-id="muscles">
                         <div class="section-header">
-                            <h2 class="section-title">Упражнения по группам мышц</h2>
+                            <h2 class="section-title">Нагрузка по группам мышц</h2>
                             <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
-                            <button class="section-drag"><i class="fa-solid fa-grip-lines"></i></button>
+                            <button class="section-drag" touch-action="none"><i class="fa-solid fa-grip-lines"></i></button>
                         </div>
-                        <div class="section-body">
+                        <div class="section-body" onclick="openMuscleGroupsModal('muscles')">
                             <div id="exerciseMuscleStats" class="stat-list"></div>
                         </div>
                     </div>
@@ -639,9 +888,9 @@
                         <div class="section-header">
                             <h2 class="section-title">Тренировки по категориям</h2>
                             <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
-                            <button class="section-drag"><i class="fa-solid fa-grip-lines"></i></button>
+                            <button class="section-drag" touch-action="none"><i class="fa-solid fa-grip-lines"></i></button>
                         </div>
-                        <div class="section-body">
+                        <div class="section-body" onclick="openMuscleGroupsModal('categories')">
                             <div id="categoriesStats" class="stat-list"></div>
                         </div>
                     </div>
@@ -650,13 +899,13 @@
                         <div class="section-header">
                             <h2 class="section-title">Календарь тренировок</h2>
                             <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
-                            <button class="section-drag"><i class="fa-solid fa-grip-lines"></i></button>
+                            <button class="section-drag" touch-action="none"><i class="fa-solid fa-grip-lines"></i></button>
                         </div>
                         <div class="section-body">
                             <div class="calendar-container" id="calendarContainer">
                                 <div class="calendar-nav">
                                     <button id="prevMonth" class="btn-calendar-nav"><i class="fa-solid fa-chevron-left"></i></button>
-                                    <span id="currentMonthYear">Август 2026</span>
+                                    <span id="currentMonthYear" class="weekly-load-naw-title">Август 2026</span>
                                     <button id="nextMonth" class="btn-calendar-nav"><i class="fa-solid fa-chevron-right"></i></button>
                                 </div>
                                 <div class="calendar-grid">
@@ -673,11 +922,57 @@
                         </div>
                     </div>
 
+<!-- Блок: Нагрузочный индекс по неделям -->
+<div class="section-block" data-block-id="weekly-load" id="weekly-load-block">
+    <div class="section-header">
+        <h2 class="section-title">Нагрузочный индекс</h2>
+        <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
+        <button class="section-drag" touch-action="none"><i class="fa-solid fa-grip-lines"></i></button>
+    </div>
+    <!-- ★★★ ДОБАВЛЯЕМ onclick ★★★ -->
+    <div class="section-body" style="box-shadow:         0 1px 2px rgba(15, 23, 42, 0.04),
+        0 3px 10px rgba(15, 23, 42, 0.08);border-radius: 16px;" onclick="openMuscleGroupsModal('weeklyLoad')">
+        <div class="weekly-load">
+        <!-- Навигация по месяцам -->
+        <div class="weekly-load-naw">
+            <button onclick="event.stopPropagation(); changeWeeklyLoadMonth(-1)" class="btn-calendar-nav"><i class="fa-solid fa-chevron-left"></i></button>
+            <span id="weeklyLoadTitle" class="weekly-load-naw-title">Январь</span>
+            <button onclick="event.stopPropagation(); changeWeeklyLoadMonth(1)" class="btn-calendar-nav"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+        <!-- Диаграмма -->
+        <div id="weeklyLoadChart" class="weekly-load-Chart"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Блок: Прогресс тела -->
+<div class="section-block" data-block-id="body-progress" id="body-progress-block">
+    <div class="section-header">
+        <h2 class="section-title">Прогресс тела</h2>
+        <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
+        <button class="section-drag" touch-action="none"><i class="fa-solid fa-grip-lines"></i></button>
+    </div>
+    <div class="section-body" style=" cursor:pointer;" onclick="openBodyProgressInfo()">
+        <div class="weekly-load" style="box-shadow:         0 1px 2px rgba(15, 23, 42, 0.04),
+        0 3px 10px rgba(15, 23, 42, 0.08);border-radius: 16px;">
+            <div class="weekly-load-naw">
+                <button class="btn-calendar-nav" onclick="event.stopPropagation(); changeBodyProgressMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                <span id="bodyProgressMonthTitle" class="weekly-load-naw-title">Сентябрь 2026</span>
+                <button class="btn-calendar-nav" onclick="event.stopPropagation(); changeBodyProgressMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+            <div id="bodyProgressChart"></div>
+        </div>
+        <button class="btn btn-primary" style="margin-top: 0.5rem;" onclick="event.stopPropagation(); openAddMeasurementModal()">
+            <i class="fa-solid fa-plus"></i> Добавить замер
+        </button>
+    </div>
+</div>
+
                     <div class="section-block" data-block-id="history">
                         <div class="section-header">
                             <h2 class="section-title">История тренировок</h2>
                             <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
-                            <button class="section-drag"><i class="fa-solid fa-grip-lines"></i></button>
+                            <button class="section-drag" touch-action="none"><i class="fa-solid fa-grip-lines"></i></button>
                         </div>
                         <div class="section-body">
                             <div class="scroll-wrapper" id="workoutHistoryWrapper">
@@ -685,6 +980,20 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- ===== БЛОК: ЕЖЕМЕСЯЧНЫЕ ЗАДАНИЯ ===== -->
+<div class="section-block" data-block-id="monthly-badges" id="monthly-badges-block">
+    <div class="section-header">
+        <h2 class="section-title">Ежемесячные значки</h2>
+        <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
+        <button class="section-drag" touch-action="none"><i class="fa-solid fa-grip-lines"></i></button>
+    </div>
+    <div class="section-body">
+            <div class="monthly-badges-grid" id="monthlyBadgesContainer">
+                <!-- 12 значков -->
+            </div>
+    </div>
+</div>
                 </div>
             </div>
             <div id="statsEditButtons" style="margin-top: 0.5rem; width: 100%;">
@@ -704,230 +1013,477 @@
         </main>
     </div>
 
-    <!-- ===== СТРАНИЦА: ПРОФИЛЬ ===== -->
-    <div id="page-profile" class="page">
-        <div class="profile-container">
-            <header class="dashboard-header">
-                <h1 class="dashboard-title">ПРОФИЛЬ</h1>
-            </header>
+<!-- ===== СТРАНИЦА: ПРОФИЛЬ ===== -->
+<div id="page-profile" class="page">
+    <div class="profile-container">
+        <header class="dashboard-header">
+            <h1 class="dashboard-title">ПРОФИЛЬ</h1>
+        </header>
 
-            <div class="tabs" style="margin-bottom:0.3rem;">
-                <button class="tab-btn profile-tab-btn tab-btn-active" data-tab="my">Мой</button>
-                <button class="tab-btn profile-tab-btn" data-tab="friends">Друзья</button>
-            </div>
+        <div class="tabs" style="margin-bottom:0.3rem;">
+            <button class="tab-btn profile-tab-btn tab-btn-active" data-tab="my">Мой</button>
+            <button class="tab-btn profile-tab-btn" data-tab="friends">Друзья</button>
+        </div>
 
-            <!-- Вкладка: Мой -->
-            <div id="profileTab-my" class="profile-tab-content profile-tab-content-active">
-                <div class="profile-card">
-                    <div class="profile-avatar"><span id="profileInitials">А</span></div>
-                    <h2 class="profile-name" id="profileName">Пользователь</h2>
+        <!-- ★★★ ВКЛАДКА: МОЙ ★★★ -->
+        <div id="profileTab-my" class="profile-tab-content profile-tab-content-active">
+            <div class="section-block">
+            <div class="profile-card">
+                <div class="profile-streak" id="profileStreak" onclick="openStreakModal()">
+                    <span id="profileStreakValue">0</span><i class="fa-solid fa-fire"></i>
+                </div>
 
-                    <div class="level-block">
-                        <div class="level-header">
-                            <div class="level-left">
-                                <span class="level-lvl" id="levelLvl">1 LVL</span>
-                            </div>
-                            <div class="level-center">
-                                <span class="level-title" id="levelTitle">НАЧИНАЮЩИЙ</span>
-                            </div>
-                            <div class="level-right">
-                                <span class="level-progress-text" id="levelProgressText">0/100XP</span>
-                            </div>
+                <div class="profile-avatar">
+                    <img src="images/avatar-men.png" alt="Аватар">
+                </div>
+
+                <h2 class="profile-name" id="profileName">Пользователь</h2>
+
+                <div class="level-block" id="profileLevelBlock">
+                    <div class="level-header">
+                        <div class="level-left">
+                            <span class="level-lvl" id="levelLvl">1 LVL</span>
                         </div>
-                        <div class="level-bar">
-                            <div class="level-fill" id="levelFill" style="width:0%;"></div>
+                        <div class="level-center">
+                            <span class="level-title" id="levelTitle">НАЧИНАЮЩИЙ</span>
+                        </div>
+                        <div class="level-right">
+                            <span class="level-progress-text" id="levelProgressText">0/100XP</span>
+                        </div>
+                    </div>
+                    <div class="level-bar">
+                        <div class="level-fill" id="levelFill" style="width:0%;"></div>
+                    </div>
+
+                    <!-- ===== БЛОК ДОСТИЖЕНИЙ ===== -->
+                    <div class="achievements-container" id="achievementsContainer">
+                        <div class="achievement-icon locked" data-achievement="friendly">
+                            <i class="fa-solid fa-user-group"></i>
+                        </div>
+                        <div class="achievement-icon locked" data-achievement="marathoner">
+                            <i class="fa-solid fa-dumbbell"></i>
+                        </div>
+                        <div class="achievement-icon locked" data-achievement="fitnessMaster">
+                            <i class="fa-solid fa-heart-pulse"></i>
+                        </div>
+                        <div class="achievement-icon locked" data-achievement="unstoppable">
+                            <i class="fa-solid fa-fire"></i>
+                        </div>
+                        <div class="achievement-icon locked" data-achievement="ironEndurance">
+                            <i class="fa-solid fa-stopwatch"></i>
+                        </div>
+                        <div class="achievement-icon locked" data-achievement="masterOfStyles">
+                            <i class="fa-solid fa-award"></i>
+                        </div>
+                        <div class="achievement-icon locked" data-achievement="vip">
+                            <i class="fa-solid fa-crown"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="profileView" style="display: flex; gap: 0.5rem; width: 100%;">
+                    <button class="btn btn-primary" id="editProfileBtn" style="flex: 1;">
+                        <i class="fa-regular fa-pen-to-square"></i> Редактировать
+                    </button>
+                    <button class="btn btn-primary" id="shareProfileBtn" style="flex: 1;">
+                        <i class="fa-solid fa-user-group"></i> Поделиться
+                    </button>
+                </div>
+
+                <div id="profileEdit" style="display:none;">
+                    <div class="form-group" style="margin-bottom: 0.5rem;">
+                        <label class="form-label">Как вас зовут?</label>
+                        <input type="text" id="editName" class="form-input" maxlength="30" placeholder="Введите ваше имя"/>
+                    </div>
+
+                    <!-- ★★★ НОВЫЙ БЛОК: ВАШ ПОЛ ★★★ -->
+                    <div class="form-group" style="margin-bottom: 0.5rem;">
+                        <label class="form-label">Ваш пол?</label>
+                        <div class="toggle-group">
+                            <button type="button" class="toggle-btn toggle-btn-active" data-gender="male" onclick="selectGender('male')">
+                                Мужской
+                            </button>
+                            <button type="button" class="toggle-btn" data-gender="female" onclick="selectGender('female')">
+                                Женский
+                            </button>
                         </div>
                     </div>
 
-                    <div id="profileView">
-                        <button class="btn btn-primary btn-center" id="editProfileBtn">
-                            <i class="fa-regular fa-pen-to-square"></i> Редактировать профиль
+                    <div class="profile-info">
+                        <i class="fa-regular fa-envelope"></i>
+                        <span>Почта: <strong id="profileEmailDisplay">email@mail.ru</strong></span>
+                        <button class="profile-edit-btn" onclick="editEmail()" style="margin-left: auto; background: none; border: none; color: var(--slate); cursor: pointer; padding: 0 0.3rem;">
+                            <i class="fa-regular fa-pen-to-square"></i>
                         </button>
                     </div>
 
-                    <div id="profileEdit" style="display:none;">
-                        <div class="form-group">
-                            <label class="form-label">Имя Фамилия</label>
-                            <input type="text" id="editName" class="form-input" maxlength="30" placeholder="Введите ваше имя"/>
-                        </div>
+                    <div class="profile-info">
+                        <i class="fa-solid fa-lock"></i>
+                        <span>Пароль: <strong id="profilePasswordDisplay">******</strong></span>
+                        <button class="profile-edit-btn" onclick="editPassword()" style="margin-left: auto; background: none; border: none; color: var(--slate); cursor: pointer; padding: 0 0.3rem;">
+                            <i class="fa-regular fa-pen-to-square"></i>
+                        </button>
+                    </div>
 
-                        <div class="profile-info">
-                            <i class="fa-regular fa-envelope"></i>
-                            <span>Почта: <strong id="profileEmailDisplay">email@mail.ru</strong></span>
-                        </div>
+                    <div class="profile-info" id="profileDateBlock">
+                        <i class="fa-regular fa-calendar"></i>
+                        <span>Дата регистрации: <strong id="profileDate">—</strong></span>
+                    </div>
 
-                        <div class="profile-info" id="profileDateBlock">
-                            <i class="fa-regular fa-calendar"></i>
-                            <span>Дата регистрации: <strong id="profileDate">—</strong></span>
-                        </div>
-
-                        <div class="form-actions">
-                            <button class="btn btn-secondary" id="cancelProfileEditBtn" style="flex:1;">Отмена</button>
-                            <button class="btn btn-primary" id="saveProfileBtn" style="flex:1;">Сохранить</button>
-                        </div>
+                    <div class="form-actions">
+                        <button class="btn btn-secondary" id="cancelProfileEditBtn" style="flex:1;">Отмена</button>
+                        <button class="btn btn-primary" id="saveProfileBtn" style="flex:1;">Сохранить</button>
                     </div>
                 </div>
+            </div>
+            </div>
+            
 
-                <!-- Дополнительные настройки -->
-                <div class="section-block" id="settings-block-main">
-                    <div class="section-header">
-                        <h2 class="section-title">Дополнительные настройки</h2>
-                        <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
-                    </div>
-                    <div class="section-body">
-                        <div class="settings-block">
-                            <div class="settings-item" onclick="handlePremiumClick()">
-                                <div class="settings-icon"><i class="fa-solid fa-crown"></i></div>
-                                <div class="settings-info">
-                                    <div class="settings-title">PREMIUM</div>
-                                    <div class="settings-desc" id="premiumStatus">Откройте все особые тренировки</div>
-                                </div>
-                                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
-                            </div>
-                            
-                            <div class="settings-item" onclick="openColorModal()">
-                                <div class="settings-icon"><i class="fa-solid fa-palette"></i></div>
-                                <div class="settings-info">
-                                    <div class="settings-title">Акцентный цвет</div>
-                                    <div class="settings-desc" id="colorStatus">Красный</div>
-                                </div>
-                                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
-                            </div>
-                            
-                            <div class="settings-item" onclick="startTutorial()">
-                                <div class="settings-icon"><i class="fa-regular fa-circle-question"></i></div>
-                                <div class="settings-info">
-                                    <div class="settings-title">Обучение</div>
-                                    <div class="settings-desc">По использованию приложения</div>
-                                </div>
-                                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
-                            </div>
-                            
-                            <div class="settings-item" onclick="toggleEditPages()">
-                                <div class="settings-icon"><i class="fa-solid fa-pen-to-square"></i></div>
-                                <div class="settings-info">
-                                    <div class="settings-title">Редактирование страниц</div>
-                                    <div class="settings-desc" id="editPagesStatus">Включено</div>
-                                </div>
-                                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
-                            </div>
-                            
-                            <div class="settings-item" onclick="toggleEditWorkout()">
-                                <div class="settings-icon"><i class="fa-solid fa-pen-to-square"></i></div>
-                                <div class="settings-info">
-                                    <div class="settings-title">Редактирование тренировок</div>
-                                    <div class="settings-desc" id="editWorkoutStatus">Включено</div>
-                                </div>
-                                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
-                            </div>
-                        </div>
-                    </div>
+           <!-- ===== ЗАДАНИЯ ===== -->
+<div class="section-block" id="tasks-block">
+    <div class="section-header">
+        <h2 class="section-title">Задания</h2>
+        <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+    <div class="section-body">
+        <div class="settings-block">
+            <!-- Задание 1: Первая тренировка -->
+            <div class="settings-item" style="cursor: pointer;" onclick="toggleTask(1)">
+                <div class="settings-icon"><i class="fa-solid fa-dumbbell"></i></div>
+                <div class="settings-info">
+                    <div class="settings-title">Первый шаг</div>
+                    <div class="settings-desc">Пройти свою первую тренировку</div>
                 </div>
+                <button class="settings-action task-checkbox" onclick="event.stopPropagation(); toggleTask(1)">
+                    <i class="fa-regular fa-square" id="taskIcon1"></i>
+                </button>
+            </div>
+            
+            <!-- Задание 2: Статистика -->
+            <div class="settings-item" style="cursor: pointer;" onclick="toggleTask(2)">
+                <div class="settings-icon"><i class="fa-solid fa-chart-bar"></i></div>
+                <div class="settings-info">
+                    <div class="settings-title">Статистика</div>
+                    <div class="settings-desc">Посмотреть свою статистику</div>
+                </div>
+                <button class="settings-action task-checkbox" onclick="event.stopPropagation(); toggleTask(2)">
+                    <i class="fa-regular fa-square" id="taskIcon2"></i>
+                </button>
+            </div>
+            
+            <!-- Задание 3: Создать тренировку -->
+            <div class="settings-item" style="cursor: pointer;" onclick="toggleTask(3)">
+                <div class="settings-icon"><i class="fa-solid fa-drafting-compass"></i></div>
+                <div class="settings-info">
+                    <div class="settings-title">Индивидуальность</div>
+                    <div class="settings-desc">Создать свою тренировку</div>
+                </div>
+                <button class="settings-action task-checkbox" onclick="event.stopPropagation(); toggleTask(3)">
+                    <i class="fa-regular fa-square" id="taskIcon3"></i>
+                </button>
+            </div>
+            
+            <!-- Задание 4: Добавить друга -->
+            <div class="settings-item" style="cursor: pointer;" onclick="toggleTask(4)">
+                <div class="settings-icon"><i class="fa-solid fa-user-plus"></i></div>
+                <div class="settings-info">
+                    <div class="settings-title">Новые знакомства</div>
+                    <div class="settings-desc">Добавить друга в друзья</div>
+                </div>
+                <button class="settings-action task-checkbox" onclick="event.stopPropagation(); toggleTask(4)">
+                    <i class="fa-regular fa-square" id="taskIcon4"></i>
+                </button>
+            </div>
+            
+            <!-- Задание 5: Настройки -->
+            <div class="settings-item" style="cursor: pointer;" onclick="toggleTask(5)">
+                <div class="settings-icon"><i class="fa-solid fa-palette"></i></div>
+                <div class="settings-info">
+                    <div class="settings-title">Оформление</div>
+                    <div class="settings-desc">Настроить стили в SportApp</div>
+                </div>
+                <button class="settings-action task-checkbox" onclick="event.stopPropagation(); toggleTask(5)">
+                    <i class="fa-regular fa-square" id="taskIcon5"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
-                <!-- Невозвратные настройки -->
-                <div class="section-block" id="dangerSettings">
-                    <div class="section-header">
-                        <h2 class="section-title">Невозвратные настройки</h2>
-                        <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
-                    </div>
-                    <div class="section-body">
-                        <div class="settings-block">
-                            <div class="settings-item" onclick="confirmResetProgress()">
-                                <div class="settings-icon settings-icon-danger"><i class="fa-solid fa-arrow-rotate-left"></i></div>
-                                <div class="settings-info">
-                                    <div class="settings-title">Сбросить прогресс</div>
-                                    <div class="settings-desc">Удалить статистику и обнулить прогресс</div>
-                                </div>
-                                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
-                            </div>
-                            
-                            <div class="settings-item" onclick="logout()">
-                                <div class="settings-icon settings-icon-danger"><i class="fa-solid fa-sign-out-alt"></i></div>
-                                <div class="settings-info">
-                                    <div class="settings-title">Выйти из аккаунта</div>
-                                    <div class="settings-desc">Выйти из текущего аккаунта</div>
-                                </div>
-                                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
-                            </div>
-                            
-                            <div class="settings-item" onclick="confirmDeleteAccount()">
-                                <div class="settings-icon settings-icon-danger"><i class="fa-solid fa-user-slash"></i></div>
-                                <div class="settings-info">
-                                    <div class="settings-title">Удалить аккаунт</div>
-                                    <div class="settings-desc">Удалить профиль и все данные</div>
-                                </div>
-                                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
-                            </div>
-                        </div>
+            <!-- ===== ЕЖЕДНЕВНЫЕ ЗАДАНИЯ (БЛОК) ===== -->
+            <div class="section-block" id="daily-tasks-block" style="display: none;">
+                <div class="section-header">
+                    <h2 class="section-title">Ежедневные задания</h2>
+                    <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+                
+                <div class="section-body">
+                    <div class="settings-block" id="dailyTasksContainer">
+                        <!-- Сюда будет рендериться список заданий -->
                     </div>
                 </div>
             </div>
 
-<!-- Вкладка: Друзья -->
-<div id="profileTab-friends" class="profile-tab-content">
-    <!-- Блок 1: Поиск -->
-    <div class="section-blockFriend" data-block-id="friends-search">
-        <div class="friends-list-block">
-            <div class="search-container">
-                <input type="text" id="searchInput" class="search-input" placeholder="Поиск по имени..." />
-                <button class="btn btn-primary search-btn" id="searchBtn">Найти</button>
+<!-- ===== НАСТРОЙКИ ===== -->
+<div class="section-block" id="settings-block-main">
+    <div class="section-header">
+        <h2 class="section-title">Настройки</h2>
+        <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+    <div class="section-body">
+        <div class="settings-block">
+            <div class="settings-item" onclick="handlePremiumClick()">
+                <div class="settings-icon"><i class="fa-solid fa-crown"></i></div>
+                <div class="settings-info">
+                    <div class="settings-title">PREMIUM</div>
+                    <div class="settings-desc" id="premiumStatus">Откройте все особые тренировки</div>
+                </div>
+                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
             </div>
-            <div id="searchResults" class="item-grid"></div>
+
+            <div class="settings-item" onclick="openInventoryModal()">
+                <div class="settings-icon"><i class="fa-solid fa-dumbbell"></i></div>
+                <div class="settings-info">
+                    <div class="settings-title">Инвентарь</div>
+                    <div class="settings-desc" id="inventoryStatus">Ничего из перечисленного</div>
+                </div>
+                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+            
+            <div class="settings-item" onclick="openColorModal()">
+                <div class="settings-icon"><i class="fa-solid fa-palette"></i></div>
+                <div class="settings-info">
+                    <div class="settings-title">Акцентный цвет</div>
+                    <div class="settings-desc" id="colorStatus">Красный</div>
+                </div>
+                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+
+            <div class="settings-item" onclick="toggleThemeModal()">
+                <div class="settings-icon" id="themeIcon">
+                    <i class="fa-solid fa-sun"></i>
+                </div>
+                <div class="settings-info">
+                    <div class="settings-title">Тема приложения</div>
+                    <div class="settings-desc" id="themeStatus">Светлая</div>
+                </div>
+                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+
+<!--                       <div class="settings-item" onclick="toggleLanguageModal()">
+                <div class="settings-icon"><i class="fa-solid fa-earth-americas"></i></div>
+                <div class="settings-info">
+                    <div class="settings-title">Язык приложения</div>
+                    <div class="settings-desc" id="languageStatus">Русский</div>
+                </div>
+                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
+            </div> --> 
+            
+            <div class="settings-item" onclick="restartTutorial()">
+                <div class="settings-icon"><i class="fa-solid fa-book"></i></div>
+                <div class="settings-info">
+                    <div class="settings-title">Обучение</div>
+                    <div class="settings-desc">По использованию приложения</div>
+                </div>
+                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+
+                        <div class="settings-item" onclick="openSupportModal()">
+                <div class="settings-icon"><i class="fa-solid fa-headset"></i></div>
+                <div class="settings-info">
+                    <div class="settings-title">Связь с администрацией</div>
+                    <div class="settings-desc">Задать вопрос или сообщить о проблеме</div>
+                </div>
+                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
         </div>
     </div>
+</div>
 
-    <!-- Блок 2: Друзья -->
-    <div class="section-block" data-block-id="friends-list">
-        <div class="section-header">
-            <h2 class="section-title">Друзья</h2>
-            <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
-            <button class="section-drag"><i class="fa-solid fa-grip-lines"></i></button>
-        </div>
-        <div class="scroll-wrapper" style="border-radius: 16px;">
-            <div id="friendsList" class="item-grid" style="gap: 0rem;"></div>
+<!-- ===== ДОПОЛНИТЕЛЬНЫЕ НАСТРОЙКИ ===== -->
+<div class="section-block" id="settings-block-extra">
+    <div class="section-header">
+        <h2 class="section-title">Дополнительные настройки</h2>
+        <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+    <div class="section-body">
+        <div class="settings-block">
+
+            <div class="settings-item" onclick="toggleAchievementsVisibility()">
+                <div class="settings-icon" id="achievementsIcon">
+                    <i class="fa-solid fa-award"></i>
+                </div>
+                <div class="settings-info">
+                    <div class="settings-title">Достижения</div>
+                    <div class="settings-desc" id="achievementsStatus">Показаны</div>
+                </div>
+                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+
+            <div class="settings-item" onclick="toggleFriendsHistoryVisibility()">
+                <div class="settings-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                <div class="settings-info">
+                    <div class="settings-title">История друзей</div>
+                    <div class="settings-desc" id="friendsHistoryStatus">Показана</div>
+                </div>
+                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+            
+            <div class="settings-item" onclick="toggleEditPages()">
+                <div class="settings-icon"><i class="fa-solid fa-pen-to-square"></i></div>
+                <div class="settings-info">
+                    <div class="settings-title">Редактирование страниц</div>
+                    <div class="settings-desc" id="editPagesStatus">Включено</div>
+                </div>
+                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+            
+            <div class="settings-item" onclick="toggleEditWorkout()">
+                <div class="settings-icon"><i class="fa-solid fa-pen-to-square"></i></div>
+                <div class="settings-info">
+                    <div class="settings-title">Редактирование тренировок</div>
+                    <div class="settings-desc" id="editWorkoutStatus">Включено</div>
+                </div>
+                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
         </div>
     </div>
+</div>
 
-    <!-- Блок 3: Заявки -->
-    <div class="section-block" data-block-id="friend-requests">
-        <div class="section-header">
-            <h2 class="section-title">Заявки</h2>
-            <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
-            <button class="section-drag"><i class="fa-solid fa-grip-lines"></i></button>
+            <!-- ===== НЕВОЗВРАТНЫЕ НАСТРОЙКИ ===== -->
+            <div class="section-block" id="dangerSettings">
+                <div class="section-header">
+                    <h2 class="section-title">Невозвратные настройки</h2>
+                    <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+                <div class="section-body">
+                    <div class="settings-block">
+                        <div class="settings-item" onclick="confirmResetProgress()">
+                            <div class="settings-icon settings-icon-danger"><i class="fa-solid fa-arrow-rotate-left"></i></div>
+                            <div class="settings-info">
+                                <div class="settings-title">Сбросить прогресс</div>
+                                <div class="settings-desc">Удалить статистику и обнулить прогресс</div>
+                            </div>
+                            <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                        
+                        <div class="settings-item" onclick="logout()">
+                            <div class="settings-icon settings-icon-danger"><i class="fa-solid fa-sign-out-alt"></i></div>
+                            <div class="settings-info">
+                                <div class="settings-title">Выйти из аккаунта</div>
+                                <div class="settings-desc">Выйти из текущего аккаунта</div>
+                            </div>
+                            <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                        
+                        <div class="settings-item" onclick="confirmDeleteAccount()">
+                            <div class="settings-icon settings-icon-danger"><i class="fa-solid fa-user-slash"></i></div>
+                            <div class="settings-info">
+                                <div class="settings-title">Удалить аккаунт</div>
+                                <div class="settings-desc">Удалить профиль и все данные</div>
+                            </div>
+                            <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+
+        <!-- ★★★ ВКЛАДКА: ДРУЗЬЯ ★★★ -->
+        <div id="profileTab-friends" class="profile-tab-content">
+            <!-- Блок 1: Поиск -->
+            <div class="section-block" style="box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);" data-block-id="friends-search">
+                <div class="friends-list-block">
+                    <div class="search-container">
+                        <input type="text" id="searchInput" class="search-input" placeholder="Поиск по имени..." />
+                        <button class="btn btn-primary search-btn" id="searchFriendBtn">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </button>
+                    </div>
+                    <div id="searchResults" class="item-grid"></div>
+                </div>
+            </div>
+
+                        <!-- Блок 3: Заявки -->
+<!-- Блок 3: Заявки -->
+<div class="section-block" data-block-id="friend-requests" style="padding: 0rem 0.2rem;">
+    <div class="section-header">
+        <h2 class="section-title">Заявки</h2>
+        <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+    <div class="section-body"> <!-- ★★★ ДОБАВЛЯЕМ section-body ★★★ -->
         <div class="scroll-wrapper" style="border-radius: 16px;">
             <div id="friendRequests" class="item-grid"></div>
         </div>
     </div>
 </div>
+
+<!-- Блок 2: Друзья -->
+<div class="section-block" data-block-id="friends-list" style="padding: 0rem 0.2rem;">
+    <div class="section-header">
+        <h2 class="section-title">Друзья</h2>
+        <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+    <div class="section-body"> <!-- ★★★ ДОБАВЛЯЕМ section-body ★★★ -->
+        <div class="scroll-wrapper" style="border-radius: 16px;">
+            <div id="friendsList" class="item-grid"></div>
         </div>
     </div>
-
-    <!-- ===== СТРАНИЦА: ПРИВЕТСТВИЕ ===== -->
-    <div id="page-hero" class="page">
-        <div class="hero">
-            <div class="hero-content">
-                <h1 class="hero-title">SportApp</h1>
-                <div class="hero-features">
-                    <div class="feature">
-                        <i class="fa-solid fa-chart-bar"></i>
-                        <span>Анализируй результаты</span>
-                    </div>
-<div class="feature">
-    <i class="fa-solid fa-dumbbell"></i>
-    <span>Создавай тренировки</span>
 </div>
-                    <div class="feature">
-                        <i class="fa-solid fa-user-group"></i>
-                        <span>Соревнуйся с друзьями</span>
-                    </div>
+
+<!-- Блок 4: История друзей (обновленный с ID) -->
+<div class="section-block" id="friends-history-block" data-block-id="friends-history" style="padding: 0rem 0.2rem;">
+    <div class="section-header">
+        <h2 class="section-title">История друзей</h2>
+        <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+<div class="section-body">
+    <div id="friendsHistoryContainer" class="friends-history-scroll">
+        <!-- Сюда будет рендериться история друзей -->
+    </div>
+    <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
+        <button class="btn btn-primary" onclick="openFriendHistoryFilterModal()">
+            <i class="fa-solid fa-user-group"></i>
+            <span>Выбранный друг: </span>
+            <span id="selectedFriendName" style="font-weight: 600;">Все</span>
+        </button>
+    </div>
+</div>
+</div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== СТРАНИЦА: ПРИВЕТСТВИЕ ===== -->
+<div id="page-hero" class="page">
+    <div class="hero">
+        <div class="hero-content">
+            <h1 class="hero-title">SportApp</h1>
+            <div class="hero-features">
+                <div class="feature">
+                    <i class="fa-solid fa-chart-bar"></i>
+                    <span>Анализируй результаты</span>
                 </div>
-                <div class="hero-buttons">
-                    <button class="btn btn-primary" onclick="showRegister()">Начать тренироваться!</button>
+                <div class="feature">
+                    <i class="fa-solid fa-dumbbell"></i>
+                    <span>Создавай тренировки</span>
+                </div>
+                <div class="feature">
+                    <i class="fa-solid fa-user-group"></i>
+                    <span>Соревнуйся с друзьями</span>
                 </div>
             </div>
+            <div class="hero-buttons">
+                <button class="btn btn-primary" onclick="showLogin()">Войти</button>
+                <button class="btn btn-primary" onclick="showRegister()">Зарегистрироваться</button>
+            </div>
+            <div class="hero-legal-links">
+    <a onclick="openTermsModal()">Пользовательское соглашение</a>
+    <a onclick="openPrivacyModal()">Политика конфиденциальности</a>
+</div>
         </div>
     </div>
+</div>
 
     <!-- ===== СТРАНИЦА: ЗАГРУЗКИ ===== -->
     <div id="page-loading" class="page">
@@ -949,97 +1505,979 @@
                     </div>
                 </div>
                 <div class="hero-buttons">
-                    <button class="btn btn-primary" onclick="enterApp()">Начать тренироваться!</button>
+                    <button class="btn btn-primary" onclick="enterApp()">Начать тренироваться</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ===== СТРАНИЦА: ВХОД ===== -->
-    <div id="page-login" class="page">
-        <div class="auth-container">
-            <h1 class="auth-title">SportApp</h1>
-            <div class="auth-card">
-                <h2 class="auth-card-title">Войти в аккаунт</h2>
-                <form id="loginForm" novalidate>
-                    <div class="form-group">
-                        <input type="email" id="loginEmail" class="form-input" placeholder="Почта" maxlength="50" required />
-                    </div>
-                    <div class="form-group">
-                        <input type="password" id="loginPassword" class="form-input" placeholder="Пароль" maxlength="20" required />
-                    </div>
-                    <button type="submit" class="btn btn-primary">Войти в аккаунт</button>
-                    <button type="button" class="btn btn-secondary" onclick="resendVerification()" style="margin-top:0.5rem;">
-                        <i class="fa-regular fa-envelope"></i> Отправить письмо
+<!-- ===== СТРАНИЦА: РЕГИСТРАЦИЯ (ШАГ 1 - ИМЯ) ===== -->
+<div id="page-register" class="page">
+    <div class="auth-container">
+        <h1 class="auth-title">SportApp</h1>
+        
+        <!-- ★★★ ПОЛОСКИ ШАГОВ (5 ШАГОВ) ★★★ -->
+        <div class="step-dots">
+            <div class="step-dot active"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+        </div>
+        
+        <div class="auth-card">
+<form id="registerFormStep1" novalidate>
+    <label class="form-label-large">Как вас зовут?</label>
+    <div class="input-with-btn">
+        <input type="text" id="regName" class="form-input" placeholder="Введите ваше имя" maxlength="30" required />
+        <button type="submit" class="btn-submit-arrow" id="registerStep1Btn">
+            <i class="fa-solid fa-chevron-right"></i>
+        </button>
+    </div>
+
+    <!-- ★★★ ЧЕКБОКС СОГЛАСИЯ ★★★ -->
+    <label class="consent-row">
+        <input type="checkbox" id="regConsentCheckbox" />
+        <span>
+            Я принимаю
+            <a onclick="event.preventDefault(); event.stopPropagation(); openTermsModal();">Пользовательское соглашение</a>
+            и
+            <a onclick="event.preventDefault(); event.stopPropagation(); openPrivacyModal();">Политику конфиденциальности</a>
+        </span>
+    </label>
+</form>
+        </div>
+    </div>
+</div>
+
+<!-- ===== СТРАНИЦА: РЕГИСТРАЦИЯ (ШАГ 2 - ПОЧТА) ===== -->
+<div id="page-register-email" class="page" style="display:none;">
+    <div class="auth-container">
+        <h1 class="auth-title">SportApp</h1>
+        
+        <!-- ★★★ ПОЛОСКИ ШАГОВ (5 ШАГОВ) ★★★ -->
+        <div class="step-dots">
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+        </div>
+        
+        <div class="auth-card">
+            <form id="registerFormStep2" novalidate>
+                <label class="form-label-large">Ваша почта</label>
+                <div class="input-with-btn">
+                    <input type="email" id="regEmail" class="form-input" placeholder="example@mail.ru" maxlength="50" required />
+                    <button type="submit" class="btn-submit-arrow" id="registerStep2Btn">
+                        <i class="fa-solid fa-chevron-right"></i>
                     </button>
-                </form>
-                <p class="auth-switch">
-                    Нет аккаунта? <a href="#" onclick="showRegister()">Зарегистрироваться</a>
-                </p>
-            </div>
+                </div>
+            </form>
         </div>
     </div>
+</div>
 
-    <!-- ===== СТРАНИЦА: РЕГИСТРАЦИЯ ===== -->
-    <div id="page-register" class="page">
-        <div class="auth-container">
-            <h1 class="auth-title">SportApp</h1>
-            <div class="auth-card">
-                <h2 class="auth-card-title">Создать аккаунт</h2>
-                <form id="registerForm" novalidate>
-                    <div class="form-group">
-                        <input type="text" id="regName" class="form-input" placeholder="Имя" maxlength="30" required />
-                    </div>
-                    <div class="form-group">
-                        <input type="email" id="regEmail" class="form-input" placeholder="Почта" maxlength="50" required />
-                    </div>
-                    <div class="form-group">
-                        <input type="password" id="regPassword" class="form-input" placeholder="Пароль" maxlength="20" required />
-                    </div>
-                    <button type="submit" class="btn btn-primary">Зарегистрироваться</button>
-                </form>
-                <p class="auth-switch">
-                    Уже есть аккаунт? <a href="#" onclick="showLogin()">Войти в аккаунт</a>
-                </p>
-            </div>
+<!-- ===== СТРАНИЦА: РЕГИСТРАЦИЯ (ШАГ 3 - ПАРОЛЬ) ===== -->
+<div id="page-register-password" class="page" style="display:none;">
+    <div class="auth-container">
+        <h1 class="auth-title">SportApp</h1>
+        
+        <!-- ★★★ ПОЛОСКИ ШАГОВ (5 ШАГОВ) ★★★ -->
+        <div class="step-dots">
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+        </div>
+        
+        <div class="auth-card">
+            <form id="registerFormStep3" novalidate>
+                <label class="form-label-large">Придумайте пароль</label>
+                <div class="input-with-btn">
+                    <input type="password" id="regPassword" class="form-input" placeholder="Минимум 6 символов" maxlength="20" required />
+                    <button type="submit" class="btn-submit-arrow" id="registerStep3Btn">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
+</div>
 
-    <!-- ===== НИЖНЯЯ НАВИГАЦИЯ ===== -->
-    <nav class="bottom-nav" id="bottomNav" style="display:none;">
-        <div class="nav-items">
-            <button class="nav-item" data-page="stats"><i class="fa-solid fa-chart-bar"></i></button>
-            <button class="nav-item nav-item-active" data-page="workouts"><i class="fa-solid fa-dumbbell"></i></button>
-            <button class="nav-item" data-page="profile"><i class="fa-solid fa-user"></i></button>
+<!-- ===== СТРАНИЦА: РЕГИСТРАЦИЯ (ШАГ 4 - ПОДТВЕРЖДЕНИЕ ПОЧТЫ) ===== -->
+<div id="page-register-verify" class="page" style="display:none;">
+    <div class="auth-container">
+        <h1 class="auth-title">SportApp</h1>
+        
+        <!-- ★★★ ПОЛОСКИ ШАГОВ (5 ШАГОВ) ★★★ -->
+        <div class="step-dots">
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
         </div>
-    </nav>
+        
+<div class="auth-card">
+    <div style="text-align: center; margin-top: -2rem;">
+        <div style="font-size: 4rem; margin-bottom: 0.5rem;">📧</div>
+    </div>
+    
+    <div style="display: flex; align-items: center; gap: 0.5rem; width: 100%;">
+        <span class="input-with-text">На вашу почту пришло письмо</span>
+        <button class="btn-submit-arrow" id="registerVerifyBtn" style="flex-shrink: 0;">
+            <i class="fa-solid fa-chevron-right"></i>
+        </button>
+    </div>
+</div>
+    </div>
+</div>
 
-    <!-- ===== МОДАЛКА: РЕДАКТИРОВАНИЕ УПРАЖНЕНИЯ ===== -->
-    <div id="exerciseModal" class="modal-overlay" style="display:none;">
-        <div class="modal-content" style="max-width:400px;">
-            <div class="modal-title" style="text-align:center;">РЕДАКТИРОВАТЬ УПРАЖНЕНИЕ</div>
-            <div class="form-group" style="text-align:left;">
-                <label class="form-label">Название</label>
-                <input type="text" id="modalExerciseName" class="form-input" maxlength="50" />
-            </div>
-            <div class="form-group">
-                <div style="display:flex; gap:1rem;">
-                    <div style="flex:1; text-align:left;">
-                        <label class="form-label">Подходы</label>
-                        <input type="number" id="modalExerciseSets" class="form-input" style="text-align:center;" min="1" max="5" step="1" />
-                    </div>
-                    <div style="flex:1; text-align:left;">
-                        <label class="form-label" id="modalExerciseRepsLabel">Повторения</label>
-                        <input type="number" id="modalExerciseReps" class="form-input" style="text-align:center;" min="2" max="60" step="1" />
-                    </div>
+<!-- ===== СТРАНИЦА: РЕГИСТРАЦИЯ (ШАГ 5 - ВЫБОР ПОЛА) ===== -->
+<div id="page-register-gender" class="page" style="display:none;">
+    <div class="auth-container">
+        <h1 class="auth-title">SportApp</h1>
+
+        <!-- ★★★ ПОЛОСКИ ШАГОВ (5 из 6 активны) ★★★ -->
+        <div class="step-dots">
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+        </div>
+
+<div class="auth-card">
+    <label class="form-label-large">Ваш пол?</label>
+
+    <div class="toggle-group-with-arrow">
+        <div class="toggle-group">
+            <button type="button" class="toggle-btn toggle-btn-active" data-gender="male" onclick="selectGenderRegister('male')">
+                Мужской
+            </button>
+            <button type="button" class="toggle-btn" data-gender="female" onclick="selectGenderRegister('female')">
+                Женский
+            </button>
+        </div>
+        <button type="button" class="btn-submit-arrow" id="registerGenderBtn">
+            <i class="fa-solid fa-chevron-right"></i>
+        </button>
+    </div>
+</div>
+    </div>
+</div>
+
+<!-- ===== СТРАНИЦА: РЕГИСТРАЦИЯ (ШАГ 6 - ДАННЫЕ ТЕЛА) ===== -->
+<div id="page-register-body" class="page" style="display:none;">
+    <div class="auth-container">
+        <h1 class="auth-title">SportApp</h1>
+
+        <div class="step-dots">
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot"></div>
+        </div>
+
+        <div class="auth-card">
+            <label class="form-label-large">Ваши параметры</label>
+
+            <p class="modal-text" style="text-align:left; margin-bottom:0.8rem; font-size:0.75rem;">
+                Заполните свои параметры, чтобы отслеживать прогресс тела. Можно пропустить и добавить позже.
+            </p>
+
+            <div class="form-row">
+                <div class="form-group" style="text-align:left;">
+                    <label class="form-label">Рост (см)</label>
+                    <input type="number" id="regBodyHeight" class="form-input"
+                           step="0.5" min="100" max="250" placeholder="—" />
+                </div>
+                <div class="form-group" style="text-align:left;">
+                    <label class="form-label">Вес (кг)</label>
+                    <input type="number" id="regBodyWeight" class="form-input"
+                           step="0.1" min="20" max="500" placeholder="—" />
                 </div>
             </div>
-            <div style="display:flex; gap:0.8rem; margin-top:0.5rem;">
-                <button class="btn btn-secondary" id="modalCancelBtn" style="flex:1;">Отмена</button>
-                <button class="btn btn-primary" id="modalSaveBtn" style="flex:1;">Сохранить</button>
+
+            <div class="form-row">
+                <div class="form-group" style="text-align:left;">
+                    <label class="form-label">Грудь (см)</label>
+                    <input type="number" id="regBodyChest" class="form-input"
+                           step="0.5" min="30" max="300" placeholder="—" />
+                </div>
+                <div class="form-group" style="text-align:left;">
+                    <label class="form-label">Талия (см)</label>
+                    <input type="number" id="regBodyWaist" class="form-input"
+                           step="0.5" min="30" max="300" placeholder="—" />
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group" style="text-align:left;">
+                    <label class="form-label">Бёдра (см)</label>
+                    <input type="number" id="regBodyHips" class="form-input"
+                           step="0.5" min="30" max="300" placeholder="—" />
+                </div>
+                <div class="form-group" style="text-align:left;">
+                    <label class="form-label">Бицепс (см)</label>
+                    <input type="number" id="regBodyArm" class="form-input"
+                           step="0.5" min="10" max="100" placeholder="—" />
+                </div>
+            </div>
+
+            <div style="display:flex; gap:0.5rem; width:100%; margin-top:0.5rem; align-items:stretch;">
+                <button type="button" class="btn btn-secondary" style="flex:1;" id="regBodySkipBtn">
+                    Пропустить
+                </button>
+                <button type="button" class="btn-submit-arrow" id="regBodyNextBtn">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
             </div>
         </div>
     </div>
+</div>
+
+<!-- ===== СТРАНИЦА: ВЫБОР ИНВЕНТАРЯ (ШАГ 6) ===== -->
+<div id="page-inventory" class="page" style="display:none;">
+    <div class="auth-container">
+        <h1 class="auth-title">SportApp</h1>
+        
+        <!-- ★★★ ПОЛОСКИ ШАГОВ (ВСЕ 5 АКТИВНЫ) ★★★ -->
+        <div class="step-dots">
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+        </div>
+        
+        <div class="auth-card">
+            <form id="inventoryForm" novalidate>
+                <label class="form-label-large">Какой инвентарь у вас есть?</label>
+                
+<div class="inventory-grid">
+    <button type="button" class="inventory-btn" data-inventory="dumbbells" onclick="toggleInventory(this)">
+        <span class="inventory-name">Гантели</span>
+    </button>
+    <button type="button" class="inventory-btn" data-inventory="mat" onclick="toggleInventory(this)">
+        <span class="inventory-name">Коврик</span>
+    </button>
+    <button type="button" class="inventory-btn" data-inventory="pullup" onclick="toggleInventory(this)">
+        <span class="inventory-name">Турник</span>
+    </button>
+</div>
+                
+                <div class="input-with-btn" style="margin-top: 0.5rem;">
+                    <span style="flex: 1; font-size: 0.8rem; color: var(--slate); text-align: center;" id="selectedInventoryText">Ничего из перечисленного</span>
+                    <button type="submit" class="btn-submit-arrow" id="inventorySubmitBtn">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ===== СТРАНИЦА: ВХОД (ШАГ 1 - ПОЧТА) ===== -->
+<div id="page-login" class="page">
+    <div class="auth-container">
+        <h1 class="auth-title">SportApp</h1>
+        
+        <!-- ★★★ ПОЛОСКИ ШАГОВ (2 ШАГА) ★★★ -->
+        <div class="step-dots">
+            <div class="step-dot active"></div>
+            <div class="step-dot"></div>
+        </div>
+        
+        <div class="auth-card">
+            <form id="loginFormStep1" novalidate>
+                <label class="form-label-large">Ваша почта</label>
+                <div class="input-with-btn">
+                    <input type="email" id="loginEmail" class="form-input" placeholder="example@mail.ru" maxlength="50" required />
+                    <button type="submit" class="btn-submit-arrow" id="loginStep1Btn">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+            </form>
+            <p class="auth-switch" style="visibility: hidden; margin-top: 0.8rem; height: 1.6rem;">Забыли пароль? <a >Восстановить</a></p>
+        </div>
+    </div>
+</div>
+
+<!-- ===== СТРАНИЦА: ВХОД (ШАГ 2 - ПАРОЛЬ) ===== -->
+<div id="page-login-password" class="page" style="display:none;">
+    <div class="auth-container">
+        <h1 class="auth-title">SportApp</h1>
+        
+        <!-- ★★★ ПОЛОСКИ ШАГОВ (2 ШАГА) ★★★ -->
+        <div class="step-dots">
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+        </div>
+        
+        <div class="auth-card">
+            <form id="loginFormStep2" novalidate>
+                <label class="form-label-large">Ваш пароль</label>
+                <div class="input-with-btn">
+                    <input type="password" id="loginPassword" class="form-input" placeholder="Введите пароль" maxlength="20" required />
+                    <button type="submit" class="btn-submit-arrow" id="loginStep2Btn">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+            </form>
+            <p class="auth-switch" id="forgotPasswordLink" style="visibility: hidden; margin-top: 0.8rem; height: 1.6rem;">
+                Забыли пароль? <a href="#" onclick="sendPasswordReset()">Восстановить</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ===== НИЖНЯЯ НАВИГАЦИЯ (APPLE STYLE) ===== -->
+<nav class="bottom-nav" id="bottomNav" style="display:none;">
+    <div class="nav-bubble" id="navBubble"></div>
+    <div class="nav-items">
+        <button class="nav-item" data-page="stats"><i class="fa-solid fa-chart-bar"></i></button>
+        <button class="nav-item nav-item-active" data-page="workouts"><i class="fa-solid fa-dumbbell"></i></button>
+        <button class="nav-item" data-page="profile"><i class="fa-solid fa-user"></i></button>
+    </div>
+</nav>
+
+<!-- ===== МОДАЛКА: ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ ===== -->
+<div id="termsModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 520px; width: 95%; max-height: 85vh; display: flex; flex-direction: column;">
+        <div class="modal-title">Пользовательское соглашение</div>
+
+        <div  class="scroll-wrapper">
+            <div class="legal-text" id="termsText">
+                <!-- ★★★ ЗДЕСЬ ЮРИСТ ВСТАВИТ РЕАЛЬНЫЙ ТЕКСТ ★★★ -->
+            </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="closeModal('termsModal')" style="margin-top:0.5rem;">
+            Понятно
+        </button>
+    </div>
+</div>
+
+<!-- ===== МОДАЛКА: ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ ===== -->
+<div id="privacyModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 520px; width: 95%; max-height: 85vh; display: flex; flex-direction: column;">
+        <div class="modal-title">Политика конфиденциальности</div>
+
+        <div  class="scroll-wrapper">
+            <div class="legal-text" id="privacyText">
+                <!-- ★★★ ЗДЕСЬ ЮРИСТ ВСТАВИТ РЕАЛЬНЫЙ ТЕКСТ ★★★ -->
+            </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="closeModal('privacyModal')" style="margin-top:0.5rem;">
+            Понятно
+        </button>
+    </div>
+</div>
+
+<!-- МОДАЛКА: ДОБАВИТЬ ЗАМЕР -->
+<div id="addMeasurementModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-title" id="measurementModalTitle">Новый замер</div>
+        <p class="modal-text" style="margin-bottom:0.8rem;">
+            Замеряй утром натощак, в одной и той же одежде - для честной динамики.
+        </p>
+
+<div class="form-row">
+            <div class="form-group" style="text-align:left;">
+                <label class="form-label">Рост (см)</label>
+                <input type="number" id="measureHeight" class="form-input"
+                    step="0.5" min="100" max="250" placeholder="—" />
+            </div>
+            <div class="form-group" style="text-align:left;">
+                <label class="form-label">Вес (кг)</label>
+                <input type="number" id="measureWeight" class="form-input"
+                    step="0.1" min="20" max="500" placeholder="—" />
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group" style="text-align:left;">
+                <label class="form-label">Грудь (см)</label>
+                <input type="number" id="measureChest" class="form-input"
+                       step="0.5" min="30" max="300" placeholder="—" />
+            </div>
+            <div class="form-group" style="text-align:left;">
+                <label class="form-label">Талия (см)</label>
+                <input type="number" id="measureWaist" class="form-input"
+                       step="0.5" min="30" max="300" placeholder="—" />
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group" style="text-align:left;">
+                <label class="form-label">Бёдра (см)</label>
+                <input type="number" id="measureHips" class="form-input"
+                       step="0.5" min="30" max="300" placeholder="—" />
+            </div>
+            <div class="form-group" style="text-align:left;">
+                <label class="form-label">Бицепс (см)</label>
+                <input type="number" id="measureArm" class="form-input"
+                       step="0.5" min="10" max="100" placeholder="—" />
+            </div>
+        </div>
+
+        <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+            <button class="btn btn-secondary" onclick="closeModal('addMeasurementModal')" style="flex:1;">Отмена</button>
+            <button class="btn btn-primary" onclick="saveMeasurement()" style="flex:1;">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛКА: О БЛОКЕ ПРОГРЕСС ТЕЛА -->
+<div id="bodyProgressInfoModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 420px;">
+        <div class="modal-title">Прогресс тела</div>
+
+        <p class="modal-text">
+            Этот блок показывает, как меняются ваши параметры тела по месяцам.
+        </p>
+
+        <p class="modal-text">
+            Каждая цветная линия - отдельный параметр. Все они рисуются на общей шкале, поэтому линии могут пересекаться - это нормально. Слева по вертикали - значения, снизу по горизонтали - даты понедельников месяца.
+        </p>
+
+        <p class="modal-text">
+            Добавляйте замер раз в неделю или две, чтобы видеть честную динамику. Стрелки сверху переключают месяцы.
+        </p>
+
+        <button class="btn btn-primary" onclick="scrollToBodyProgress()" style="margin-top:0.5rem;">
+            <i class="fa-solid fa-chart-line"></i> Посмотреть данные
+        </button>
+        <button class="btn btn-primary" onclick="closeModal('bodyProgressInfoModal')" style="margin-top:0.4rem;">
+            Понятно
+        </button>
+    </div>
+</div>
+
+<!-- ===== МОДАЛКА: ПРОСМОТР ДАННЫХ ПРОГРЕССА ТЕЛА ===== -->
+<div id="bodyProgressViewModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 480px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
+
+        <div class="modal-title">Прогресс тела</div>
+
+        <!-- ★★★ КНОПКИ ПАРАМЕТРОВ ★★★ -->
+        <div class="body-params-row" id="bodyParamsRow">
+            <!-- JS заполнит -->
+        </div>
+
+        <!-- ★★★ ГРАФИК (ТОЛЬКО ВЫБРАННЫЙ ПАРАМЕТР) ★★★ -->
+        <div id="bodyViewChart" class="body-view-chart">
+            <!-- JS заполнит -->
+        </div>
+
+        <!-- ★★★ ИСТОРИЯ ЗАМЕРОВ ★★★ -->
+        <div class="section-title" style="text-align:left; margin-bottom:0.3rem; margin-top:0.5rem;">
+            История замеров
+        </div>
+        <div class="scroll-wrapper-modal" style=" margin-bottom: 0.5rem;">
+            <div id="bodyViewHistory" style="display:flex; flex-direction:column; gap:0.3rem;">
+                <!-- JS заполнит -->
+            </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="closeModal('bodyProgressViewModal')">Понятно</button>
+    </div>
+</div>
+
+    <!-- ===== МОДАЛКА: ПОДЕЛИТЬСЯ РЕЗУЛЬТАТОМ ===== -->
+<div id="workoutShareModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:440px; width:95%;">
+        <div class="modal-title">Поделиться результатом</div>
+
+        <p class="modal-text">У фотографии прозрачный фон.</p>
+
+        <div id="workoutSharePreview" style="
+            width:100%;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            min-height:180px;
+            margin-bottom:1rem;
+            background:var(--light);
+            border-radius:12px;
+            overflow:hidden;
+        ">
+            <div style="color:var(--slate);padding:2rem;">Генерация...</div>
+        </div>
+
+<div style="display:flex; gap:0.5rem; width:100%;">
+    <button class="btn btn-secondary" onclick="closeModal('workoutShareModal')" style="flex:1;">
+        Закрыть
+    </button>
+    <button class="btn btn-primary" id="workoutShareSendBtn" style="flex:1;">
+        <i class="fa-solid fa-link"></i> Поделиться
+    </button>
+</div>
+    </div>
+</div>
+
+    <!-- ===== МОДАЛКА: QR-КОД ПРОФИЛЯ ===== -->
+<div id="qrCodeModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 400px; width: 95%;">
+        <div class="modal-title">Поделиться профилем</div>
+        <p class="modal-text" style="margin-bottom: 1rem;">
+            Покажите QR-код другу или скопируйте ссылку
+        </p>
+
+        <div class="qr-code-name" id="qrCodeUserName">Пользователь</div>
+
+        <div class="qr-code-wrapper">
+            <div id="qrCodeContainer"></div>
+        </div>
+
+        <div style="display:flex; gap:0.5rem; width:100%; margin-top:1rem;">
+            <button class="btn btn-secondary" onclick="closeModal('qrCodeModal')" style="flex:1;">
+                Закрыть
+            </button>
+            <button class="btn btn-primary" id="qrCodeCopyBtn" style="flex:1;">
+                <i class="fa-solid fa-link"></i> Скопировать
+            </button>
+        </div>
+    </div>
+</div>
+
+    <!-- ===== МОДАЛКА: ЗНАЧОК МЕСЯЦА ===== -->
+<div id="monthBadgeModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 420px; width: 95%;">
+        <div class="modal-title" id="monthBadgeModalTitle">Январь 2026</div>
+        
+        <div style="text-align: center; margin: 0.8rem 0;">
+            <div id="monthBadgeModalEmoji" style="font-size: 5rem; line-height: 1;">❄️</div>
+        </div>
+        
+        <div class="level-block" style="margin-top: 1rem;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:0.3rem;">
+                <span style="font-size:0.8rem; color:var(--slate);">Прогресс</span>
+                <span id="monthBadgeModalProgress" style="font-size:0.9rem; font-weight:700; color:var(--accent);">0/15</span>
+            </div>
+            <div class="level-bar-modal">
+                <div class="level-fill-modal" id="monthBadgeModalFill" style="width:0%;"></div>
+            </div>
+        </div>
+        
+        <p class="modal-text" style="font-size:0.75rem; margin-bottom:1rem;">
+            Выполняйте ежедневные задания — это <strong>+1 балл</strong>.<br>
+            Наберите 15 баллов, чтобы получить значок месяца.
+        </p>
+        
+        <button class="btn btn-primary" onclick="closeModal('monthBadgeModal')">Понятно</button>
+    </div>
+</div>
+
+    <!-- ===== МОДАЛКА: БЕТА-ВЕРСИЯ ===== -->
+<div id="betaModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 420px; width: 95%;">
+        <div style="text-align: center;">
+            <div class="modal-title">БЕТА-ВЕРСИЯ</div>
+            <div style="font-size: 3.5rem; color: var(--accent);">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+        </div>
+
+        <p class="modal-text">
+            Вы используете бета-версию SportApp. 
+            Приложение активно развивается, поэтому возможны небольшие ошибки и изменения.
+        </p>
+
+        <p class="section-title" style="text-align: left;">Что это значит:</p>
+
+        <div style="text-align: left; margin-bottom: 0.5rem;">
+            <div class="rules-list" style="gap: 0rem;">
+                <div style="display:flex; align-items:center; gap:0.5rem; padding: 0.3rem 0.4rem;">
+                    <i class="fa-solid fa-circle-check" style="color: var(--accent); font-size: 0.9rem;"></i>
+                    <span class="rule-item">Новые функции появляются регулярно</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.5rem; padding: 0.3rem 0.4rem;">
+                    <i class="fa-solid fa-circle-check" style="color: var(--accent); font-size: 0.9rem;"></i>
+                    <span class="rule-item">Возможны временные сбои и баги</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.5rem; padding: 0.3rem 0.4rem;">
+                    <i class="fa-solid fa-circle-check" style="color: var(--accent); font-size: 0.9rem;"></i>
+                    <span class="rule-item">Ваши данные сохраняются и не теряются</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.5rem; padding: 0.3rem 0.4rem;">
+                    <i class="fa-solid fa-circle-check" style="color: var(--accent); font-size: 0.9rem;"></i>
+                    <span class="rule-item">О найденных ошибках пишите в поддержку</span>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn btn-primary" id="betaAcceptBtn">
+            Понятно
+        </button>
+    </div>
+</div>
+
+<!-- ===== МОДАЛКА: СВЯЗЬ С АДМИНИСТРАЦИЕЙ ===== -->
+<div id="supportModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 420px; width: 95%;">
+        <div class="modal-title">Связь с администрацией</div>
+
+        <div style="text-align:left;margin-bottom: 0.5rem;">
+            <label class="form-label" for="supportSubject">Тема</label>
+            <select id="supportSubject" class="form-input" style="max-height: 40px;">
+                <option value="bug">Ошибка в приложении</option>
+                <option value="question">Вопрос</option>
+                <option value="idea">Идея / предложение</option>
+                <option value="premium">Вопрос по PREMIUM</option>
+                <option value="other">Другое</option>
+            </select>
+        </div>
+
+        <div style="text-align:left;margin-bottom: 0rem;">
+            <!-- ★★★ СЧЁТЧИК НА ОДНОЙ СТРОКЕ С ЗАГОЛОВКОМ ★★★ -->
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <label class="form-label" for="supportMessage">Сообщение</label>
+                <span style="font-size: 0.7rem; color: var(--slate);margin-right: 0.5rem;">
+                    <span id="supportCharCount">0</span> / 1000
+                </span>
+            </div>
+            <textarea id="supportMessage" class="form-input" 
+                      style="min-height: 100px; resize: vertical; max-height: 200px;"
+                      placeholder="Опишите вашу проблему..." 
+                      maxlength="1000"></textarea>
+        </div>
+
+        <div style="text-align:left; margin-bottom: 1rem;">
+            <label class="form-label">Контакт для ответа (необязательно)</label>
+            <input type="text" id="supportContact" class="form-input" 
+                   placeholder="Telegram, почта или телефон" maxlength="60" />
+        </div>
+
+        <div style="display:flex; gap:0.5rem;">
+            <button class="btn btn-secondary" onclick="closeModal('supportModal')" style="flex:1;">Отмена</button>
+            <button class="btn btn-primary" id="supportSendBtn" style="flex:1;">Отправить</button>
+        </div>
+    </div>
+</div>
+
+    <!-- ===== МОДАЛКА: СЕРИЯ ТРЕНИРОВОК ===== -->
+<div id="streakModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 420px; width: 95%;">
+        <div class="modal-title">Серия тренировок</div>
+
+<div style="text-align: center; margin: 1rem 0; display: flex; align-items: center; justify-content: center; gap: 0.8rem;">
+    <div style="font-size: 3rem; font-weight: 700; color: var(--accent); line-height: 1;" id="streakModalValue">0</div>
+    <div style="font-size: 3rem; color: var(--accent); line-height: 1;">
+        <i class="fa-solid fa-fire"></i>
+    </div>
+</div>
+
+        <p class="modal-text" id="streakModalText1">Тренируйтесь каждый день, чтобы увеличить серию.</p>
+        <p class="modal-text" id="streakModalText2">Если пропустить день — серия сбросится.</p>
+        <p class="modal-text" id="streakModalText3">За длинные серии вы получаете достижения и XP.</p>
+
+        <button class="btn btn-primary" onclick="closeModal('streakModal')">
+            Понятно
+        </button>
+    </div>
+</div>
+
+<!-- ===== МОДАЛКА: ОБЩАЯ ЦЕЛЬ СООБЩЕСТВА ===== -->
+<div id="communityGoalModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 480px; width: 95%; max-height: 85vh; display: flex; flex-direction: column;">
+        <div class="modal-title">Общая цель сообщества</div>
+
+        <!-- ★★★ ЕДИНЫЙ ТЕКСТ (меняется динамически) ★★★ -->
+        <p class="modal-text" id="communityGoalStatusText" style="margin-bottom: 0.5rem;">
+            Как только сообщество достигнет цели, все получат свою награду.
+        </p>
+
+        <!-- ★★★ РЕЙТИНГ ТОП-10 ★★★ -->
+        <div class="section-title" style="text-align:left; margin-bottom:0.3rem;">Топ-10 вкладчиков:</div>
+        <div class="scroll-wrapper" style="max-height: 40vh; margin-bottom: 1rem; border-radius: 16px;">
+            <div id="communityGoalTop" class="item-grid"></div>
+        </div>
+
+        <!-- ★★★ МОЁ МЕСТО И НАГРАДА ★★★ -->
+        <div id="communityGoalMyPlace" style="margin-bottom: 0.5rem;">
+            <span class="modal-text">
+                <span id="communityGoalMyPlaceText">Вы на 1-ом месте</span>, ваша награда: <span id="communityGoalMyReward" style="color: var(--accent);">+100XP</span>
+            </span>
+        </div>
+
+        <button class="btn btn-primary" onclick="closeModal('communityGoalModal')">
+            Понятно
+        </button>
+    </div>
+</div>
+
+<!-- ===== МОДАЛКА: НАГРАДА ЗА ОБЩУЮ ЦЕЛЬ ===== -->
+<div id="communityGoalRewardModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 420px; width: 95%;">
+        <div class="modal-title">Общая цель сообщества</div>
+
+        <div style="text-align: center; margin: 0.5rem 0 0.8rem 0;">
+            <div style="font-size: 3.5rem; color: var(--gold); margin-bottom: 0.3rem;">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+        </div>
+
+        <p class="modal-text" id="communityGoalRewardTitle" style="margin-bottom: 0.5rem; font-weight: 600; color: var(--dark);">
+            Задание "Выполнить 100 тренировок" выполнено!
+        </p>
+
+        <p class="modal-text" id="communityGoalRewardText" style="margin-bottom: 1rem;">
+            Вы заняли 1 место и получаете награду: +100XP.
+        </p>
+
+        <button class="btn btn-primary" id="communityGoalRewardAcceptBtn">
+            Принять
+        </button>
+    </div>
+</div>
+
+    <!-- ===== МОДАЛКА: ИНВЕНТАРЬ ===== -->
+<div id="inventoryModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 420px; width: 95%;">
+        <div class="modal-title">Ваш инвентарь</div>
+        <p class="modal-text" style="margin-bottom: 1rem;">
+            Отметьте, какой инвентарь у вас есть. Это поможет подбирать подходящие тренировки.
+        </p>
+
+<div class="inventory-grid" style="margin-bottom: 1rem;">
+    <button type="button" class="inventory-btn" data-inventory="dumbbells" onclick="toggleInventory(this)">
+        <span class="inventory-name">Гантели</span>
+    </button>
+    <button type="button" class="inventory-btn" data-inventory="mat" onclick="toggleInventory(this)">
+        <span class="inventory-name">Коврик</span>
+    </button>
+    <button type="button" class="inventory-btn" data-inventory="pullup" onclick="toggleInventory(this)">
+        <span class="inventory-name">Турник</span>
+    </button>
+</div>
+
+        <button class="btn btn-primary" onclick="saveInventoryFromModal()">
+            Сохранить
+        </button>
+    </div>
+</div>
+
+<!-- ===== МОДАЛКА: УПРАЖНЕНИЯ ПО ГРУППАМ МЫШЦ ===== -->
+<div id="muscleGroupsModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 480px; width: 95%; max-height: 85vh; display: flex; flex-direction: column;">
+        <div class="modal-title" id="muscleModalTitle">Упражнения по группам мышц</div>
+
+        <!-- ★★★ ОПИСАНИЕ (заполняется из JS) ★★★ -->
+        <p class="modal-text" id="muscleModalText1"></p>
+        <p class="modal-text" id="muscleModalText2"></p>
+        <p class="modal-text" id="muscleModalText3"></p>
+
+        <button class="btn btn-primary" onclick="closeModal('muscleGroupsModal')">
+            Понятно
+        </button>
+    </div>
+</div>
+
+    <!-- ===== МОДАЛКА: ВЫБОР ЯЗЫКА ===== -->
+<div id="languageModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-title">Язык приложения</div>
+        <p class="modal-text" style="margin-bottom: 1rem;">
+            Выберите язык интерфейса.
+        </p>
+        
+        <div class="theme-options-container">
+            <!-- Русский -->
+            <div class="language-option language-option-active" data-language="ru" onclick="selectLanguage('ru')">
+                <div class="language-icon">
+                    <span>🇷🇺</span>
+                </div>
+                <div class="theme-option-info">
+                    <div class="settings-title">Русский</div>
+                    <div class="settings-desc">Русский язык интерфейса</div>
+                </div>
+                <div class="theme-option-check">
+                    <i class="fa-solid fa-check"></i>
+                </div>
+            </div>
+            
+            <!-- Английский -->
+            <div class="language-option" data-language="en" onclick="selectLanguage('en')">
+                <div class="language-icon">
+                    <span>🇺🇸</span>
+                </div>
+                <div class="theme-option-info">
+                    <div class="settings-title">English</div>
+                    <div class="settings-desc">English interface</div>
+                </div>
+                <div class="theme-option-check">
+                    <i class="fa-solid fa-check"></i>
+                </div>
+            </div>
+        </div>
+        
+        <button class="btn btn-primary" onclick="applyLanguage()">Готово</button>
+    </div>
+</div>
+
+<!-- ===== МОДАЛКА: ПЕРВЫЕ ЗАДАНИЯ ===== -->
+<div id="taskHelpModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:400px;">
+        <div class="modal-title" style="margin-bottom: 0rem;" id="taskHelpTitle">Первый шаг</div>
+        <div style="text-align:center; font-size:3rem;" id="taskHelpIcon">
+            <i class="fa-solid fa-dumbbell" style="color: var(--accent);"></i>
+        </div>
+        <p class="modal-text" id="taskHelpText" style="margin-bottom:1rem;">
+            Для прохождения задания нужно выполнить тренировку.
+        </p>
+        <div style="display:flex; gap:0.5rem;">
+            <button class="btn btn-secondary" id="taskHelpCancelBtn" onclick="closeModal('taskHelpModal')" style="flex:1;">Отмена</button>
+            <button class="btn btn-primary" id="taskHelpActionBtn" style="flex:1;">Перейти</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== МОДАЛКА: ЕЖЕДНЕВНЫЕ ЗАДАНИЯ (ДРУЗЬЯ) ===== -->
+<div id="dailyTaskHelpModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:400px;">
+        <div class="modal-title" style="margin-bottom: 0rem;" id="dailyTaskHelpTitle">Дружный</div>
+        <div style="text-align:center; font-size:3rem;" id="dailyTaskHelpIcon">
+            <i class="fa-solid fa-user-group" style="color: var(--accent);"></i>
+        </div>
+        <p class="modal-text" id="dailyTaskHelpText" style="margin-bottom:1rem;">
+            Для прохождения задания "Дружный" нужно выбрать любую тренировку, нажать на кнопку "Совместная", выбрать друга и выполнить совместную тренировку.
+        </p>
+        <div style="display:flex; gap:0.5rem;">
+            <button class="btn btn-secondary" id="dailyTaskHelpCancelBtn" style="flex:1;" onclick="closeModal('dailyTaskHelpModal')">Отмена</button>
+            <button class="btn btn-primary" id="dailyTaskHelpActionBtn" style="flex:1;">Перейти</button>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛКА: ТРЕНИРОВКИ ЗА ДЕНЬ -->
+<div id="dayWorkoutsModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:420px; width:95%; max-height:80vh;">
+        <div class="modal-title" id="dayWorkoutsDate">02.02.2026</div>
+        <label class="form-label" style="margin-left: 0; text-align: left; display: block;">Тренировки</label>
+<div id="dayWorkoutsList" class="dayWorkoutsList">
+    <!-- Сюда будут рендериться тренировки -->
+</div>
+        <button class="btn btn-primary" onclick="closeModal('dayWorkoutsModal')" style="margin-top:0.5rem;">Понятно</button>
+    </div>
+</div>    
+
+    <!-- ===== МОДАЛКА: ИНФОРМАЦИЯ ОБ УРОВНЕ ===== -->
+<div id="levelInfoModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:420px;">
+        <div class="modal-title">УРОВЕНЬ ПРОФИЛЯ</div>
+        <p class="modal-text" style="margin-bottom: 0.5rem;">
+Ваш уровень растёт с каждой тренировкой.
+        </p>
+        <div class="level-block" style="margin: 0rem 0rem 0.2rem 0rem;">
+            <div class="level-header">
+                <div class="level-left">
+                    <span class="level-lvl" id="levelInfoLvl">1 LVL</span>
+                </div>
+                <div class="level-center">
+                    <span class="level-title" id="levelInfoTitle">НАЧИНАЮЩИЙ</span>
+                </div>
+                <div class="level-right">
+                    <span class="level-progress-text" id="levelInfoProgress">0/100XP</span>
+                </div>
+            </div>
+            <div class="level-bar">
+                <div class="level-fill" id="levelInfoFill" style="width:0%;"></div>
+            </div>
+        </div>
+        <p class="modal-text" style="margin-bottom: 0.5rem;">
+            Это основная статистика, по которой работает рейтинг пользователей, 
+            с помощью него вы можете соревноваться с друзьями!
+            Продолжайте тренироваться, чтобы достигать новых вершин!
+        </p>
+        <button class="btn btn-primary" id="levelInfoOkBtn">Понятно</button>
+    </div>
+</div>
+
+    <!-- ===== МОДАЛКА: ДОСТИЖЕНИЯ ===== -->
+<div id="achievementsModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 420px; width: 95%;">
+        <div class="modal-title">ДОСТИЖЕНИЯ</div>
+        <div id="achievementsList" style="text-align: left; margin: 0.5rem 0 1rem 0;">
+            <!-- сюда будет рендериться список -->
+        </div>
+        <button class="btn btn-primary" onclick="closeModal('achievementsModal')">Понятно</button>
+    </div>
+</div>
+
+<!-- ===== МОДАЛКА: ВЫБОР ТЕМЫ ===== -->
+<div id="themeModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-title">Тема приложения</div>
+        <p class="modal-text" style="margin-bottom: 1rem;">
+            Выберите оформление приложения.
+        </p>
+        
+        <div class="theme-options-container">
+            <!-- Светлая тема -->
+            <div class="theme-option theme-option-active" data-theme="light" onclick="selectTheme('light')">
+                <div class="theme-option-icon">
+                    <i class="fa-solid fa-sun"></i>
+                </div>
+                <div class="theme-option-info">
+                    <div class="settings-title">Светлая</div>
+                    <div class="settings-desc">Светлый фон, тёмный текст</div>
+                </div>
+                <div class="theme-option-check">
+                    <i class="fa-solid fa-check"></i>
+                </div>
+            </div>
+
+                                    <!-- Системная тема -->
+            <div class="theme-option" style="background: var(--slate)" data-theme="system" onclick="selectTheme('system')">
+                <div class="theme-option-iconSistem">
+                    <i class="fa-solid fa-cloud-sun-rain" style="color: var(--gold)"></i>
+                </div>
+                <div class="theme-option-info">
+                    <div class="settings-title" style="color: var(--bg-primary)">Системная</div>
+                    <div class="settings-desc" style="color: var(--bg-primary)">Переключаеться автоматически</div>
+                </div>
+                <div class="theme-option-check">
+                    <i class="fa-solid fa-check"></i>
+                </div>
+            </div>
+            
+            <!-- Тёмная тема -->
+            <div class="theme-option" style="background: var(--bg-primary)" data-theme="dark" onclick="selectTheme('dark')">
+                <div class="theme-option-iconDark">
+                    <i class="fa-solid fa-moon"></i>
+                </div>
+                <div class="theme-option-info">
+                    <div class="settings-titleDark">Тёмная</div>
+                    <div class="settings-descDark">Тёмный фон, светлый текст</div>
+                </div>
+                <div class="theme-option-check">
+                    <i class="fa-solid fa-check"></i>
+                </div>
+            </div>
+        </div>
+        
+        <button class="btn btn-primary" onclick="applyTheme()">Готово</button>
+    </div>
+</div>
 
     <!-- ===== МОДАЛКА: НЕТ ИНТЕРНЕТА ===== -->
     <div id="offlineModal" class="modal-overlay" style="display:none;">
@@ -1051,170 +2489,352 @@
         </div>
     </div>
 
-    <!-- ===== МОДАЛКА: PREMIUM ===== -->
-    <div id="premiumModal" class="modal-overlay premium-modal" style="display:none;">
-        <div class="modal-content premium">
+<!-- ===== МОДАЛКА: PREMIUM ===== -->
+<div id="premiumModal" class="modal-overlay premium-modal" style="display:none;">
+    <div class="modal-content premium-content">
+        <div class="premium-header">
             <div class="premium-icon"><i class="fa-solid fa-crown"></i></div>
-            <div class="premium-price">299 ₽</div>
-            <div class="modal-title" style="font-size:1.5rem; color: var(--accent);">PREMIUM</div>
-            <ul class="premium-features">
-<li>PREMIUM тренировки!</li>
-<li>PREMIUM упражнения!</li>
-<li>Совместные тренировки до 3 друзей!</li>
-<li>Поддержка разработчика!</li>
-            </ul>
-            <p class="premium-sub">Разовый платёж · Доступ навсегда</p>
-            <button class="btn btn-primary" style="margin-bottom: 0.5rem;" onclick="buyPremium()">
-                <i class="fa-solid fa-crown"></i> Купить PREMIUM
-            </button>
+            <div class="premium-title">PREMIUM</div>
+        </div>
+        
+        <!-- Таблица сравнения -->
+        <div class="premium-table">
+            <!-- Заголовки -->
+            <div class="premium-table-header">
+                <div class="premium-table-cell premium-table-cell-left">КРИТЕРИИ</div>
+                <div class="premium-table-cell premium-table-cell-center">FREE</div>
+                <div class="premium-table-cell premium-table-cell-center premium-table-cell-premium">PREMIUM</div>
+            </div>
+            
+            <!-- Строка 1: Тренировки -->
+            <div class="premium-table-row">
+                <div class="premium-table-cell premium-table-cell-left">Тренировки</div>
+                <div class="premium-table-cell premium-table-cell-center">Базовые</div>
+                <div class="premium-table-cell premium-table-cell-center premium-table-cell-highlight">Расширенные</div>
+            </div>
+            
+            <!-- Строка 2: Упражнения -->
+            <div class="premium-table-row">
+                <div class="premium-table-cell premium-table-cell-left">Упражнения</div>
+                <div class="premium-table-cell premium-table-cell-center">Базовые</div>
+                <div class="premium-table-cell premium-table-cell-center premium-table-cell-highlight">Расширенные</div>
+            </div>
+            
+            <!-- Строка 4: Совместные тренировки -->
+            <div class="premium-table-row">
+                <div class="premium-table-cell premium-table-cell-left">Совместные тренировки</div>
+                <div class="premium-table-cell premium-table-cell-center">Я + 1 Друг</div>
+                <div class="premium-table-cell premium-table-cell-center premium-table-cell-highlight">Я + 3 Друга</div>
+            </div>
+            
+            <!-- Строка 6: Акцентные цвета -->
+            <div class="premium-table-row premium-table-row-last">
+                <div class="premium-table-cell premium-table-cell-left">Акцентные цвета</div>
+                <div class="premium-table-cell premium-table-cell-center">Базовые</div>
+                <div class="premium-table-cell premium-table-cell-center premium-table-cell-highlight">Расширенные</div>
+            </div>
+        </div>
+        
+<!-- Цены -->
+<div class="premium-prices">
+    <div class="premium-price-card premium-price-card-monthly">
+        <div class="premium-price-label">Ежемесячный</div>
+        <div class="premium-price-row">
+            <div class="premium-price-value">190 ₽</div>
+            <div class="premium-price-period">/ мес</div>
+        </div>
+        <div class="premium-price-period">2280 ₽ / год</div>
+    </div>
+    <div class="premium-price-card premium-price-card-yearly">
+        <div class="premium-price-label">Годовой</div>
+        <div class="premium-price-row">
+            <div class="premium-price-value">170 ₽</div>
+            <div class="premium-price-period">/ мес</div>
+        </div>
+        <div class="premium-price-period">скидка 10% · 2040 ₽ / год</div>
+    </div>
+</div>
+
+<!-- ★★★ СЧЕТЧИК PREMIUM ★★★ -->
+<div class="premium-people">
+    <span id="premiumCounter">PREMIUM оформили: 0 пользователей</span>
+</div>
+        
+        <!-- Кнопки -->
+        <div class="premium-buttons">
             <button class="btn btn-secondary" onclick="closeModal('premiumModal')">Закрыть</button>
-        </div>
-    </div>
-
-    <!-- ===== МОДАЛКА: PREMIUM АКТИВИРОВАН ===== -->
-    <div id="premiumActiveModal" class="modal-overlay premium-modal" style="display:none;">
-        <div class="modal-content premium">
-            <div class="premium-icon"><i class="fa-solid fa-crown"></i></div>
-            <div class="modal-title" style="font-size:1.5rem; color: var(--accent);">PREMIUM АКТИВИРОВАН</div>
-            <p class="item-desc" style="margin-bottom: 1rem;">У вас есть доступ ко всем особым тренировкам.</p>
-            <button class="btn btn-primary" onclick="closeModal('premiumActiveModal')">Отлично!</button>
-        </div>
-    </div>
-
-    <!-- ===== МОДАЛКА: ВЫБОР ЦВЕТА ===== -->
-    <div id="colorModal" class="modal-overlay" style="display:none;">
-        <div class="modal-content" style="max-width:320px;">
-            <div class="modal-title">Выберите акцентный цвет</div>
-            <div class="color-picker">
-                <button class="color-btn color-btn-active" data-color="red" style="background:#DC143C;"></button>
-                <button class="color-btn" data-color="orange" style="background:#FF6B35;"></button>
-                <button class="color-btn" data-color="yellow" style="background:#F7C948;"></button>
-                <button class="color-btn" data-color="green" style="background:#2ECC71;"></button>
-                <button class="color-btn" data-color="darkgreen" style="background:#1A7A3A;"></button>
-                <button class="color-btn" data-color="blue" style="background:#3498DB;"></button>
-                <button class="color-btn" data-color="darkblue" style="background:#1a237e;"></button>
-                <button class="color-btn" data-color="purple" style="background:#9B59B6;"></button>
-                <button class="color-btn" data-color="pink" style="background:#E91E8C;"></button>
-                <button class="color-btn" data-color="gray" style="background:#607D8B;"></button>
-            </div>
-            <button class="btn btn-primary" onclick="closeModal('colorModal')">Готово</button>
-        </div>
-    </div>
-
-<!-- ===== МОДАЛКА: СОЗДАТЬ УПРАЖНЕНИЕ ===== -->
-<div id="createExerciseModal" class="modal-overlay" style="display:none;">
-    <div class="modal-content" style="max-width:400px;">
-        <div class="modal-title" style="text-align:center;">СОЗДАТЬ УПРАЖНЕНИЕ</div>
-        <div class="form-group" style="text-align:left;">
-            <label class="form-label">Название</label>
-            <input type="text" id="createExerciseName" class="form-input" maxlength="50" value="Новое упражнение" />
-        </div>
-        <div class="form-group" style="text-align:left;">
-            <label class="form-label">Выбрать значок</label>
-            <div class="icon-pickerMOD" id="createExerciseIconPicker">
-                <div class="icon-option icon-option-active" data-icon="bodybuilding">
-                    <img src="images/bodybuilding.png">
-                </div>
-                <div class="icon-option" data-icon="press">
-                    <img src="images/press.png">
-                </div>
-                <div class="icon-option" data-icon="breast">
-                    <img src="images/breast.png">
-                </div>
-                <div class="icon-option" data-icon="back">
-                    <img src="images/back.png">
-                </div>
-                <div class="icon-option" data-icon="legs">
-                    <img src="images/legs.png">
-                </div>
-                <div class="icon-option" data-icon="shoulder">
-                    <img src="images/shoulder.png">
-                </div>
-                <div class="icon-option" data-icon="cardio">
-                    <img src="images/cardio.png">
-                </div>
-                <div class="icon-option" data-icon="stretching">
-                    <img src="images/stretching.png">
-                </div>
-                <div class="icon-option" data-icon="WholeBody">
-                    <img src="images/WholeBody.png">
-                </div>
-                <div class="icon-option" data-icon="charging">
-                    <img src="images/charging.png">
-                </div>
-                <div class="icon-option" data-icon="Pilates">
-                    <img src="images/Pilates.png">
-                </div>
-            </div>
-        </div>
-        <div class="form-group" style="text-align:left;">
-            <label class="form-label">Тип</label>
-            <div class="toggle-group">
-                <button class="toggle-btn toggle-btn-active" data-type="reps">Повторения</button>
-                <button class="toggle-btn" data-type="seconds">Секунды</button>
-            </div>
-        </div>
-        <div class="form-row">
-            <div class="form-group" style="text-align:left;">
-                <label class="form-label">Подходы</label>
-                <input type="number" id="createExerciseSets" class="form-input" value="3" min="1" max="5" step="1" />
-            </div>
-            <div class="form-group" style="text-align:left;">
-                <label class="form-label" id="createSecondLabel">Повторения</label>
-                <input type="number" id="createExerciseReps" class="form-input" value="12" min="2" max="60" step="1" />
-            </div>
-        </div>
-        <div class="form-actions">
-            <button class="btn btn-secondary" id="createExerciseCancelBtn" style="flex:1;">Отмена</button>
-            <button class="btn btn-primary" id="createExerciseSaveBtn" style="flex:1;">Сохранить</button>
+            <button class="btn btn-primary" onclick="buyPremium()">
+                <i class="fa-solid fa-crown"></i> Купить
+            </button>
         </div>
     </div>
 </div>
 
-    <!-- ===== МОДАЛКА: ПРОФИЛЬ ДРУГА ===== -->
-    <div id="friendProfileModal" class="modal-overlay" style="display:none;">
-        <div class="modal-content" style="max-width:420px; padding: 1.5rem 1.2rem 1.2rem;">
-            <div class="friend-profile-avatar" id="friendProfileAvatar">А</div>
-            <div class="modal-title" style="font-size:1.2rem; margin-bottom:0.5rem;" id="friendProfileName">Имя друга</div>
-            <p class="friend-profile-email" id="friendProfileEmail">email@example.com</p>
-
-            <div class="level-block" style="margin: 0.5rem 0 0.8rem;">
-                <div class="level-header">
-                    <div class="level-left">
-                        <span class="level-lvl" id="friendLevelLvl">1 LVL</span>
-                    </div>
-                    <div class="level-center">
-                        <span class="level-title" id="friendLevelTitle">НАЧИНАЮЩИЙ</span>
-                    </div>
-                    <div class="level-right">
-                        <span class="level-progress-text" id="friendLevelProgressText">0/100XP</span>
-                    </div>
-                </div>
-                <div class="level-bar">
-                    <div class="level-fill" id="friendLevelFill" style="width:0%;"></div>
-                </div>
+<!-- ===== МОДАЛКА: PREMIUM АКТИВИРОВАН ===== -->
+<div id="premiumActiveModal" class="modal-overlay premium-modal" style="display:none;">
+    <div class="modal-content premium-content">
+        <div class="premium-header">
+            <div class="premium-icon"><i class="fa-solid fa-crown"></i></div>
+            <div class="premium-title">PREMIUM АКТИВИРОВАН</div>
+        </div>
+        
+        <!-- Таблица сравнения -->
+        <div class="premium-table">
+            <!-- Заголовки -->
+            <div class="premium-table-header">
+                <div class="premium-table-cell premium-table-cell-left">КРИТЕРИИ</div>
+                <div class="premium-table-cell premium-table-cell-center">FREE</div>
+                <div class="premium-table-cell premium-table-cell-center premium-table-cell-premium">PREMIUM</div>
             </div>
-
-            <div class="stats-summaryMOD" style="margin-bottom: 1rem; gap: 0.5rem;">
-                <div class="stat-card" style="padding: 0.8rem 0.3rem;">
-                    <span class="stat-label">Минут</span>
-                    <span class="stat-number" id="friendTotalMinutes">0</span>
-                </div>
-                <div class="stat-card" style="padding: 0.8rem 0.3rem;">
-                    <span class="stat-label">Тренировок</span>
-                    <span class="stat-number" id="friendTotalWorkouts">0</span>
-                </div>
-                <div class="stat-card" style="padding: 0.8rem 0.3rem;">
-                    <span class="stat-label">Упражнений</span>
-                    <span class="stat-number" id="friendTotalExercises">0</span>
-                </div>
+            
+            <div class="premium-table-row">
+                <div class="premium-table-cell premium-table-cell-left">Тренировки</div>
+                <div class="premium-table-cell premium-table-cell-center">Базовые</div>
+                <div class="premium-table-cell premium-table-cell-center premium-table-cell-highlight">Расширенные</div>
             </div>
-            <div style="display:flex; gap:0.5rem;">
-                <button class="btn btn-danger" style="flex:1;" id="friendRemoveBtn">Удалить</button>
-                <button class="btn btn-primary" style="flex:1;" id="friendProfileCloseBtn">Готово</button>
+            
+            <div class="premium-table-row">
+                <div class="premium-table-cell premium-table-cell-left">Упражнения</div>
+                <div class="premium-table-cell premium-table-cell-center">Базовые</div>
+                <div class="premium-table-cell premium-table-cell-center premium-table-cell-highlight">Расширенные</div>
+            </div>
+            
+            <div class="premium-table-row">
+                <div class="premium-table-cell premium-table-cell-left">Совместные тренировки</div>
+                <div class="premium-table-cell premium-table-cell-center">я + 1 друг</div>
+                <div class="premium-table-cell premium-table-cell-center premium-table-cell-highlight">я + 3 друга</div>
+            </div>
+            
+            <div class="premium-table-row premium-table-row-last">
+                <div class="premium-table-cell premium-table-cell-left">Акцентные цвета</div>
+                <div class="premium-table-cell premium-table-cell-center">Базовые</div>
+                <div class="premium-table-cell premium-table-cell-center premium-table-cell-highlight">Расширенные</div>
             </div>
         </div>
+
+        <!-- ★★★ СЧЕТЧИК PREMIUM ★★★ -->
+<div class="premium-people">
+    <span id="premiumCounter">PREMIUM оформили: 0 человек</span>
+</div>
+        
+        <!-- Текст "У вас есть PREMIUM" -->
+        <div style="text-align: center; margin-bottom: 0.5rem;">
+            <div style="font-size: 1rem; font-weight: 700; color: var(--accent);">У вас есть PREMIUM!</div>
+        </div>
+        
+        <!-- Кнопка -->
+        <button class="btn btn-primary" onclick="closeModal('premiumActiveModal')">Закрыть</button>
     </div>
+</div>
+
+<!-- ===== МОДАЛКА: ВЫБОР ЦВЕТА ===== -->
+<div id="colorModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 320px;">
+        <div class="modal-title">Выберите акцентный цвет</div>
+        
+        <!-- Готовые цвета -->
+        <div class="color-picker">
+            <button class="color-btn color-btn-active" data-color="red" style="background:#DC143C;" onclick="selectColor('red')"></button>
+            <button class="color-btn" data-color="orange" style="background:#FF6B35;" onclick="selectColor('orange')"></button>
+            <button class="color-btn" data-color="yellow" style="background:#F7C948;" onclick="selectColor('yellow')"></button>
+            <button class="color-btn" data-color="green" style="background:#2ECC71;" onclick="selectColor('green')"></button>
+            <button class="color-btn" data-color="darkgreen" style="background:#1A7A3A;" onclick="selectColor('darkgreen')"></button>
+            <button class="color-btn" data-color="blue" style="background:#3498DB;" onclick="selectColor('blue')"></button>
+            <button class="color-btn" data-color="darkblue" style="background:#1a237e;" onclick="selectColor('darkblue')"></button>
+            <button class="color-btn" data-color="purple" style="background:#9B59B6;" onclick="selectColor('purple')"></button>
+            <button class="color-btn" data-color="pink" style="background:#E91E8C;" onclick="selectColor('pink')"></button>
+            <button class="color-btn" data-color="gray" style="background:#607D8B;" onclick="selectColor('gray')"></button>
+        </div>
+        
+        <!-- Кнопка Палитра -->
+<button class="btn btn-secondary" onclick="openPaletteWithPremiumCheck()" style="margin-bottom: 0.5rem;">
+    <i class="fa-solid fa-palette"></i> Палитра
+</button>
+        
+        <button class="btn btn-primary" onclick="applyColor()">Готово</button>
+    </div>
+</div>
+
+<!-- ===== МОДАЛКА: ПАЛИТРА ЦВЕТОВ ===== -->
+<div id="paletteModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 360px;">
+        <div class="modal-title">Палитра цветов</div>
+        <div class="modal-text">Нажмите на цвет что бы открыть палитру цветов.</div>
+        
+        <!-- Палитра -->
+        <div style="margin-bottom: 0.5rem;">
+            <input type="color" id="customColorPicker" class="form-input" style="height: 60px; padding: 0rem 0.2rem; cursor: pointer; width: 100%; border-radius: 12px; border: 2px solid var(--light-grey);" value="#DC143C" />
+        </div>
+        
+        <!-- Кнопки -->
+        <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-secondary" onclick="closeModal('paletteModal')" style="flex: 1;">Отмена</button>
+            <button class="btn btn-primary" onclick="applyPaletteColor()" style="flex: 1;">Применить</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== УНИВЕРСАЛЬНАЯ МОДАЛКА: УПРАЖНЕНИЕ (СОЗДАТЬ / РЕДАКТИРОВАТЬ) ===== -->
+<div id="exerciseUniversalModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:400px;">
+        <div class="modal-title" id="exerciseUniversalTitle" style="text-align:center;">СОЗДАТЬ УПРАЖНЕНИЕ</div>
+        
+        <div class="form-group" style="text-align:left;">
+            <label class="form-label" for="exerciseUniversalName">Название</label>
+            <input type="text" id="exerciseUniversalName" class="form-input" maxlength="50" placeholder="Название упражнения" />
+        </div>
+
+                <!-- ★★★ БЛОК ВЫБОРА ЗНАЧКА (СКРЫТ ПО УМОЛЧАНИЮ) ★★★ -->
+        <div id="universalIconPickerBlock" style="display:none;">
+            <div class="form-group" style="text-align:left;">
+                <label class="form-label">Выбрать значок</label>
+                <div class="icon-picker" id="universalIconPicker">
+                    <div class="icon-option icon-option-active" data-icon="bodybuilding">
+                        <img src="images/bodybuilding.png">
+                    </div>
+                    <div class="icon-option" data-icon="press">
+                        <img src="images/press.png">
+                    </div>
+                    <div class="icon-option" data-icon="breast">
+                        <img src="images/breast.png">
+                    </div>
+                    <div class="icon-option" data-icon="back">
+                        <img src="images/back.png">
+                    </div>
+                    <div class="icon-option" data-icon="legs">
+                        <img src="images/legs.png">
+                    </div>
+                    <div class="icon-option" data-icon="shoulder">
+                        <img src="images/shoulder.png">
+                    </div>
+                    <div class="icon-option" data-icon="cardio">
+                        <img src="images/cardio.png">
+                    </div>
+                    <div class="icon-option" data-icon="stretching">
+                        <img src="images/stretching.png">
+                    </div>
+                    <div class="icon-option" data-icon="WholeBody">
+                        <img src="images/WholeBody.png">
+                    </div>
+                    <div class="icon-option" data-icon="charging">
+                        <img src="images/charging.png">
+                    </div>
+                    <div class="icon-option" data-icon="Pilates">
+                        <img src="images/Pilates.png">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- КНОПКИ ПЕРЕКЛЮЧЕНИЯ ТИПА -->
+        <div class="form-group" style="text-align:left; margin-bottom: 0.8rem;">
+            <label class="form-label" style="display:block; margin-bottom: 0.3rem;">Тип</label>
+<div class="toggle-group">
+    <button class="toggle-btn toggle-btn-active" data-type="reps" onclick="toggleExerciseTypeUniversal('reps')">
+        Повторения
+    </button>
+    <button class="toggle-btn" data-type="seconds" onclick="toggleExerciseTypeUniversal('seconds')">
+        Секунды
+    </button>
+</div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group" style="text-align:left;">
+                <label class="form-label" for="exerciseUniversalSets">Подходы</label>
+                <input type="number" id="exerciseUniversalSets" class="form-input" style="text-align:center;" min="1" max="5" step="1" value="3" />
+            </div>
+            <div class="form-group" style="text-align:left;">
+                <label class="form-label" for="exerciseUniversalReps" id="exerciseUniversalRepsLabel">Повторения</label>
+                <input type="number" id="exerciseUniversalReps" class="form-input" style="text-align:center;" min="1" max="60" step="1" value="12" />
+            </div>
+        </div>
+        
+        <!-- ★★★ КИЛОГРАММ С КНОПКАМИ ★★★ -->
+        <div class="form-group" id="universalWeightGroup" style="text-align:left;">
+            <label class="form-label">Килограммы</label><label class="form-label-small">вес одной гантели</label>
+            <div class="weight-picker" style="display:flex; align-items:center; gap:0.5rem; justify-content:center; margin-top: 0.5rem;">
+                <button type="button" class="weight-btn" onclick="adjustUniversalWeight(-0.5)">-0.5</button>
+                <span id="exerciseUniversalWeightDisplay" class="weight-text">0</span>
+                <button type="button" class="weight-btn" onclick="adjustUniversalWeight(0.5)">+0.5</button>
+            </div>
+        </div>
+        
+        <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+            <button class="btn btn-secondary" id="exerciseUniversalCancelBtn" style="flex:1;">Отмена</button>
+            <button class="btn btn-primary" id="exerciseUniversalSaveBtn" style="flex:1;">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== МОДАЛКА: ПРОФИЛЬ ДРУГА (УНИВЕРСАЛЬНАЯ) ===== -->
+<div id="friendProfileModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:420px; padding: 1.5rem 1.2rem 1.2rem;">
+        <div class="friend-profile-avatar" id="friendProfileAvatar">А</div>
+        <div class="modal-title" style="font-size:1.2rem; margin-bottom:0.5rem;" id="friendProfileName">Имя друга</div>
+        <p class="friend-profile-email" id="friendProfileEmail">email@example.com</p>
+
+        <div class="level-block" style="margin: 0.5rem 0 0.8rem;">
+            <div class="level-header">
+                <div class="level-left">
+                    <span class="level-lvl" id="friendLevelLvl">1 LVL</span>
+                </div>
+                <div class="level-center">
+                    <span class="level-title" id="friendLevelTitle">НАЧИНАЮЩИЙ</span>
+                </div>
+                <div class="level-right">
+                    <span class="level-progress-text" id="friendLevelProgressText">0/100XP</span>
+                </div>
+            </div>
+            <div class="level-bar">
+                <div class="level-fill" id="friendLevelFill" style="width:0%;"></div>
+            </div>
+<div class="achievements-container" id="friendAchievements">
+    <div class="achievement-icon locked" data-achievement="friendly">
+        <i class="fa-solid fa-user-group"></i>
+    </div>
+    <div class="achievement-icon locked" data-achievement="marathoner">
+        <i class="fa-solid fa-dumbbell"></i>
+    </div>
+    <div class="achievement-icon locked" data-achievement="fitnessMaster">
+        <i class="fa-solid fa-heart-pulse"></i>
+    </div>
+    <div class="achievement-icon locked" data-achievement="unstoppable">
+        <i class="fa-solid fa-fire"></i>
+    </div>
+    <div class="achievement-icon locked" data-achievement="ironEndurance">
+        <i class="fa-solid fa-stopwatch"></i>
+    </div>
+    <div class="achievement-icon locked" data-achievement="masterOfStyles">
+        <i class="fa-solid fa-award"></i>
+    </div>
+    <div class="achievement-icon locked" data-achievement="vip">
+        <i class="fa-solid fa-crown"></i>
+    </div>
+</div>
+        </div>
+
+        <div class="stats-summaryMOD" style="margin-bottom: 1rem; gap: 0.5rem;">
+            <div class="stat-card" style="padding: 0.8rem 0.3rem;">
+                <span class="stat-label">Минут</span>
+                <span class="stat-number" id="friendTotalMinutes">0</span>
+            </div>
+            <div class="stat-card" style="padding: 0.8rem 0.3rem;">
+                <span class="stat-label">Тренировок</span>
+                <span class="stat-number" id="friendTotalWorkouts">0</span>
+            </div>
+            <div class="stat-card" style="padding: 0.8rem 0.3rem;">
+                <span class="stat-label">Упражнений</span>
+                <span class="stat-number" id="friendTotalExercises">0</span>
+            </div>
+        </div>
+
+        <!-- ★★★ КНОПКИ ДИНАМИЧЕСКИЕ ★★★ -->
+        <div style="display:flex; gap:0.5rem;" id="friendProfileActions">
+            <!-- JS подставит кнопки -->
+        </div>
+    </div>
+</div>
 
 <!-- ===== МОДАЛКА: ПРОФИЛЬ ДРУГА В ЗАЯВКАХ ===== -->
 <div id="friendRequestProfileModal" class="modal-overlay" style="display:none;">
@@ -1238,6 +2858,29 @@
             <div class="level-bar">
                 <div class="level-fill" id="friendRequestLevelFill" style="width:0%;"></div>
             </div>
+<div class="achievements-container" id="friendRequestAchievements">
+    <div class="achievement-icon locked" data-achievement="friendly">
+        <i class="fa-solid fa-user-group"></i>
+    </div>
+    <div class="achievement-icon locked" data-achievement="marathoner">
+        <i class="fa-solid fa-dumbbell"></i>
+    </div>
+    <div class="achievement-icon locked" data-achievement="fitnessMaster">
+        <i class="fa-solid fa-heart-pulse"></i>
+    </div>
+    <div class="achievement-icon locked" data-achievement="unstoppable">
+        <i class="fa-solid fa-fire"></i>
+    </div>
+    <div class="achievement-icon locked" data-achievement="ironEndurance">
+        <i class="fa-solid fa-stopwatch"></i>
+    </div>
+    <div class="achievement-icon locked" data-achievement="masterOfStyles">
+        <i class="fa-solid fa-award"></i>
+    </div>
+    <div class="achievement-icon locked" data-achievement="vip">
+        <i class="fa-solid fa-crown"></i>
+    </div>
+</div>
         </div>
 
         <div class="stats-summaryMOD" style="margin-bottom: 1rem; gap: 0.5rem;">
@@ -1262,6 +2905,40 @@
     </div>
 </div>
 
+    <!-- ===== МОДАЛКА: ПРАВИЛА ===== -->
+    <div id="rulesModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content" style="max-width: 420px; width: 95%;">
+            <div class="modal-title">Правила</div>
+            <p class="modal-text">
+                Эти правила нужны для точной работы приложения.
+            </p>
+
+            <div style="text-align: left; margin-bottom: 1rem;">
+                <p class="section-title" style="margin-left: 0.5rem;">Я обещаю:</p>
+                <div class="rules-list">
+                    <label class="rule-item">
+                        <input type="checkbox" class="rule-checkbox" data-rule="1">
+                        <span>Буду честно создавать тренировку для себя</span>
+                    </label>
+                    <label class="rule-item">
+                        <input type="checkbox" class="rule-checkbox" data-rule="2">
+                        <span>Если не выполнил/а упражнение - буду его пропускать</span>
+                    </label>
+                    <label class="rule-item">
+                        <input type="checkbox" class="rule-checkbox" data-rule="3">
+                        <span>Буду честно ставить количество подходов и повторений</span>
+                    </label>
+                    <label class="rule-item">
+                        <input type="checkbox" class="rule-checkbox" data-rule="4">
+                        <span>Буду честно ставить время</span>
+                    </label>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" id="rulesAcceptBtn">Принять</button>
+        </div>
+    </div>
+
     <!-- ===== УВЕДОМЛЕНИЯ ===== -->
     <div id="notificationContainer">
         <div id="notificationCard">
@@ -1282,6 +2959,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script src="firebase-config.js"></script>
+    <script src="exercises-catalog.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
