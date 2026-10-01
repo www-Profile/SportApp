@@ -3040,7 +3040,7 @@ window.navigateTo = function(page, params) {
         showToast('⚠️ Сначала завершите редактирование профиля');
         return;
     }
-    const modalIds = ['exerciseModal', 'createExerciseModal', 'quickEditModal'];
+    const modalIds = ['exerciseModal', 'createExerciseModal', 'quickEditModal', 'exerciseUniversalModal'];
     for (const id of modalIds) {
         const modal = document.getElementById(id);
         if (modal && modal.style.display === 'flex') {
@@ -3061,6 +3061,11 @@ window.navigateTo = function(page, params) {
         p.classList.remove('page-active');
         p.style.display = '';
     });
+
+    // ★★★ СБРОС АНИМАЦИИ HERO ПЕРЕД СМЕНОЙ СТРАНИЦЫ ★★★
+    const heroEl = document.getElementById('page-hero');
+    if (heroEl) heroEl.classList.remove('loading-animate');
+    // ★★★ /СБРОС ★★★
 
     const target = document.getElementById('page-' + page);
     if (target) {
@@ -3217,16 +3222,21 @@ function _tryShowNextModal() {
 }
 
 window.openModal = function(modalId) {
-    // Эта же модалка уже открыта — игнор
-    if (_activeModalId === modalId) return;
+    // ★★★ ЗАЩИТА: если _activeModalId совпадает, но модалка реально закрыта —
+    // значит кто-то закрыл её в обход closeModal. Сбрасываем состояние.
+    if (_activeModalId === modalId) {
+        const el = document.getElementById(modalId);
+        const isReallyOpen = el && el.classList.contains('modal-overlay-visible');
+        if (isReallyOpen) return;      // действительно открыта — игнор
+        _activeModalId = null;          // залипла — сбрасываем
+        _closingModalId = null;
+    }
 
-    // Что-то уже показывается / закрывается / в очереди → в очередь
     if (_activeModalId !== null || _closingModalId !== null || _modalQueue.length > 0) {
         if (!_modalQueue.includes(modalId)) _modalQueue.push(modalId);
         return;
     }
 
-    // Проверяем DOM на «посторонние» модалки (созданные без openModal)
     const busy = document.querySelector(
         '.modal-overlay.modal-overlay-visible, .modal-overlay.modal-overlay-closing'
     );
@@ -6294,14 +6304,22 @@ applySavedWorldStatsOrder();
         
         // ★★★ УСТАНАВЛИВАЕМ ФЛАГ, ЧТО ДАННЫЕ ЗАГРУЖЕНЫ ★★★
         isDataLoaded = true;
-        
+
+        // ★★★ ЕСЛИ ЭТО ЛОГИН — СРАЗУ ВХОДИМ В ПРИЛОЖЕНИЕ ★★★
+        if (window._justLoggedIn) {
+            window._justLoggedIn = false;
+            console.log('🚀 Автовход после логина');
+            enterApp();
+            return;
+        }
+
         console.log('✅ Данные загружены, показываем кнопку');
 
-// ★★★ ПРОВЕРЯЕМ ОТЛОЖЕННОЕ ПРИГЛАШЕНИЕ (ЕСЛИ ПОЛЬЗОВАТЕЛЬ УЖЕ В ПРИЛОЖЕНИИ) ★★★
-setTimeout(() => {
-    tryOpenPendingInvite();
-}, 1500);
-        
+        // ★★★ ПРОВЕРЯЕМ ОТЛОЖЕННОЕ ПРИГЛАШЕНИЕ (ЕСЛИ ПОЛЬЗОВАТЕЛЬ УЖЕ В ПРИЛОЖЕНИИ) ★★★
+        setTimeout(() => {
+            tryOpenPendingInvite();
+        }, 1500);
+
         // ★★★ ПЛАВНО ПОКАЗЫВАЕМ КНОПКУ ★★★
         showHeroButtons();
 
@@ -6337,6 +6355,11 @@ function showHero() {
         heroPage.style.display = 'block';
     }
     clearAuthFields();
+
+    // ★★★ ЗАПУСКАЕМ АНИМАЦИЮ ФИЧ ★★★
+    triggerHeroAnimations();
+    // ★ Кнопки появятся сами после анимации (через showHeroButtons)
+    showHeroButtons();
 }
 
 // ★★★ ПЛАВНО ПОКАЗАТЬ КНОПКИ НА ЭКРАНАХ HERO / LOADING ★★★
@@ -6396,6 +6419,23 @@ function triggerLoadingAnimations() {
     console.log('🎬 Анимация загрузки запущена');
 }
 
+/**
+ * Запускает анимацию появления фич на странице приветствия (hero)
+ * и запоминает время старта для показа кнопок.
+ */
+function triggerHeroAnimations() {
+    const heroPage = document.getElementById('page-hero');
+    if (!heroPage) return;
+
+    // Сбрасываем и перезапускаем анимации
+    heroPage.classList.remove('loading-animate');
+    void heroPage.offsetWidth;   // force reflow
+    heroPage.classList.add('loading-animate');
+
+    _loadingAnimStartTime = Date.now();
+    console.log('🎬 Анимация приветствия запущена');
+}
+
 // =================== РЕГИСТРАЦИЯ (ПОШАГОВАЯ) ===================
 
 // Хранилище данных регистрации
@@ -6442,12 +6482,21 @@ document.getElementById('registerFormStep1')?.addEventListener('submit', functio
     nameInput.classList.remove('error');
 
     // ★★★ ПРОВЕРЯЕМ СОГЛАСИЕ ★★★
-    if (!consentCheckbox.checked) {
-        consentCheckbox.classList.add('error');
-        showToast('⚠️ Примите условия, чтобы продолжить');
-        return;
-    }
-    consentCheckbox.classList.remove('error');
+if (!consentCheckbox.checked) {
+    consentCheckbox.classList.add('error');
+    showToast('⚠️ Примите условия, чтобы продолжить');
+    return;
+}
+consentCheckbox.classList.remove('error');
+
+// ★ Проверяем второй чекбокс
+const consentDataCheckbox = document.getElementById('regConsentDataCheckbox');
+if (!consentDataCheckbox.checked) {
+    consentDataCheckbox.classList.add('error');
+    showToast('⚠️ Дайте согласие на обработку данных');
+    return;
+}
+consentDataCheckbox.classList.remove('error');
 
     registerData.name = name;
 
@@ -6684,19 +6733,6 @@ document.getElementById('registerGenderBtn')?.addEventListener('click', function
 
     // ★ Переходим на шаг «Данные тела»
     switchToPage('page-register-body');
-});
-
-// ★★★ ОБРАБОТЧИК ШАГА 5 (ВЫБОР ИНВЕНТАРЯ) ★★★
-document.getElementById('inventoryForm')?.addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    // Сохраняем выбор
-    localStorage.setItem('userInventory', JSON.stringify(selectedInventory));
-    console.log('📦 Выбранный инвентарь:', selectedInventory);
-    
-    // ★★★ ПЕРЕХОДИМ НА СТРАНИЦУ ЗАГРУЗКИ ★★★
-    switchToPage('page-loading');
-    document.getElementById('bottomNav').style.display = 'none';
 });
 
 // =================== РЕГИСТРАЦИЯ: ШАГ 6 (ДАННЫЕ ТЕЛА) ===================
@@ -7055,16 +7091,17 @@ document.getElementById('loginFormStep2')?.addEventListener('submit', async func
             loginData.password
         );
         
-        if (!result.user.emailVerified) {
-            showToast('⚠️ Подтвердите почту! Письмо отправлено');
-            await result.user.sendEmailVerification();
-            btn.disabled = false;
-            return;
-        }
-        
-// ★★★ СБРАСЫВАЕМ ФЛАГ БЕТА-МОДАЛКИ ПРИ НОВОМ ВХОДЕ ★★★
-sessionStorage.removeItem('betaModalShownThisSession');
+if (!result.user.emailVerified) {
+    showToast('⚠️ Подтвердите почту! Письмо отправлено');
+    await result.user.sendEmailVerification();
+    btn.disabled = false;
+    return;
+}
 
+// ★★★ ФЛАГ АВТОВХОДА (логин, не регистрация) ★★★
+window._justLoggedIn = true;
+
+sessionStorage.removeItem('betaModalShownThisSession');
 switchToPage('page-loading');
 document.getElementById('bottomNav').style.display = 'none';
 
@@ -7171,6 +7208,12 @@ function showRegister() {
         consent.checked = false;
         consent.classList.remove('error');
     }
+
+    const consentData = document.getElementById('regConsentDataCheckbox');   // ← добавили
+if (consentData) {                                                        // ← добавили
+    consentData.checked = false;                                          // ← добавили
+    consentData.classList.remove('error');                                // ← добавили
+}                                                                         // ← добавили
 
     clearAuthFields();
 }
@@ -13472,7 +13515,7 @@ window.openUniversalExerciseModal = openUniversalExerciseModal;
 
 // Закрыть универсальную модалку
 function closeUniversalExerciseModal() {
-    document.getElementById('exerciseUniversalModal').style.display = 'none';
+    closeModal('exerciseUniversalModal');
     universalModalState = { mode: 'create', source: 'edit', index: null, exercises: null, callback: null };
 }
 window.closeUniversalExerciseModal = closeUniversalExerciseModal;
@@ -15470,13 +15513,13 @@ function showInventoryPage() {
     document.getElementById('bottomNav').style.display = 'none';
 }
 
-// ★★★ ОБРАБОТЧИК ФОРМЫ ★★★
+// ★★★ ОБРАБОТЧИК ФОРМЫ ИНВЕНТАРЯ (ФИНАЛ РЕГИСТРАЦИИ) ★★★
 document.getElementById('inventoryForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
 
     localStorage.setItem('userInventory', JSON.stringify(selectedInventory));
 
-    // ★★★ СОХРАНЯЕМ ИНВЕНТАРЬ И ПОЛ В FIRESTORE ★★★
+    // ★ Сохраняем инвентарь и пол в Firestore
     try {
         const user = await getFirebaseUser();
         if (user) {
@@ -15484,20 +15527,25 @@ document.getElementById('inventoryForm')?.addEventListener('submit', async funct
 
             await updateUserProfile(user.uid, {
                 inventory: selectedInventory,
-                gender: genderFromStorage       // ★ ЗАПИСЫВАЕМ ПОЛ
+                gender: genderFromStorage
             });
 
-            // Очищаем временный ключ
             localStorage.removeItem('pendingGender');
-
             console.log('✅ Инвентарь и пол сохранены в Firestore');
         }
     } catch (error) {
         console.warn('Ошибка сохранения инвентаря и пола:', error);
     }
 
-    switchToPage('page-loading');
-    document.getElementById('bottomNav').style.display = 'none';
+    // ★ Сбрасываем флаг регистрации
+    isRegistering = false;
+
+    // ★ Ставим флаг, что нужен туториал — ДО enterApp()
+    window._tutorialNeeded = true;
+
+    // ★★★ СРАЗУ ВХОДИМ В ПРИЛОЖЕНИЕ ★★★
+    console.log('🎓 Регистрация завершена, входим в приложение');
+    enterApp();
 });
 
 // ★★★ ВОССТАНАВЛИВАЕМ СОХРАНЁННЫЙ ВЫБОР ПРИ ЗАГРУЗКЕ ★★★
@@ -19563,6 +19611,11 @@ function openPrivacyModal() {
 }
 window.openPrivacyModal = openPrivacyModal;
 
+function openConsentModal() {
+    openModal('consentModal');
+}
+window.openConsentModal = openConsentModal;
+
 // ─────────────────────────────────────────────────────────────
 // ★★★ ТЕКСТЫ-ЗАГЛУШКИ ★★★
 // Перед публикацией заменить на реальные документы от юриста!
@@ -19672,6 +19725,62 @@ const PRIVACY_TEXT = `
     </p>
 `;
 
+const CONSENT_TEXT = `
+    <span class="legal-updated">Редакция от ${LEGAL_UPDATED_DATE}</span>
+
+    <p>
+        Настоящим я, субъект персональных данных, в соответствии с Федеральным законом
+        от 27.07.2006 № 152-ФЗ «О персональных данных» даю своё согласие администрации
+        приложения <strong>SportApp</strong> на обработку моих персональных данных
+        на следующих условиях.
+    </p>
+
+    <h3>1. Перечень данных</h3>
+    <ul>
+        <li>фамилия, имя (или псевдоним);</li>
+        <li>адрес электронной почты;</li>
+        <li>пол;</li>
+        <li>параметры тела (рост, вес, обхваты) — по желанию;</li>
+        <li>данные о физической активности и тренировках;</li>
+        <li>технические данные (IP, тип устройства, версия ОС).</li>
+    </ul>
+
+    <h3>2. Цели обработки</h3>
+    <ul>
+        <li>работа функционала приложения (учёт тренировок, статистика);</li>
+        <li>персонализация тренировок и рекомендаций;</li>
+        <li>социальные функции (друзья, рейтинги, совместные тренировки);</li>
+        <li>информирование об обновлениях и важных событиях.</li>
+    </ul>
+
+    <h3>3. Способы обработки</h3>
+    <p>
+        Обработка включает сбор, запись, хранение, уточнение, использование,
+        обезличивание, блокирование и удаление данных с использованием
+        средств автоматизации и без таковых.
+    </p>
+
+    <h3>4. Передача третьим лицам</h3>
+    <p>
+        Данные хранятся в облачной инфраструктуре Google Firebase. Передача иным
+        третьим лицам, кроме случаев, предусмотренных законом, не осуществляется.
+    </p>
+
+    <h3>5. Срок действия согласия</h3>
+    <p>
+        Согласие действует с момента его предоставления до момента отзыва.
+        Согласие может быть отозвано в любой момент путём удаления аккаунта
+        в настройках приложения либо направления запроса через раздел
+        «Связь с администрацией».
+    </p>
+
+    <h3>6. Подтверждение</h3>
+    <p>
+        Я подтверждаю, что ознакомлен(а) с условиями настоящего согласия,
+        мне понятны мои права, и я даю согласие добровольно и в своих интересах.
+    </p>
+`;
+
 /** Заполнить модалки текстами при загрузке */
 document.addEventListener('DOMContentLoaded', () => {
     const termsEl = document.getElementById('termsText');
@@ -19679,6 +19788,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const privacyEl = document.getElementById('privacyText');
     if (privacyEl) privacyEl.innerHTML = PRIVACY_TEXT;
+
+    const consentEl = document.getElementById('consentText');   // ← добавили
+    if (consentEl) consentEl.innerHTML = CONSENT_TEXT;          // ← добавили
 });
 
 // =================== ПОДЕЛИТЬСЯ ТРЕНИРОВКОЙ ПО ССЫЛКЕ ===================

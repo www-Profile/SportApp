@@ -835,7 +835,7 @@
                             <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
                             <button class="section-drag" touch-action="none"><i class="fa-solid fa-grip-lines"></i></button>
                         </div>
-                        <div class="section-body">
+                        <div class="section-body" style="margin-top: 0.5rem;">
                             <div  class="scroll-wrapper">
                                 <div id="worldLeaderboard" class="item-grid"></div>
                             </div>
@@ -848,7 +848,7 @@
                             <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
                             <button class="section-drag" touch-action="none"><i class="fa-solid fa-grip-lines"></i></button>
                         </div>
-                        <div class="section-body">
+                        <div class="section-body" style="margin-top: 0.5rem;">
                             <div  class="scroll-wrapper">
                                 <div id="friendsLeaderboard" class="item-grid"></div>
                             </div>
@@ -1482,10 +1482,6 @@
                 <button class="btn btn-primary" onclick="showLogin()">Войти</button>
                 <button class="btn btn-primary" onclick="showRegister()">Зарегистрироваться</button>
             </div>
-            <div class="hero-legal-links">
-    <a onclick="openTermsModal()">Пользовательское соглашение</a>
-    <a onclick="openPrivacyModal()">Политика конфиденциальности</a>
-</div>
         </div>
     </div>
 </div>
@@ -1543,15 +1539,23 @@
     </div>
 
     <!-- ★★★ ЧЕКБОКС СОГЛАСИЯ ★★★ -->
-    <label class="consent-row">
-        <input type="checkbox" id="regConsentCheckbox" />
-        <span>
-            Я принимаю
-            <a onclick="event.preventDefault(); event.stopPropagation(); openTermsModal();">Пользовательское соглашение</a>
-            и
-            <a onclick="event.preventDefault(); event.stopPropagation(); openPrivacyModal();">Политику конфиденциальности</a>
-        </span>
-    </label>
+<label class="consent-row">
+    <input type="checkbox" id="regConsentCheckbox" />
+    <span>
+        Я принимаю
+        <a onclick="event.preventDefault(); event.stopPropagation(); openTermsModal();">Пользовательское соглашение</a>
+        и
+        <a onclick="event.preventDefault(); event.stopPropagation(); openPrivacyModal();">Политику конфиденциальности</a>
+    </span>
+</label>
+
+<label class="consent-row">
+    <input type="checkbox" id="regConsentDataCheckbox" />
+    <span>
+        Я даю согласие на
+        <a onclick="event.preventDefault(); event.stopPropagation(); openConsentModal();">обработку персональных данных</a>
+    </span>
+</label>
 </form>
         </div>
     </div>
@@ -1893,6 +1897,22 @@
         </div>
 
         <button class="btn btn-primary" onclick="closeModal('privacyModal')" style="margin-top:0.5rem;">
+            Понятно
+        </button>
+    </div>
+</div>
+
+<div id="consentModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 520px; width: 95%; max-height: 85vh; display: flex; flex-direction: column;">
+        <div class="modal-title">Согласие на обработку персональных данных</div>
+
+        <div  class="scroll-wrapper">
+            <div class="legal-text" id="consentText">
+                <!-- ★★★ ЗДЕСЬ ЮРИСТ ВСТАВИТ РЕАЛЬНЫЙ ТЕКСТ ★★★ -->
+            </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="closeModal('consentModal')" style="margin-top:0.5rem;">
             Понятно
         </button>
     </div>
