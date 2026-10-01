@@ -17,7 +17,7 @@ body {
     -webkit-overflow-scrolling: touch;
     padding-top: calc(env(safe-area-inset-top, 40px) - 20px);
 }
-
+ 
 /* ===================ПЕРЕМЕННЫЕ ==================== */
 :root {
     /* ── ТЕНИ ── */
@@ -2259,7 +2259,7 @@ body.theme-dark-mode .btn-submit-arrow {
     bottom: clamp(12px, env(safe-area-inset-bottom, 0px), 20px);
     left: 50%;
     transform: translateX(-50%);
-    width: 240px;
+    width: 320px;
     height: 60px;
     padding: 5px;
     border-radius: 30px;
@@ -2302,7 +2302,7 @@ body.theme-dark-mode .btn-submit-arrow {
     top: 5px;
     left: 0;
     height: 50px;
-    width: 76px;
+    width: 72px;
     border-radius: 25px;
     background: rgba(255, 255, 255, 0.28);
     backdrop-filter: blur(16px) saturate(200%);
@@ -5164,6 +5164,412 @@ body.no-scroll {
 
 
 body.theme-dark-mode .workout-share-btn {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* =================== ЛЕНТА ==================== */
+.feed-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+/* Карточка поста */
+.feed-post {
+    display: flex;
+    flex-direction: column;      /* ← шапка сверху, контент снизу */
+    gap: 0.5rem;                 /* ← отступ между блоками */
+    background: transparent;     /* ← общего фона больше нет */
+    padding: 0;
+}
+
+/* Шапка — отдельный блок, прозрачный */
+.feed-post-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0;
+    background: transparent;
+}
+
+/* Аватар — квадрат со скруглёнными углами */
+.feed-post-avatar {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--white);
+    font-size: 1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+.feed-post-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    border-radius: 50%;
+}
+
+/* Внутренняя акцентная обводка, как у профиля */
+.feed-post-avatar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 3px var(--accent);
+    pointer-events: none;
+    z-index: 2;
+}
+
+body.theme-dark-mode .feed-post-avatar {
+    background: var(--accent);
+    color: var(--white);
+}
+
+.feed-post-info { flex: 1; min-width: 0; text-align: left; }
+
+.feed-post-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.feed-post-time {
+    font-size: 0.7rem;
+    color: var(--slate);
+}
+
+/* Кнопка действия справа (мусорка или скачать) */
+.feed-post-action-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    color: var(--slate);
+    font-size: 1rem;
+    cursor: pointer;
+    border-radius: 8px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.feed-post-action-btn .fa-trash-can { color: var(--danger); }
+
+/* Контент — отдельный блок со своим фоном и скруглением */
+.feed-post-content {
+    position: relative;
+    background: var(--white);
+    border-radius: 16px;
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    aspect-ratio: 1 / 1;
+}
+
+/* Фото внутри контента */
+.feed-post-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--light);
+}
+
+.feed-post-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Градиент под статистику */
+.feed-post-image::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 55%;
+    background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.75) 0%,
+        rgba(0, 0, 0, 0.35) 45%,
+        rgba(0, 0, 0, 0) 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Тело со статистикой — поверх фото, прижато к низу */
+.feed-post-body {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    padding: 0.8rem;
+    z-index: 2;
+    text-align: left;
+}
+
+.feed-post-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.feed-post-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.4rem;
+}
+
+.feed-post-stat {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 10px;
+    padding: 0.4rem 0.3rem;
+    text-align: center;
+}
+
+.feed-post-stat-label {
+    display: block;
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.feed-post-stat-value {
+    display: block;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--white);
+    white-space: nowrap;
+}
+
+/* =================== FAB (кнопка «+») ==================== */
+.feed-fab {
+    position: absolute;
+    bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+    left: calc(50% + 250px - 44px - 1rem);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px dashed var(--accent);
+    background: none;
+    color: var(--accent);
+    font-size: 1.1rem;
+    box-shadow: none;
+    cursor: pointer;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* =================== ЗОНА ЗАГРУЗКИ ФОТО ==================== */
+.upload-zone {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border: 2px dashed var(--light-grey);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: var(--light);
+    margin-bottom: 0.8rem;
+    overflow: hidden;
+    position: relative;
+}
+
+.upload-zone img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.upload-zone-icon {
+    font-size: 2.5rem;
+    color: var(--slate);
+    margin-bottom: 0.4rem;
+}
+
+.upload-zone-text {
+    font-size: 0.8rem;
+    color: var(--slate);
+    padding: 0 1rem;
+    text-align: center;
+}
+
+/* =================== ОПЦИЯ «ССЫЛКА НА ТРЕНИРОВКУ» В МОДАЛКЕ ==================== */
+.post-toggle-row {
+    background: var(--light);
+    border: 1px solid var(--light-grey);
+    border-radius: 10px;
+    padding: 0.6rem 0.8rem;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.post-checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--dark);
+    cursor: pointer;
+}
+
+.post-checkbox-row input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    border: 2px solid var(--slate);
+    border-radius: 6px;
+    background: var(--white);
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.post-checkbox-row input[type="checkbox"]:checked {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.post-checkbox-row input[type="checkbox"]:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--white);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+body.theme-dark-mode .post-toggle-row {
+    background: var(--bg-primary);
+    border-color: var(--border-color);
+}
+body.theme-dark-mode .post-checkbox-row { color: var(--text-primary); }
+body.theme-dark-mode .post-checkbox-row input[type="checkbox"] {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+body.theme-dark-mode .post-checkbox-row input[type="checkbox"]:checked {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+/* =================== КНОПКА «ДОБАВИТЬ ТРЕНИРОВКУ» В ПОСТЕ ==================== */
+.feed-post-action-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    color: var(--slate);
+    font-size: 1rem;
+    cursor: pointer;
+    border-radius: 8px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    padding: 0;
+}
+
+.feed-post-action-btn:active {
+    background: var(--light);
+    opacity: 0.7;
+}
+
+/* Иконка мусорки — красная, чтобы визуально отличать */
+.feed-post-action-btn .fa-trash-can {
+    color: var(--danger);
+}
+
+body.theme-dark-mode .feed-post-action-btn { color: var(--text-primary); }
+body.theme-dark-mode .feed-post-action-btn:active { background: var(--bg-primary); }
+body.theme-dark-mode .feed-post-action-btn .fa-trash-can { color: var(--danger); }
+
+/* =================== ТЁМНАЯ ТЕМА ==================== */
+body.theme-dark-mode .feed-post-name { color: var(--text-primary); }
+body.theme-dark-mode .feed-post-time { color: var(--text-secondary); }
+body.theme-dark-mode .feed-post-content { background: var(--bg-primary); }
+
+/* =================== СЕЛКТЫ ==================== */
+.form-select {
+    width: 100%;
+    padding: 0.6rem;
+    border: 1.5px solid var(--light-grey);
+    border-radius: 10px;
+    font-size: 0.9rem;
+    background: #FAFCFF;
+    color: #0F172A;
+    font-family: inherit;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 0.8rem center;
+    padding-right: 2rem;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.form-select.error {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.06);
+}
+
+body.theme-dark-mode .form-select {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+}
+
+body.theme-dark-mode .form-select:focus {
+    border-color: var(--accent);
+}
+
+body.theme-dark-mode .form-select option {
     background: var(--bg-secondary);
     color: var(--text-primary);
 }
