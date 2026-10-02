@@ -472,6 +472,7 @@ body.theme-dark-mode .item-card-light {
 /* ===================ЕДИНЫЙ СТИЛЬ ДЛЯ КНОПОК ==================== */
 .btn {
     display: inline-block;
+    gap: 0.4rem;
     padding: 0.4rem;
     border: none;
     border-radius: 10px;
@@ -5703,4 +5704,20 @@ body.theme-dark-mode .upload-zone-placeholder {
 body.theme-dark-mode .upload-zone-placeholder .upload-zone-icon,
 body.theme-dark-mode .upload-zone-placeholder .upload-zone-text {
     color: var(--text-secondary);
+}
+
+/* =================== КНОПКИ ВНИЗУ ЛЕНТЫ ==================== */
+.feed-bottom-actions {
+    margin-top: 0.5rem;
+    margin-bottom: 5rem;   /* запас снизу, чтобы не перекрывалось навигацией */
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.feed-bottom-actions .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
 }

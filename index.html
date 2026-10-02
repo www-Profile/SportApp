@@ -1466,13 +1466,25 @@
             <h1 class="dashboard-title">ЛЕНТА</h1>
         </header>
 
-<div class="tabs" style="margin-bottom: 1rem;">
-    <button class="tab-btn tab-btn-active" data-feed-filter="all">Все</button>
-    <button class="tab-btn" data-feed-filter="my">Моя</button>
-</div>
+        <div class="tabs" style="margin-bottom: 1rem;">
+            <button class="tab-btn tab-btn-active" data-feed-filter="all">Все</button>
+            <button class="tab-btn" data-feed-filter="my">Моя</button>
+        </div>
 
         <div id="feedContainer" class="feed-container">
             <!-- Посты рендерятся через JS -->
+        </div>
+
+        <!-- ★★★ КНОПКА ВНИЗУ СПИСКА (зависит от вкладки) ★★★ -->
+        <div class="feed-bottom-actions">
+            <button class="btn btn-primary" id="feedScrollTopBtn"
+                    onclick="scrollFeedToTop()" style="display:none;">
+                <i class="fa-solid fa-arrow-up"></i> Подняться наверх
+            </button>
+            <button class="btn btn-primary" id="feedCreatePostBtn"
+                    onclick="tryOpenCreatePostModal()" style="display:none;">
+                <i class="fa-solid fa-plus"></i> Выложить пост
+            </button>
         </div>
 
         <!-- ★★★ ПЕРЕМЕЩЕННАЯ КНОПКА FAB ★★★ -->

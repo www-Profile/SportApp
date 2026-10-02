@@ -8801,40 +8801,53 @@ function createTutorialOverlay(step) {
     `;
     document.body.appendChild(tooltip);
 
-    const autoSteps = [1, 9, 10, 14, 15, 16, 17];
+    const autoSteps = [1, 8, 9, 13, 14, 15];
     const isAuto = autoSteps.includes(step.id) && highlightElements.length > 0;
 
-    if (isAuto) {
-        const targetEl = highlightElements[0];
-        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setTimeout(() => {
-            const tooltipRect = tooltip.getBoundingClientRect();
-            const tooltipHeight = tooltipRect.height;
-            const rect = targetEl.getBoundingClientRect();
-            const viewportHeight = window.innerHeight;
+if (isAuto) {
+    const targetEl = highlightElements[0];
 
-            const isVisible = rect.top >= 0 && rect.bottom <= viewportHeight;
-            if (!isVisible) {
-                tooltip.style.bottom = '30px';
-                tooltip.style.top = 'auto';
-            } else {
-                let topPosition = rect.top - tooltipHeight - 30;
-                let fitsAbove = topPosition >= 10;
-                if (fitsAbove) {
-                    tooltip.style.top = topPosition + 'px';
-                    tooltip.style.bottom = 'auto';
-                } else {
-                    tooltip.style.bottom = '30px';
-                    tooltip.style.top = 'auto';
-                }
-            }
-            tooltip.classList.add('tutorial-tooltip-active');
-        }, 500);
+    // 1. Проверяем, виден ли уже элемент
+    const rectBefore = targetEl.getBoundingClientRect();
+    const vh = window.innerHeight;
+    const fullyVisible = rectBefore.top >= 0 && rectBefore.bottom <= vh;
+
+    const positionTooltip = () => {
+        const tooltipRect = tooltip.getBoundingClientRect();
+        const tooltipHeight = tooltipRect.height;
+        const rect = targetEl.getBoundingClientRect();
+
+        // Пробуем разместить сверху
+        let topPosition = rect.top - tooltipHeight - 30;
+
+        if (topPosition >= 10) {
+            // Помещается сверху — ставим над элементом
+            tooltip.style.top = topPosition + 'px';
+            tooltip.style.bottom = 'auto';
+        } else {
+            // Не помещается сверху — ставим снизу
+            tooltip.style.top = 'auto';
+            tooltip.style.bottom = '30px';
+        }
+
+        tooltip.classList.add('tutorial-tooltip-active');
+    };
+
+    if (fullyVisible) {
+        // Элемент виден — считаем сразу
+        requestAnimationFrame(() => {
+            requestAnimationFrame(positionTooltip);
+        });
     } else {
-        setTimeout(() => {
-            tooltip.classList.add('tutorial-tooltip-active');
-        }, 200);
+        // Нужна прокрутка — ждём её завершения
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(positionTooltip, 700);
     }
+} else {
+    setTimeout(() => {
+        tooltip.classList.add('tutorial-tooltip-active');
+    }, 200);
+}
 
     setTimeout(() => overlay.classList.add('tutorial-overlay-active'), 50);
 }
@@ -8919,7 +8932,7 @@ const tutorialSteps = [
         id: 1,
         page: 'workouts',
         highlight: '#bottomNav',
-        text: 'Это главное меню, здесь есть три страницы:\nСтатистика, Тренировки и Профиль.',
+        text: 'Это главное меню. Здесь четыре страницы:\nЛента, Статистика, Тренировки и Профиль.',
         action: () => {
             activeWorkoutsTab = 'ready';
             applyWorkoutsTab('ready');
@@ -8927,15 +8940,17 @@ const tutorialSteps = [
     },
     {
         id: 2,
-        page: 'stats',
-        highlight: ['#page-stats .tab-btn[data-tab="personal"]', '#page-stats .tab-btn[data-tab="world"]'],
-        text: 'Страница Статистики делится на два раздела:\nМировая и Личная.',
-        action: () => { switchStatsTab('personal'); }
+        page: 'feed',
+        highlight: null,
+        text: 'В Ленте вы можете делиться своими тренировками и смотреть посты других пользователей.',
+        action: () => {
+            setFeedFilter('all');
+        }
     },
     {
         id: 3,
         page: 'stats',
-        highlight: ['#page-stats .tab-btn[data-tab="personal"]', '.stat-card'],
+        highlight: '#page-stats .tab-btn[data-tab="personal"]',
             text: 'В разделе "Личной статистики" собрана вся информация о ваших тренировках.',
     },
     {
@@ -8948,12 +8963,6 @@ const tutorialSteps = [
     {
         id: 5,
         page: 'workouts',
-        highlight: ['#page-workouts .tab-btn[data-tab="ready"]', '#page-workouts .tab-btn[data-tab="my"]'],
-        text: 'Страница Тренировок делится на два раздела:\nГотовые и Личные.'
-    },
-    {
-        id: 6,
-        page: 'workouts',
         highlight: ['#page-workouts .tab-btn[data-tab="ready"]', '.item-card[data-category="Руки"]'],
         text: 'В разделе "Готовых тренировок" собраны тренировки для всех групп мышц.',
         action: () => {
@@ -8962,7 +8971,7 @@ const tutorialSteps = [
         }
     },
     {
-        id: 7,
+        id: 6,
         page: 'level-select',
         highlight: '.item-card',
         text: 'Каждая тренировка разделена на 3 уровня сложности.',
@@ -8971,7 +8980,7 @@ const tutorialSteps = [
         }
     },
     {
-        id: 8,
+        id: 7,
         page: 'workout-detail',
         highlight: '.item-grid',
         text: 'После выбора уровня сложности вы видите полный список упражнений в этой тренировке.',
@@ -8984,7 +8993,7 @@ const tutorialSteps = [
         }
     },
     {
-        id: 9,
+        id: 8,
         page: 'workout-detail',
         highlight: ['#coopInviteBtn', '#actionButton'],
         text: 'Вы можете начать тренировку один - кнопка "СТАРТ", или пригласить друзей для совместной тренировки - кнопка "Совместная".',
@@ -8997,7 +9006,7 @@ const tutorialSteps = [
         }
     },
     {
-        id: 10,
+        id: 9,
         page: 'workout-detail',
         highlight: '#editWorkoutBtn',
         text: 'Вы можете редактировать тренировку: менять ее название, добавлять новые упражнения, редактировать их и удалять.',
@@ -9009,7 +9018,7 @@ const tutorialSteps = [
         }
     },
     {
-        id: 11,
+        id: 10,
         page: 'workouts',
         highlight: ['#page-workouts .tab-btn[data-tab="my"]', '.custom-workout .btn-primary'],
         text: 'В разделе "Личных тренировок" вы можете создавать свои собственные тренировки и редактировать их.',
@@ -9019,19 +9028,13 @@ const tutorialSteps = [
         }
     },
     {
-        id: 12,
-        page: 'profile',
-        highlight: [ '.profile-tab-btn[data-tab="my"]', '.profile-tab-btn[data-tab="friends"]'],
-        text: 'Страница Профиля делится на два раздела:\nМой и Друзья.'
-    },
-    {
-        id: 13,
+        id: 11,
         page: 'profile',
         highlight: ['.profile-card'],
         text: 'Это ваш профиль.\nТренируйтесь, получайте XP и повышайте свой уровень.',
     },
 {
-    id: 14,
+    id: 12,
     page: 'profile',
     get highlight() {
         const isDaily = checkAllTasksCompleted();
@@ -9082,25 +9085,25 @@ const tutorialSteps = [
 },
     
 {
-    id: 15,
+    id: 13,
     page: 'profile',
     highlight: '#settings-block-main .settings-block',
     text: 'В основных настройках вы можете настроить приложение под себя.'
 },
 {
-    id: 16,
+    id: 14,
     page: 'profile',
     highlight: '#settings-block-extra .settings-block',
     text: 'В дополнительных настройках вы можете скрывать или показывать дополнительные функции приложения.'
 },
 {
-    id: 17,
+    id: 15,
     page: 'profile',
     highlight: '#dangerSettings .settings-block',
     text: 'Здесь находятся важные настройки. Будьте внимательны, эти действия нельзя отменить.'
 },
     {
-        id: 18,
+        id: 16,
         page: 'profile',
         highlight: ['.profile-tab-btn[data-tab="friends"]', '.friends-list-block'],
         text: 'Здесь вы можете находить друзей и следить за их успехами.',
@@ -9110,7 +9113,7 @@ const tutorialSteps = [
         }
     },
     {
-        id: 19,
+        id: 17,
         page: 'workouts',
         highlight: null,
         text: 'Желаем отличной тренировки! Если не знаете, с чего начать, начните с выполнения заданий.',
@@ -20238,6 +20241,17 @@ function renderFeed() {
     const container = document.getElementById('feedContainer');
     if (!container) return;
 
+    // ★★★ УПРАВЛЕНИЕ КНОПКАМИ ВНИЗУ СПИСКА ★★★
+    const scrollTopBtn = document.getElementById('feedScrollTopBtn');
+    const createPostBtn = document.getElementById('feedCreatePostBtn');
+
+    if (scrollTopBtn) {
+        scrollTopBtn.style.display = (_feedFilter === 'all' && _feedPosts.length > 0) ? 'flex' : 'none';
+    }
+    if (createPostBtn) {
+        createPostBtn.style.display = (_feedFilter === 'my') ? 'flex' : 'none';
+    }
+
 if (_feedPosts.length === 0) {
     const text = _feedFilter === 'my'
         ? 'Вы ещё не публиковали посты. Поделитесь своей тренировкой!'
@@ -20835,6 +20849,14 @@ async function tryOpenCreatePostModal() {
     openPostLimitModal();
 }
 window.tryOpenCreatePostModal = tryOpenCreatePostModal;
+
+/**
+ * Плавно прокручивает страницу ленты к самому верху.
+ */
+function scrollFeedToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+window.scrollFeedToTop = scrollFeedToTop;
 /**
  * Открыть модалку создания поста
  */
