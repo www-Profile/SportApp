@@ -944,27 +944,27 @@ if (finishContent) {
         
         console.log(`📊 Участник ${name}: progress=${progress}/${total}, time=${time}s, xp=${xpDisplay}`);
 
-        html += `
-            <div style="width:100%;">
-                <div class="item-title" style="color:var(--slate); margin-left: 1rem; margin-bottom: 0.5rem;">
-                    <i class="${icon}"></i> ${isMe ? 'Вы' : name}
-                </div>
-                <div class="finish-stats" style="margin-bottom: 0rem;">
-                    <div class="finish-stat-item">
-                        <span class="finish-stat-label">Упражнений</span>
-                        <span class="finish-stat-value">${progress}/${total}</span>
-                    </div>
-                    <div class="finish-stat-item">
-                        <span class="finish-stat-label">Время</span>
-                        <span class="finish-stat-value">${formatTime(time)}</span>
-                    </div>
-                    <div class="finish-stat-item">
-                        <span class="finish-stat-label">XP</span>
-                        <span class="finish-stat-value">+${xpDisplay}</span>
-                    </div>
-                </div>
+html += `
+    <div style="width:100%;">
+        <div class="item-title" style="color:var(--slate); margin-left: 1rem; margin-bottom: 0.5rem;">
+            <i class="${icon}"></i> ${isMe ? 'Вы' : name}
+        </div>
+        <div class="finish-stats" style="margin-bottom: 0rem;">
+            <div class="finish-stat-item">
+                <span class="finish-stat-label">Время</span>
+                <span class="finish-stat-value">${formatTime(time)}</span>
             </div>
-        `;
+            <div class="finish-stat-item">
+                <span class="finish-stat-label">Упражнений</span>
+                <span class="finish-stat-value">${progress}/${total}</span>
+            </div>
+            <div class="finish-stat-item">
+                <span class="finish-stat-label">XP</span>
+                <span class="finish-stat-value">+${xpDisplay}</span>
+            </div>
+        </div>
+    </div>
+`;
     });
 
     container.innerHTML = html;
@@ -20112,29 +20112,9 @@ function getLocalDateKey() {
 
 /** Проверка: может ли пользователь публиковать сегодня */
 async function canPostToday() {
+    // ★★★ ВРЕМЕННО СНЯТО ОГРАНИЧЕНИЕ — 1 ПОСТ В ДЕНЬ ★★★
     const user = await getFirebaseUser();
     if (!user) return { allowed: false, reason: 'no-auth' };
-
-    const today = getLocalDateKey();
-
-    // 1. Быстрая проверка из localStorage
-    const cached = localStorage.getItem(POST_DATE_KEY);
-    if (cached === today) return { allowed: false, reason: 'limit' };
-
-    // 2. Проверка из Firestore (на случай другого устройства)
-    try {
-        const profileResult = await getUserProfile(user.uid);
-        if (profileResult.success) {
-            const lastDate = profileResult.data.lastPostDate;
-            if (lastDate === today) {
-                // Синхронизируем локальный кэш
-                localStorage.setItem(POST_DATE_KEY, today);
-                return { allowed: false, reason: 'limit' };
-            }
-        }
-    } catch (e) {
-        console.warn('⚠️ Не удалось проверить lastPostDate:', e);
-    }
 
     return { allowed: true };
 }
@@ -20274,17 +20254,21 @@ return `
                 <div class="feed-post-name">${post.userName || 'Пользователь'}</div>
                 <div class="feed-post-time">${timeStr}</div>
             </div>
-            ${isMe ? `
-                <button class="feed-post-action-btn" title="Удалить"
-                        onclick="deletePost('${post.id}', event)">
-                    <i class="fa-regular fa-trash-can"></i>
-                </button>
-            ` : (post.shareLink ? `
-                <button class="feed-post-action-btn" title="Скачать тренировку"
-                        onclick="addSharedWorkoutFromPost('${post.shareLink}', event)">
-                    <i class="fa-solid fa-download"></i>
-                </button>
-            ` : '')}
+${isMe ? `
+    <button class="feed-post-action-btn" title="Скачать фото"
+            onclick="openPostDownloadModal('${post.id}', event)">
+        <i class="fa-solid fa-download"></i>
+    </button>
+    <button class="feed-post-action-btn" title="Удалить"
+            onclick="deletePost('${post.id}', event)">
+        <i class="fa-regular fa-trash-can"></i>
+    </button>
+` : `
+    <button class="feed-post-action-btn" title="Действия"
+            onclick="openPostDownloadModal('${post.id}', event)">
+        <i class="fa-solid fa-download"></i>
+    </button>
+`}
         </div>
 
         <!-- ★ Контент — отдельный блок (фото + статистика) -->
@@ -20292,28 +20276,331 @@ return `
             <div class="feed-post-image">
                 <img src="${post.imageData}" alt="" loading="lazy">
             </div>
-            <div class="feed-post-body">
-                <div class="feed-post-title">${post.workoutTitle || 'Тренировка'}</div>
-                <div class="feed-post-stats">
-                    <div class="feed-post-stat">
-                        <span class="feed-post-stat-label">Упражнения</span>
-                        <span class="feed-post-stat-value">${s.completed || 0}/${s.total || 0}</span>
-                    </div>
-                    <div class="feed-post-stat">
-                        <span class="feed-post-stat-label">Минуты</span>
-                        <span class="feed-post-stat-value">${s.minutes || 0}</span>
-                    </div>
-                    <div class="feed-post-stat">
-                        <span class="feed-post-stat-label">Прогресс</span>
-                        <span class="feed-post-stat-value">+${s.xp || 0}</span>
-                    </div>
+        <div class="feed-post-body">
+            <div class="feed-post-title">${post.workoutTitle || 'Тренировка'}</div>
+            <div class="feed-post-stats">
+                <div class="feed-post-stat">
+                    <span class="feed-post-stat-label">Время</span>
+                    <span class="feed-post-stat-value">${s.minutes || 0}</span>
+                </div>
+                <div class="feed-post-stat">
+                    <span class="feed-post-stat-label">Упражнений</span>
+                    <span class="feed-post-stat-value">${s.completed || 0}/${s.total || 0}</span>
+                </div>
+                <div class="feed-post-stat">
+                    <span class="feed-post-stat-label">Прогресс</span>
+                    <span class="feed-post-stat-value">+${s.xp || 0}</span>
                 </div>
             </div>
+        </div>
         </div>
     </div>
 `;
     }).join('');
 }
+
+/**
+ * Открывает модалку действий с постом.
+ * Для своего поста: Отмена / Скачать.
+ * Для чужого: Отмена / Скачать фото / Загрузить тренировку.
+ */
+function openPostDownloadModal(postId, event) {
+    if (event) event.stopPropagation();
+
+    // Находим пост в массиве
+    const post = _feedPosts.find(p => p.id === postId);
+    if (!post) {
+        showToast('❌ Пост не найден');
+        return;
+    }
+
+    const currentUser = firebase.auth().currentUser;
+    const currentUserId = currentUser ? currentUser.uid : null;
+    const isMe = post.userId === currentUserId;
+    const hasShareLink = !!post.shareLink;
+
+    // Удаляем старую модалку, если есть
+    const old = document.getElementById('postDownloadModal');
+    if (old) old.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'postDownloadModal';
+
+    // Формируем текст
+    const titleText = isMe ? 'Ваш пост' : 'Пост пользователя';
+    const messageText = isMe
+        ? 'Скачать фото из этого поста?'
+        : `Скачать фото или добавить тренировку «${post.workoutTitle || 'Тренировка'}» себе?`;
+
+    // Формируем кнопки
+    let buttonsHtml = '';
+
+    if (isMe) {
+        // Свой пост: 2 кнопки
+        buttonsHtml = `
+            <button class="btn btn-secondary" id="postDlCancelBtn" style="flex:1;">Отмена</button>
+            <button class="btn btn-primary" id="postDlPhotoBtn" style="flex:1;">Скачать</button>
+        `;
+    } else {
+        // Чужой пост: 3 кнопки
+        buttonsHtml = `
+            <button class="btn btn-secondary" id="postDlCancelBtn" style="flex:1;">Отмена</button>
+            <button class="btn btn-primary" id="postDlPhotoBtn" style="flex:1;">Скачать фото</button>
+            ${hasShareLink ? `
+                <button class="btn btn-primary" id="postDlWorkoutBtn" style="flex:1;">Загрузить тренировку</button>
+            ` : ''}
+        `;
+    }
+
+    overlay.innerHTML = `
+        <div class="modal-content" style="max-width:440px; width:95%;">
+            <div class="modal-title">${titleText}</div>
+            <p class="modal-text" style="margin-bottom:1rem;">${messageText}</p>
+            <div style="display:flex; gap:0.5rem;">
+                ${buttonsHtml}
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    overlay.style.display = 'flex';
+    void overlay.offsetWidth;
+    overlay.classList.add('modal-overlay-visible');
+
+    // Обработчики
+    document.getElementById('postDlCancelBtn').addEventListener('click', () => {
+        closeModal('postDownloadModal');
+    });
+
+    document.getElementById('postDlPhotoBtn').addEventListener('click', () => {
+        closeModal('postDownloadModal');
+        downloadPostImage(post);
+    });
+
+    const workoutBtn = document.getElementById('postDlWorkoutBtn');
+    if (workoutBtn) {
+        workoutBtn.addEventListener('click', () => {
+            closeModal('postDownloadModal');
+            // Переиспользуем существующую логику добавления тренировки
+            addSharedWorkoutFromPost(post.shareLink, null);
+        });
+    }
+}
+window.openPostDownloadModal = openPostDownloadModal;
+
+/**
+ * Скачивает готовое изображение поста (фото + статистика),
+ * отрисованное на canvas — точно такое же, как в ленте.
+ * @param {Object} post — объект поста
+ */
+async function downloadPostImage(post) {
+    if (!post || !post.imageData) {
+        showToast('❌ Фото не найдено');
+        return;
+    }
+
+    showToast('⏳ Готовим изображение...');
+
+    try {
+        // ★ 1. Загружаем оригинальное фото
+        const img = await loadImageFromDataUrl(post.imageData);
+
+        // ★ 2. Готовим canvas (квадрат)
+        const SIZE = 1080;
+        const canvas = document.createElement('canvas');
+        canvas.width = SIZE;
+        canvas.height = SIZE;
+        const ctx = canvas.getContext('2d');
+        const SANS = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+
+        // ★ 3. Рисуем фото с обрезкой по центру (object-fit: cover)
+        drawImageCover(ctx, img, 0, 0, SIZE, SIZE);
+
+        // ★ 4. Градиент снизу (как в CSS: 55% высоты)
+        const gradientHeight = SIZE * 0.55;
+        const gradient = ctx.createLinearGradient(
+            0, SIZE - gradientHeight,
+            0, SIZE
+        );
+        gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        gradient.addColorStop(0.45, 'rgba(0, 0, 0, 0.35)');
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.75)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, SIZE - gradientHeight, SIZE, gradientHeight);
+
+        // ★ 5. Заголовок тренировки
+        const title = post.workoutTitle || 'Тренировка';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = `700 34px ${SANS}`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 2;
+
+        // Обрезаем длинный заголовок
+        const maxTitleWidth = SIZE - 80;
+        const truncatedTitle = truncateText(ctx, title, maxTitleWidth);
+        ctx.fillText(truncatedTitle, 40, SIZE - 170);
+
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+
+        // ★ 6. Три плитки со статистикой
+        const s = post.stats || {};
+        const stats = [
+            { label: 'ВРЕМЯ', value: String(s.minutes || 0) },
+            { label: 'УПРАЖНЕНИЙ', value: `${s.completed || 0}/${s.total || 0}` },
+            { label: 'ПРОГРЕСС', value: `+${s.xp || 0}` }
+        ];
+
+        const padding = 40;
+        const gap = 16;
+        const totalWidth = SIZE - padding * 2;
+        const tileWidth = (totalWidth - gap * 2) / 3;
+        const tileHeight = 110;
+        const tileY = SIZE - padding - tileHeight;
+        const radius = 20;
+
+        stats.forEach((stat, i) => {
+            const x = padding + i * (tileWidth + gap);
+
+            // Фон плитки: полупрозрачный белый
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+            roundRect(ctx, x, tileY, tileWidth, tileHeight, radius);
+            ctx.fill();
+
+            // Тонкая белая обводка
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            roundRect(ctx, x, tileY, tileWidth, tileHeight, radius);
+            ctx.stroke();
+
+            // Лейбл (мелкий, сверху плитки)
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+            ctx.font = `600 20px ${SANS}`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(stat.label, x + tileWidth / 2, tileY + 32);
+
+            // Значение (крупное, снизу плитки)
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = `700 40px ${SANS}`;
+            ctx.fillText(stat.value, x + tileWidth / 2, tileY + 76);
+        });
+
+        // ★ 7. Отдаём готовый PNG на скачивание
+        const fileName = `sportapp-${sanitizeFileName(post.workoutTitle || 'post')}-${Date.now()}.png`;
+
+        canvas.toBlob(function(blob) {
+            if (!blob) {
+                showToast('❌ Не удалось создать изображение');
+                return;
+            }
+
+            const blobUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = fileName;
+            link.href = blobUrl;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+
+            setTimeout(() => {
+                document.body.removeChild(link);
+                URL.revokeObjectURL(blobUrl);
+            }, 500);
+
+            showToast('✅ Изображение сохранено');
+        }, 'image/png');
+
+    } catch (error) {
+        console.error('❌ Ошибка генерации:', error);
+        showToast('❌ Не удалось сохранить изображение');
+    }
+}
+
+/**
+ * Загружает картинку из data URL.
+ */
+function loadImageFromDataUrl(dataUrl) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('Image load error'));
+        img.src = dataUrl;
+    });
+}
+
+/**
+ * Рисует картинку с обрезкой по центру (аналог CSS object-fit: cover).
+ */
+function drawImageCover(ctx, img, dx, dy, dWidth, dHeight) {
+    const imgRatio = img.width / img.height;
+    const targetRatio = dWidth / dHeight;
+
+    let sx, sy, sWidth, sHeight;
+
+    if (imgRatio > targetRatio) {
+        // Картинка шире — обрезаем по бокам
+        sHeight = img.height;
+        sWidth = sHeight * targetRatio;
+        sx = (img.width - sWidth) / 2;
+        sy = 0;
+    } else {
+        // Картинка выше — обрезаем сверху/снизу
+        sWidth = img.width;
+        sHeight = sWidth / targetRatio;
+        sx = 0;
+        sy = (img.height - sHeight) / 2;
+    }
+
+    ctx.drawImage(img, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
+}
+
+/**
+ * Рисует закруглённый прямоугольник.
+ */
+function roundRect(ctx, x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+}
+
+/**
+ * Обрезает текст, если он не влезает, добавляя «…».
+ */
+function truncateText(ctx, text, maxWidth) {
+    if (ctx.measureText(text).width <= maxWidth) return text;
+
+    let truncated = text;
+    while (truncated.length > 0 && ctx.measureText(truncated + '…').width > maxWidth) {
+        truncated = truncated.slice(0, -1);
+    }
+    return truncated + '…';
+}
+
+/**
+ * Очищает строку для использования в имени файла.
+ */
+function sanitizeFileName(str) {
+    return String(str)
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\-]/g, '')
+        .slice(0, 30) || 'post';
+}
+
+window.downloadPostImage = downloadPostImage;
 
 /**
  * Форматирование времени: «только что», «5 мин назад», «2 часа назад», «3 дня назад», «12.08»
@@ -20427,14 +20714,16 @@ async function openCreatePostModal() {
     _postShareLink = true;
     document.getElementById('postShareLinkBlock').style.display = 'none';
 
-    // Сброс UI
-    const zone = document.getElementById('postUploadZone');
-    zone.innerHTML = `
-        <i class="fa-solid fa-camera upload-zone-icon"></i>
-        <div class="upload-zone-text">Нажмите, чтобы загрузить фото</div>
+    // ★ Сброс превью: возвращаем placeholder, скрываем статистику
+    const previewImage = document.getElementById('postPreviewImage');
+    previewImage.innerHTML = `
+        <div class="upload-zone-placeholder">
+            <i class="fa-solid fa-camera upload-zone-icon"></i>
+            <div class="upload-zone-text">Нажмите, чтобы загрузить фото</div>
+        </div>
     `;
+    document.getElementById('postPreviewBody').style.display = 'none';
     document.getElementById('postPhotoInput').value = '';
-    document.getElementById('postStatsPreview').style.display = 'none';
 
     const select = document.getElementById('postWorkoutSelect');
     select.innerHTML = '<option value="">Загрузка...</option>';
@@ -20485,15 +20774,15 @@ function handlePostPhotoSelect(event) {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Превью сразу из файла (быстро)
+    // ★ Мгновенное превью из файла
     const reader = new FileReader();
     reader.onload = (e) => {
-        const zone = document.getElementById('postUploadZone');
-        zone.innerHTML = `<img src="${e.target.result}" alt="preview">`;
+        const previewImage = document.getElementById('postPreviewImage');
+        previewImage.innerHTML = `<img src="${e.target.result}" alt="preview">`;
     };
     reader.readAsDataURL(file);
 
-    // Сжатие в base64
+    // ★ Сжатие в base64 для отправки в Firestore
     compressImageToDataURL(file, 600, 180000)
         .then(dataUrl => {
             _postImageDataUrl = dataUrl;
@@ -20583,13 +20872,17 @@ function compressImageToDataURL(file, maxSize = 600, maxBytes = 180000) {
  */
 function handlePostWorkoutChange() {
     const select = document.getElementById('postWorkoutSelect');
-    const preview = document.getElementById('postStatsPreview');
+    const previewBody = document.getElementById('postPreviewBody');
+    const previewTitle = document.getElementById('postPreviewTitle');
+    const previewMinutes = document.getElementById('postPreviewMinutes');
+    const previewExercises = document.getElementById('postPreviewExercises');
+    const previewXp = document.getElementById('postPreviewXp');
     const linkBlock = document.getElementById('postShareLinkBlock');
     const idx = select.value;
     const workouts = select._workouts || [];
 
     if (idx === '' || !workouts[idx]) {
-        preview.style.display = 'none';
+        previewBody.style.display = 'none';
         linkBlock.style.display = 'none';
         return;
     }
@@ -20600,21 +20893,14 @@ function handlePostWorkoutChange() {
     const minutes = Math.floor((w.durationSeconds || 0) / 60);
     const xp = Math.round(w.xpEarned || 0);
 
-    preview.innerHTML = `
-        <div class="feed-post-stat">
-            <span class="feed-post-stat-label">Упражнения</span>
-            <span class="feed-post-stat-value">${completedEx}/${totalEx}</span>
-        </div>
-        <div class="feed-post-stat">
-            <span class="feed-post-stat-label">Минуты</span>
-            <span class="feed-post-stat-value">${minutes}</span>
-        </div>
-        <div class="feed-post-stat">
-            <span class="feed-post-stat-label">Прогресс</span>
-            <span class="feed-post-stat-value">+${xp}</span>
-        </div>
-    `;
-    preview.style.display = 'grid';
+    // ★ Заполняем наложенную статистику
+    previewTitle.textContent = w.title || 'Тренировка';
+    previewMinutes.textContent = minutes;
+    previewExercises.textContent = `${completedEx}/${totalEx}`;
+    previewXp.textContent = `+${xp}`;
+
+    // ★ Показываем блок с наложенной статистикой поверх фото
+    previewBody.style.display = 'block';
 
     // Показываем блок «Добавить ссылку?» и сбрасываем на «Да»
     linkBlock.style.display = 'flex';
@@ -20666,57 +20952,61 @@ async function publishPost() {
         const minutes = Math.floor((workout.durationSeconds || 0) / 60);
         const xp = Math.round(workout.xpEarned || 0);
 
-// Готовим данные поста
-const postData = {
-    userId: user.uid,
-    userName: profile.displayName || 'Пользователь',
-    userGender: profile.gender || 'male',
-    workoutTitle: workout.title || 'Тренировка',
-    workoutIcon: workout.icon || null,
-    imageData: _postImageDataUrl,
-    stats: {
-        completed: completedEx,
-        total: totalEx,
-        minutes: minutes,
-        xp: xp
-    },
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-};
+        // ★★★ СОЗДАЁМ postData ЗДЕСЬ, ДО ВСЕХ ИСПОЛЬЗОВАНИЙ ★★★
+        const postData = {
+            userId: user.uid,
+            userName: profile.displayName || 'Пользователь',
+            userGender: profile.gender || 'male',
+            workoutTitle: workout.title || 'Тренировка',
+            workoutIcon: workout.icon || null,
+            imageData: _postImageDataUrl,
+            stats: {
+                completed: completedEx,
+                total: totalEx,
+                minutes: minutes,
+                xp: xp
+            },
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
 
-// ★ Если пользователь выбрал «Да» — генерируем ссылку на тренировку
-if (_postShareLink) {
-    const exercises = workout.exercises || [];
-    if (exercises.length > 0) {
-        try {
-            const linkPayload = {
-                t: workout.title || 'Тренировка',
-                i: workout.icon || null,
-                r: parseInt(workout.restTime) || 30,
-                e: exercises.map(ex => [
-                    String(ex.name || ''),
-                    parseInt(ex.sets) || 3,
-                    String(ex.reps || '12'),
-                    parseFloat(ex.weight) || 0,
-                    ex.icon || null
-                ])
-            };
-            postData.shareLink = _encodeShareBase64(JSON.stringify(linkPayload));
-        } catch (e) {
-            console.warn('⚠️ Не удалось создать ссылку:', e);
+        // ★ Теперь добавляем shareLink, если нужно
+        if (_postShareLink) {
+            const exercises = workout.exercises || [];
+            if (exercises.length > 0) {
+                try {
+                    const linkPayload = {
+                        t: workout.title || 'Тренировка',
+                        i: workout.icon || null,
+                        r: parseInt(workout.restTime) || 30,
+                        e: exercises.map(ex => [
+                            String(ex.name || ''),
+                            parseInt(ex.sets) || 3,
+                            String(ex.reps || '12'),
+                            parseFloat(ex.weight) || 0,
+                            ex.icon || null
+                        ])
+                    };
+                    postData.shareLink = _encodeShareBase64(JSON.stringify(linkPayload));
+                } catch (e) {
+                    console.warn('⚠️ Не удалось создать ссылку:', e);
+                }
+            }
         }
-    }
-}
 
-await firebase.firestore().collection('posts').add(postData);
-// ★ Помечаем, что сегодня пост уже был
-const todayKey = getLocalDateKey();
-localStorage.setItem(POST_DATE_KEY, todayKey);
+        // ★ Сохраняем в Firestore
+        await firebase.firestore().collection('posts').add(postData);
 
-try {
-    await updateUserProfile(user.uid, { lastPostDate: todayKey });
-} catch (e) {
-    console.warn('⚠️ Не удалось сохранить lastPostDate:', e);
-}
+        // ★ Помечаем, что сегодня пост уже был
+        const todayKey = getLocalDateKey();
+        localStorage.setItem(POST_DATE_KEY, todayKey);
+        try {
+            await updateUserProfile(user.uid, { lastPostDate: todayKey });
+        } catch (e) {
+            console.warn('⚠️ Не удалось сохранить lastPostDate:', e);
+        }
+
+        // ★ Сбрасываем данные после успеха
+        _postImageDataUrl = null;
 
         closeModal('createPostModal');
         showToast('✅ Пост опубликован!');
@@ -20729,11 +21019,12 @@ try {
         } else {
             showToast('❌ Не удалось опубликовать');
         }
+    } finally {
+        // ★ Всегда сбрасываем кнопку
         btn.disabled = false;
         btn.textContent = 'Опубликовать';
     }
 }
-window.publishPost = publishPost;
 window.publishPost = publishPost;
 
 let _postLimitTimerInterval = null;
