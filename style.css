@@ -2066,7 +2066,7 @@ body.theme-dark-mode .btn-submit-arrow {
     flex: 1.5;
     background: var(--white);
     border-radius: 20px 20px 0px 0px;
-    padding: 1rem 1rem 3rem;
+    padding: 1rem 1rem 4rem;
     box-shadow: var(--shadow-card);
     display: flex;
     flex-direction: column;

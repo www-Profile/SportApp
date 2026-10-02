@@ -20334,34 +20334,36 @@ function openPostDownloadModal(postId, event) {
         : `Скачать фото или добавить тренировку «${post.workoutTitle || 'Тренировка'}» себе?`;
 
     // Формируем кнопки
-    let buttonsHtml = '';
+let buttonsHtml = '';
 
-    if (isMe) {
-        // Свой пост: 2 кнопки
-        buttonsHtml = `
-            <button class="btn btn-secondary" id="postDlCancelBtn" style="flex:1;">Отмена</button>
-            <button class="btn btn-primary" id="postDlPhotoBtn" style="flex:1;">Скачать</button>
-        `;
-    } else {
-        // Чужой пост: 3 кнопки
-        buttonsHtml = `
-            <button class="btn btn-secondary" id="postDlCancelBtn" style="flex:1;">Отмена</button>
+if (isMe) {
+    // Свой пост: сверху — Отмена, снизу — Скачать
+    buttonsHtml = `
+        <button class="btn btn-secondary" id="postDlCancelBtn" style="width:100%;">Отмена</button>
+        <button class="btn btn-primary" id="postDlPhotoBtn" style="width:100%;">Скачать</button>
+    `;
+} else {
+    // Чужой пост: сверху — Отмена, снизу — Скачать + Загрузить в ряд
+    buttonsHtml = `
+        <button class="btn btn-secondary" id="postDlCancelBtn" style="width:100%;">Отмена</button>
+        <div style="display:flex; gap:0.5rem; width:100%;">
             <button class="btn btn-primary" id="postDlPhotoBtn" style="flex:1;">Скачать фото</button>
             ${hasShareLink ? `
                 <button class="btn btn-primary" id="postDlWorkoutBtn" style="flex:1;">Загрузить тренировку</button>
             ` : ''}
-        `;
-    }
-
-    overlay.innerHTML = `
-        <div class="modal-content" style="max-width:440px; width:95%;">
-            <div class="modal-title">${titleText}</div>
-            <p class="modal-text" style="margin-bottom:1rem;">${messageText}</p>
-            <div style="display:flex; gap:0.5rem;">
-                ${buttonsHtml}
-            </div>
         </div>
     `;
+}
+
+overlay.innerHTML = `
+    <div class="modal-content" style="max-width:440px; width:95%;">
+        <div class="modal-title">${titleText}</div>
+        <p class="modal-text" style="margin-bottom:1rem;">${messageText}</p>
+        <div style="display:flex; flex-direction:column; gap:0.5rem; width:100%;">
+            ${buttonsHtml}
+        </div>
+    </div>
+`;
 
     document.body.appendChild(overlay);
     overlay.style.display = 'flex';
