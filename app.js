@@ -18616,43 +18616,66 @@ async function openCoopShareModal() {
 
     /* -------- РЕНДЕР ПУЗЫРЯ -------- */
 
-    function renderBubble() {
-        const navRect = nav.getBoundingClientRect();
-        if (navRect.width === 0) return;
+function renderBubble() {
+    const navRect = nav.getBoundingClientRect();
+    if (navRect.width === 0) return;
 
-        const centers = getCenters();
-        const tabWidth = getTabWidth();
-        const n = items.length;
+    const centers = getCenters();
+    const tabWidth = getTabWidth();
+    const n = items.length;
 
-        const idx = Math.max(0, Math.min(n - 1, continuousIndex));
-        const floor = Math.floor(idx);
-        const ceil = Math.min(n - 1, Math.ceil(idx));
+    const idx = Math.max(0, Math.min(n - 1, continuousIndex));
+    const floor = Math.floor(idx);
+    const ceil = Math.min(n - 1, Math.ceil(idx));
 
-        let width, center;
+    let width, center;
 
-        if (floor === ceil) {
-            width = tabWidth;
-            center = centers[floor];
-        } else {
-            const gap = centers[ceil] - centers[floor];
-            const fraction = idx - floor;
-            center = centers[floor] + gap * fraction;
-            width = tabWidth + gap * Math.pow(Math.sin(Math.PI * fraction), 1.5) * 0.7;
-        }
-
-        const maxWidth = navRect.width - PADDING * 2;
-        if (width > maxWidth) width = maxWidth;
-
-        let tx = center - width / 2;
-        const minTx = PADDING;
-        const maxTx = navRect.width - width - PADDING;
-        if (tx < minTx) tx = minTx;
-        if (tx > maxTx) tx = maxTx;
-
-        // ★★★ МЕНЯЕМ ТОЛЬКО transform И width — CSS сам всё анимирует ★★★
-        bubble.style.width = width + 'px';
-        bubble.style.transform = `translateX(${tx}px)`;
+    if (floor === ceil) {
+        width = tabWidth;
+        center = centers[floor];
+    } else {
+        const gap = centers[ceil] - centers[floor];
+        const fraction = idx - floor;
+        center = centers[floor] + gap * fraction;
+        width = tabWidth + gap * Math.pow(Math.sin(Math.PI * fraction), 1.5) * 0.7;
     }
+
+    const maxWidth = navRect.width - PADDING * 2;
+    if (width > maxWidth) width = maxWidth;
+
+    let tx = center - width / 2;
+    const minTx = PADDING;
+    const maxTx = navRect.width - width - PADDING;
+    if (tx < minTx) tx = minTx;
+    if (tx > maxTx) tx = maxTx;
+
+    // ★★★ МЕНЯЕМ ТОЛЬКО transform И width — CSS сам всё анимирует ★★★
+    bubble.style.width = width + 'px';
+    bubble.style.transform = `translateX(${tx}px)`;
+
+    // ★★★ ПОДСВЕТКА ИКОНКИ ПОД ПУЗЫРЬКОМ ★★★
+    highlightIconUnderBubble(continuousIndex);
+}
+
+/**
+ * Подсвечивает иконку, которая находится ближе всего к центру пузырька.
+ * Все остальные иконки — в обычном (сером) состоянии.
+ */
+function highlightIconUnderBubble(index) {
+    // Округляем индекс — получаем номер иконки, над которой сейчас пузырёк
+    const activeIdx = Math.round(index);
+
+    items.forEach((item, i) => {
+        const icon = item.querySelector('i');
+        if (!icon) return;
+
+        if (i === activeIdx) {
+            icon.classList.add('icon-under-bubble');
+        } else {
+            icon.classList.remove('icon-under-bubble');
+        }
+    });
+}
 
     /* -------- X → ИНДЕКС -------- */
 
@@ -20171,15 +20194,11 @@ async function loadFeed() {
             return;
         }
 
-        // Список друзей для фильтра
-        let allowedIds = null;
-        if (_feedFilter === 'friends') {
-            const friendsResult = await getFriendsList();
-            allowedIds = [user.uid];
-            if (friendsResult.success) {
-                friendsResult.data.forEach(f => allowedIds.push(f.id));
-            }
-        }
+// Фильтр «Моя» — только свои посты
+let allowedIds = null;
+if (_feedFilter === 'my') {
+    allowedIds = [user.uid];
+}
 
         // Запрос постов
         const snapshot = await firebase.firestore()
@@ -20219,18 +20238,18 @@ function renderFeed() {
     const container = document.getElementById('feedContainer');
     if (!container) return;
 
-    if (_feedPosts.length === 0) {
-        const text = _feedFilter === 'friends'
-            ? 'У вас и ваших друзей пока нет постов'
-            : 'Станьте первым, кто поделится тренировкой!';
-        container.innerHTML = `
-            <div class="empty-state">
-                <span class="empty-icon">📷</span>
-                <h3 class="empty-title">Пока нет постов</h3>
-                <p class="empty-text">${text}</p>
-            </div>`;
-        return;
-    }
+if (_feedPosts.length === 0) {
+    const text = _feedFilter === 'my'
+        ? 'Вы ещё не публиковали посты. Поделитесь своей тренировкой!'
+        : 'Станьте первым, кто поделится тренировкой!';
+    container.innerHTML = `
+        <div class="empty-state">
+            <span class="empty-icon">📷</span>
+            <h3 class="empty-title">Пока нет постов</h3>
+            <p class="empty-text">${text}</p>
+        </div>`;
+    return;
+}
 
     const currentUser = firebase.auth().currentUser;
     const currentUserId = currentUser ? currentUser.uid : null;
@@ -20245,8 +20264,10 @@ function renderFeed() {
 
 return `
     <div class="feed-post" data-post-id="${post.id}">
-        <!-- ★ Шапка — отдельный блок -->
-        <div class="feed-post-header">
+        <!-- ★ Шапка — отдельный блок, кликабельный для открытия профиля -->
+        <div class="feed-post-header"
+             style="cursor:pointer;"
+             onclick="openPostAuthorProfile('${post.userId}', event)">
             <div class="feed-post-avatar">
                 <img src="${avatarSrc}" alt="">
             </div>
@@ -20254,21 +20275,21 @@ return `
                 <div class="feed-post-name">${post.userName || 'Пользователь'}</div>
                 <div class="feed-post-time">${timeStr}</div>
             </div>
-${isMe ? `
-    <button class="feed-post-action-btn" title="Скачать фото"
-            onclick="openPostDownloadModal('${post.id}', event)">
-        <i class="fa-solid fa-download"></i>
-    </button>
-    <button class="feed-post-action-btn" title="Удалить"
-            onclick="deletePost('${post.id}', event)">
-        <i class="fa-regular fa-trash-can"></i>
-    </button>
-` : `
-    <button class="feed-post-action-btn" title="Действия"
-            onclick="openPostDownloadModal('${post.id}', event)">
-        <i class="fa-solid fa-download"></i>
-    </button>
-`}
+            ${isMe ? `
+                <button class="feed-post-action-btn" title="Скачать фото"
+                        onclick="openPostDownloadModal('${post.id}', event)">
+                    <i class="fa-solid fa-download"></i>
+                </button>
+                <button class="feed-post-action-btn" title="Удалить"
+                        onclick="deletePost('${post.id}', event)">
+                    <i class="fa-regular fa-trash-can"></i>
+                </button>
+            ` : `
+                <button class="feed-post-action-btn" title="Действия"
+                        onclick="openPostDownloadModal('${post.id}', event)">
+                    <i class="fa-solid fa-download"></i>
+                </button>
+            `}
         </div>
 
         <!-- ★ Контент — отдельный блок (фото + статистика) -->
@@ -20298,6 +20319,110 @@ ${isMe ? `
 `;
     }).join('');
 }
+
+async function openPostAuthorProfile(userId, event) {
+    if (event) event.stopPropagation();
+
+    if (!userId) {
+        showToast('❌ Автор не найден');
+        return;
+    }
+
+    // ★ Всегда открываем модалку профиля с одной кнопкой «Готово»
+    await openProfileFromPost(userId);
+}
+window.openPostAuthorProfile = openPostAuthorProfile;
+
+/**
+ * Открывает модалку профиля по userId (для постов).
+ * Всегда с одной кнопкой «Готово» — независимо от того, чей это профиль.
+ */
+async function openProfileFromPost(userId) {
+    try {
+        const result = await getUserProfile(userId);
+        if (!result.success) {
+            showToast('❌ Не удалось загрузить профиль');
+            return;
+        }
+
+        const profile = result.data;
+        const name = profile.displayName || 'Пользователь';
+
+        // ★ Шапка
+        document.getElementById('friendProfileAvatar').textContent = name[0].toUpperCase();
+        document.getElementById('friendProfileName').textContent = name;
+        document.getElementById('friendProfileEmail').textContent = profile.email || 'email не указан';
+
+        // ★ Уровень
+        const xp = profile.totalXp || 0;
+        const currentLevel = getCurrentLevel(xp);
+        const progress = getXpProgress(xp);
+        const nextLevel = getNextLevel(xp);
+        const xpRounded = Math.round(xp);
+        const progressText = nextLevel ? `${xpRounded}/${nextLevel.minXp} XP` : `${xpRounded}+ XP`;
+
+        document.getElementById('friendLevelLvl').textContent = currentLevel.id + ' LVL';
+        document.getElementById('friendLevelTitle').textContent = currentLevel.name;
+        document.getElementById('friendLevelProgressText').textContent = progressText;
+        document.getElementById('friendLevelFill').style.width = progress + '%';
+
+        // ★ Достижения
+        const achievements = profile.achievements || {};
+        updateAchievementsUI('friendAchievements', achievements);
+        const visible = getAchievementsVisibility();
+        const achContainer = document.getElementById('friendAchievements');
+        if (achContainer) achContainer.classList.toggle('hidden', !visible);
+
+        // ★ Статистика
+        let workouts = [];
+        let totalSeconds = 0;
+        let totalExercises = 0;
+
+        try {
+            const workoutsResult = await getUserWorkoutsFromFirestore(userId);
+            if (workoutsResult.success) {
+                workouts = workoutsResult.data.filter(w => !(w.title || '').includes('Зарядка'));
+                totalSeconds = workouts.reduce((sum, w) => sum + (w.durationSeconds || 0), 0);
+                totalExercises = workouts.reduce((sum, w) => {
+                    const completed = w.exercises?.filter(e => e.completed === true).length || 0;
+                    return sum + completed;
+                }, 0);
+            }
+        } catch (e) {
+            console.warn('⚠️ Ошибка загрузки тренировок:', e);
+        }
+
+        document.getElementById('friendTotalWorkouts').textContent = workouts.length;
+        document.getElementById('friendTotalMinutes').textContent = Math.floor(totalSeconds / 60);
+        document.getElementById('friendTotalExercises').textContent = totalExercises;
+
+        // ★ Кнопки: ВСЕГДА только «Готово»
+        const container = document.getElementById('friendProfileActions');
+        if (container) {
+            container.innerHTML = `
+                <button class="btn btn-primary" id="profileFromPostCloseBtn" style="flex:1;">
+                    Готово
+                </button>
+            `;
+            document.getElementById('profileFromPostCloseBtn').addEventListener('click', function() {
+                closeModal('friendProfileModal');
+            });
+        }
+
+        openModal('friendProfileModal');
+
+        // ★ Ежедневные задания: посмотреть профиль друга
+        const currentUser = firebase.auth().currentUser;
+        if (currentUser && currentUser.uid !== userId) {
+            checkDailyTasksAfterFriendProfile(userId);
+        }
+
+    } catch (error) {
+        console.error('❌ Ошибка открытия профиля:', error);
+        showToast('❌ Не удалось открыть профиль');
+    }
+}
+window.openProfileFromPost = openProfileFromPost;
 
 /**
  * Открывает модалку действий с постом.
@@ -20337,21 +20462,23 @@ function openPostDownloadModal(postId, event) {
 let buttonsHtml = '';
 
 if (isMe) {
-    // Свой пост: сверху — Отмена, снизу — Скачать
+    // Свой пост: Отмена и Скачать в одну строку
     buttonsHtml = `
-        <button class="btn btn-secondary" id="postDlCancelBtn" style="width:100%;">Отмена</button>
-        <button class="btn btn-primary" id="postDlPhotoBtn" style="width:100%;">Скачать</button>
+        <div style="display:flex; gap:0.5rem; width:100%;">
+            <button class="btn btn-secondary" id="postDlCancelBtn" style="flex:1;">Отмена</button>
+            <button class="btn btn-primary" id="postDlPhotoBtn" style="flex:1;">Скачать</button>
+        </div>
     `;
 } else {
     // Чужой пост: сверху — Отмена, снизу — Скачать + Загрузить в ряд
     buttonsHtml = `
-        <button class="btn btn-secondary" id="postDlCancelBtn" style="width:100%;">Отмена</button>
         <div style="display:flex; gap:0.5rem; width:100%;">
             <button class="btn btn-primary" id="postDlPhotoBtn" style="flex:1;">Скачать фото</button>
             ${hasShareLink ? `
                 <button class="btn btn-primary" id="postDlWorkoutBtn" style="flex:1;">Загрузить тренировку</button>
             ` : ''}
         </div>
+        <button class="btn btn-secondary" id="postDlCancelBtn" style="width:100%;">Отмена</button>
     `;
 }
 
