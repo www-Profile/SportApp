@@ -322,7 +322,12 @@
         <button class="session-close-btn" id="sessionCloseBtn">
             <i class="fa-solid fa-xmark"></i>
         </button>
-        <div class="session-timer" id="sessionTimer">00:00</div>
+<div class="session-timer-wrapper">
+    <div class="session-timer" id="sessionTimer">00:00</div>
+    <button class="session-pause-btn" id="sessionPauseBtn" title="Пауза">
+        <i class="fa-solid fa-pause"></i>
+    </button>
+</div>
     </div>
 </div>
         <div class="session-bottom">
@@ -350,6 +355,15 @@
                 </button>
             </div>
         </div>
+        <!-- ★★★ ОВЕРЛЕЙ ПАУЗЫ ★★★ -->
+<!-- ★★★ ОВЕРЛЕЙ ПАУЗЫ ★★★ -->
+<div id="sessionPauseOverlay" class="session-pause-overlay">
+    <button class="session-pause-overlay-btn" id="sessionPauseResumeBtn">
+        <i class="fa-solid fa-play"></i>
+    </button>
+    <div class="session-pause-overlay-text">ПАУЗА</div>
+    <div class="session-pause-overlay-time" id="sessionPauseTime">00:00</div>
+</div>
     </main>
 </div>
 

@@ -4000,6 +4000,7 @@ let sessionCurrentIndex = 0;
 let sessionCompleted = new Set();
 let sessionTimerInterval = null;
 let sessionSeconds = 0;
+let isSessionPaused = false;
 let sessionWorkoutTitle = '';
 let sessionCategory = '';
 let sessionWorkoutIcon = null;
@@ -4433,7 +4434,9 @@ function markCurrentComplete() {
 // ===================ТАЙМЕР ===================
 function startSessionTimer() {
     if (sessionTimerInterval) return;
+    isSessionPaused = false;
     sessionTimerInterval = setInterval(() => {
+        if (isSessionPaused) return;      // ← не считаем, пока пауза
         sessionSeconds++;
         updateSessionTimerDisplay();
     }, 1000);
@@ -4460,12 +4463,39 @@ function stopSessionTimer() {
             restControls.classList.remove('visible');
         }
     }
+
+    // ★★★ СБРАСЫВАЕМ ПАУЗУ ★★★
+    isSessionPaused = false;
+    window._resumeExerciseTimerAfterPause = false;
+
+    // Скрываем оверлей паузы, если он был открыт
+    const pauseOverlay = document.getElementById('sessionPauseOverlay');
+    if (pauseOverlay) pauseOverlay.classList.remove('visible');
+
+    // Останавливаем таймер упражнения, если он вдруг ещё крутится
+    if (exerciseTimerInterval) {
+        clearInterval(exerciseTimerInterval);
+        exerciseTimerInterval = null;
+    }
+    isExerciseTimerRunning = false;
+
+    // в конце stopSessionTimer()
+const pauseTime = document.getElementById('sessionPauseTime');
+if (pauseTime) pauseTime.textContent = '00:00';
 }
 
 function updateSessionTimerDisplay() {
     const mins = String(Math.floor(sessionSeconds / 60)).padStart(2, '0');
     const secs = String(sessionSeconds % 60).padStart(2, '0');
     document.getElementById('sessionTimer').textContent = `${mins}:${secs}`;
+}
+
+function updatePauseOverlayTime() {
+    const el = document.getElementById('sessionPauseTime');
+    if (!el) return;
+    const mins = String(Math.floor(sessionSeconds / 60)).padStart(2, '0');
+    const secs = String(sessionSeconds % 60).padStart(2, '0');
+    el.textContent = `${mins}:${secs}`;
 }
 
 // ===================КНОПКИ СЕССИИ ===================
@@ -4486,6 +4516,10 @@ document.getElementById('sessionMainBtn')?.addEventListener('click', function() 
     // ★★★ ОБЫЧНОЕ УПРАЖНЕНИЕ (ПОВТОРЕНИЯ) ★★★
     markCurrentComplete();
 });
+
+// ★★★ ПАУЗА ★★★
+document.getElementById('sessionPauseBtn')?.addEventListener('click', pauseSession);
+document.getElementById('sessionPauseResumeBtn')?.addEventListener('click', resumeSession);
 
 function handleTimedExerciseClick() {
     const timerEl = document.getElementById('sessionExerciseTimer');
@@ -21209,4 +21243,48 @@ function updatePostLimitTimer() {
     const m = String(Math.floor((total % 3600) / 60)).padStart(2, '0');
     const s = String(total % 60).padStart(2, '0');
     el.textContent = `${h}:${m}:${s}`;
+}
+
+// =================== ПАУЗА ТРЕНИРОВКИ ===================
+function pauseSession() {
+    if (isResting) {
+        showToast('⏸️ Сначала дождитесь конца отдыха');
+        return;
+    }
+    if (isSessionPaused) return;
+
+    isSessionPaused = true;
+
+    if (isExerciseTimerRunning && exerciseTimerInterval) {
+        clearInterval(exerciseTimerInterval);
+        exerciseTimerInterval = null;
+        window._resumeExerciseTimerAfterPause = true;
+    }
+
+    // ★ Заполняем время актуальным значением секундомера
+    updatePauseOverlayTime();
+
+    const overlay = document.getElementById('sessionPauseOverlay');
+    if (overlay) overlay.classList.add('visible');
+
+    console.log('⏸️ Тренировка на паузе');
+}
+
+function resumeSession() {
+    if (!isSessionPaused) return;
+
+    isSessionPaused = false;
+
+    // Возобновляем таймер упражнения, если он был активен
+    if (window._resumeExerciseTimerAfterPause) {
+        window._resumeExerciseTimerAfterPause = false;
+        isExerciseTimerRunning = true;
+        startExerciseTimer();
+    }
+
+    // Скрываем оверлей
+    const overlay = document.getElementById('sessionPauseOverlay');
+    if (overlay) overlay.classList.remove('visible');
+
+    console.log('▶️ Тренировка продолжена');
 }
