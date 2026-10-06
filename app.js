@@ -158,6 +158,12 @@ soundCountdown.volume = 0.5;
 soundTimerFinish.volume = 0.5;
 soundSms.volume = 0.5;
 
+// ★★★ История тренировок: кэш и фильтры ★★★
+let _historyAllWorkouts = [];       // все тренировки (уже отфильтрованные от зарядки)
+let _historySearchQuery = '';       // текущий поисковый запрос
+let _historyCategory = 'all';       // текущая категория
+let _historyPeriod = 'all';         // текущий период
+
 // ===================СОВМЕСТНЫЕ ТРЕНИРОВКИ ===================
 let currentSessionId = null;
 let isHost = false;
@@ -1599,7 +1605,21 @@ function renderCoopFriendsStatus() {
     container.innerHTML = html;
 }
 
-document.getElementById('coopFinishShareBtn')?.addEventListener('click', openCoopShareModal);
+document.getElementById('coopFinishShareBtn')?.addEventListener('click', function() {
+    // Кликаем по кнопке «Закончить» — она сохраняет и переходит в ленту.
+    // Но нам нужно открыть модалку поста. Поэтому делаем то же самое, но
+    // с флагом _openCreatePostAfterSave = true.
+
+    if (!preventDoubleClick('coopFinishShareBtn', 3000)) {
+        showToast('⏳ Подождите, тренировка уже сохраняется...');
+        return;
+    }
+
+    window._openCreatePostAfterSave = true;
+
+    // Программно кликаем по «Закончить»
+    document.getElementById('coopFinishDoneBtn')?.click();
+});
 document.getElementById('coopFinishDoneBtn')?.addEventListener('click', async function() {
     console.log('🔥🔥🔥 [coopFinishDoneBtn] НАЖАТА КНОПКА');
     console.log('🔥 [coopFinishDoneBtn] currentSessionId:', currentSessionId);
@@ -1659,6 +1679,7 @@ document.getElementById('coopFinishDoneBtn')?.addEventListener('click', async fu
                     const currentXp = profileResult.data.totalXp || 0;
                     console.log('🔥 [coopFinishDoneBtn] currentXp:', currentXp);
                     await updateUserProfile(user.uid, { totalXp: currentXp + xpEarned });
+                    if (typeof refreshAutoCarousel === 'function') refreshAutoCarousel(); // ★
                     console.log('✅ [coopFinishDoneBtn] Профиль обновлён, XP добавлен');
                 }
                 showToast('💾 Тренировка сохранена');
@@ -1734,40 +1755,52 @@ document.getElementById('coopFinishDoneBtn')?.addEventListener('click', async fu
             console.log('✅ [coopFinishDoneBtn] Слушатель отключен');
         }
 
-        // 7. Переход на страницу тренировок
-        console.log('📍 [coopFinishDoneBtn] Переход на workouts');
-        window.navigateTo('workouts');
-        document.getElementById('bottomNav').style.display = 'block';
-        console.log('✅ [coopFinishDoneBtn] navigateTo выполнен, меню показано');
+        // 7. Переход: либо в ленту с открытой модалкой поста (если нажали «Поделиться»),
+        //    либо на страницу тренировок (обычное «Закончить»)
+        if (window._openCreatePostAfterSave) {
+            window._openCreatePostAfterSave = false;
+            console.log('📍 [coopFinishDoneBtn] Переход в ленту с открытием модалки поста');
+            window.navigateTo('feed');
+            document.getElementById('bottomNav').style.display = 'block';
+
+            setTimeout(() => {
+                setFeedFilter('my');
+                openCreatePostModal({ autoSelectLatest: true });
+            }, 500);
+        } else {
+            console.log('📍 [coopFinishDoneBtn] Переход на workouts');
+            window.navigateTo('workouts');
+            document.getElementById('bottomNav').style.display = 'block';
+        }
 
         // ★★★ УВЕЛИЧИВАЕМ СЧЁТЧИК ТРЕНИРОВОК ★★★
         incrementWorkoutsCount();
         const showPremiumCoop = shouldShowPremiumOffer();
 
         // ★★★ ПОКАЗЫВАЕМ PREMIUM ЧЕРЕЗ НЕКОТОРОЕ ВРЕМЯ ★★★
-if (showPremiumCoop) {
-    markPremiumOfferShown();
-    setTimeout(() => {
-        enqueueModal({ type: 'premium' });
-    }, 800);
-}
-
-// ★★★ ДОБАВЛЯЕМ ПРОВЕРКУ НАГРАДЫ ★★★
-setTimeout(() => {
-    checkAndGiveCommunityGoalReward();
-}, 1000);
-
-    } catch (error) {
-        console.error('❌ [coopFinishDoneBtn] ОШИБКА:', error);
-        console.error('❌ [coopFinishDoneBtn] stack:', error.stack);
-        showToast('❌ Ошибка сохранения тренировки');
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Закончить';
-        console.log('✅ [coopFinishDoneBtn] Кнопка разблокирована');
+    if (showPremiumCoop) {
+        markPremiumOfferShown();
+        setTimeout(() => {
+            enqueueModal({ type: 'premium' });
+        }, 800);
     }
-    console.log('✅ [coopFinishDoneBtn] ЗАВЕРШЕНА');
-});
+
+    // ★★★ ДОБАВЛЯЕМ ПРОВЕРКУ НАГРАДЫ ★★★
+    setTimeout(() => {
+        checkAndGiveCommunityGoalReward();
+    }, 1000);
+
+        } catch (error) {
+            console.error('❌ [coopFinishDoneBtn] ОШИБКА:', error);
+            console.error('❌ [coopFinishDoneBtn] stack:', error.stack);
+            showToast('❌ Ошибка сохранения тренировки');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Закончить';
+            console.log('✅ [coopFinishDoneBtn] Кнопка разблокирована');
+        }
+        console.log('✅ [coopFinishDoneBtn] ЗАВЕРШЕНА');
+    });
 
 // Создаём глобальные переменные для совместимости со старым кодом
 let activeStatsTab = TabManager.state.stats;
@@ -3140,10 +3173,11 @@ document.querySelectorAll('.nav-item').forEach(btn => {
             params.exercises
         );
     }
-    if (page === 'workouts') {
-        TabManager.workouts(TabManager.state.workouts);
-        renderMyWorkouts();
-    }
+if (page === 'workouts') {
+    TabManager.workouts(TabManager.state.workouts);
+    renderMyWorkouts();
+    if (typeof refreshAutoCarousel === 'function') refreshAutoCarousel(); // ★
+}
         if (page === 'exercise-list') renderExerciseListPage();
     if (page === 'stats') {
         const currentTab = TabManager.state.stats || 'personal';
@@ -5832,29 +5866,10 @@ workouts.forEach(w => {
     // === КАЛЕНДАРЬ ===
     renderCalendar(currentMonth, currentYear);
 
-    // === ИСТОРИЯ ТРЕНИРОВОК ===
-    const historyContainer = document.getElementById('workoutHistory');
-    if (historyContainer) {
-        if (workouts.length === 0) {
-            historyContainer.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><h3 class="empty-title">Нет выполненных тренировок</h3><p class="empty-text">Выполните свою первую тренировку!</p></div>';
-        } else {
-            const sortedWorkouts = workouts.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
-            historyContainer.innerHTML = sortedWorkouts.map(w => {
-                const totalEx = w.exercises?.length || 0;
-                const completedEx = w.exercises?.filter(e => e.completed === true).length || 0;
-                const xpEarned = w.xpEarned || 0;
-                const minutes = Math.floor((w.durationSeconds || 0) / 60);
-                const detailsText = `${minutes} мин · ${completedEx}/${totalEx} ${declOfNum(totalEx, ['упражнение', 'упражнения', 'упражнений'])} · ${xpEarned.toFixed(1)} XP`;
-                return `<div class="history-item">
-                    <div class="history-item-header">
-                        <strong class="history-item-title">${w.title}</strong>
-                        <span class="history-item-date">${new Date(w.date).toLocaleDateString('ru-RU')}</span>
-                    </div>
-                    <div class="history-item-details">${detailsText}</div>
-                </div>`;
-            }).join('');
-        }
-    }
+// === ИСТОРИЯ ТРЕНИРОВОК ★ с фильтрами ===
+_historyAllWorkouts = workouts.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+initHistoryFilters();
+renderWorkoutHistory();
 applyStatsTab(activeStatsTab);
 initAccordion();
 loadPremiumStats();
@@ -6066,6 +6081,7 @@ await loadInventoryFromProfile();
     } catch (error) {
         console.warn('Ошибка проверки достижений:', error);
     }
+    if (typeof refreshAutoCarousel === 'function') refreshAutoCarousel(); // ★
 }
 
 // ===================ПРОФИЛЬ - РЕДАКТИРОВАНИЕ ===================
@@ -6282,6 +6298,7 @@ if (loadingPage) {
 
         console.log('📊 Загрузка профиля...');
         await loadProfile();
+        if (typeof refreshAutoCarousel === 'function') refreshAutoCarousel(); // ★
         console.log('📊 Загрузка статистики...');
         await loadStats();
         console.log('📊 Рендер тренировок...');
@@ -9309,7 +9326,6 @@ function openColorModal() {
     if (!isCustom) {
         document.body.className = 'theme-' + currentColor;
     } else {
-        // Если кастомный цвет - показываем его через переменные
         applyColorToTheme(currentColor);
     }
     
@@ -9320,7 +9336,8 @@ function openColorModal() {
     }
     
     // ★★★ ОБНОВЛЯЕМ АКТИВНУЮ КНОПКУ ★★★
-updateColorStatus(currentColor);
+    updateColorButtons(currentColor);      // ← ДОБАВИТЬ ЭТУ СТРОКУ
+    updateColorStatus(currentColor);
     
     // ★★★ ОБНОВЛЯЕМ ПАЛИТРУ ★★★
     const picker = document.getElementById('customColorPicker');
@@ -10297,11 +10314,13 @@ function showFinishPage(exercisesCount, completedCount, seconds, xpEarned) {
     // ★★★ УБИРАЕМ АКТИВНОСТЬ ЗВЁЗД (если они есть) ★★★
     document.querySelectorAll('#finishStars i').forEach(star => star.classList.remove('active'));
 
-    // ★★★ КНОПКА "ПОДЕЛИТЬСЯ" ★★★
-    const shareBtn = document.getElementById('finishShareBtn');
-    if (shareBtn) {
-        shareBtn.onclick = openWorkoutShareModal;
-    }
+// ★★★ КНОПКА "ПОДЕЛИТЬСЯ" — сохраняет тренировку и открывает модалку поста ★★★
+const shareBtn = document.getElementById('finishShareBtn');
+if (shareBtn) {
+    shareBtn.onclick = function() {
+        finishWorkoutAndShare(completedCount, xpEarned, exercisesCount, seconds);
+    };
+}
 
     // ★★★ КНОПКА "ЗАКОНЧИТЬ" ★★★
     const finishBtn = document.getElementById('finishDoneBtn');
@@ -10387,6 +10406,7 @@ function showFinishPage(exercisesCount, completedCount, seconds, xpEarned) {
                             if (profileResult.success) {
                                 const currentXp = profileResult.data.totalXp || 0;
                                 await updateUserProfile(user.uid, { totalXp: currentXp + xpEarned2 });
+                                if (typeof refreshAutoCarousel === 'function') refreshAutoCarousel(); // ★
                             }
                             showToast('💾 Тренировка сохранена');
                             await updateAchievementsAfterWorkout();
@@ -12637,6 +12657,7 @@ async function addDailyTaskXp() {
             console.log(`📊 Текущий XP: ${currentXp}, Новый XP: ${newXp}`);
             
             await updateUserProfile(user.uid, { totalXp: newXp });
+            if (typeof refreshAutoCarousel === 'function') refreshAutoCarousel(); // ★
             console.log('✅ Начислено +10 XP за ежедневное задание');
             
             // ★★★ ЖДЁМ 1 СЕКУНДУ, ПОКА FIRESTORE ОБНОВИТСЯ ★★★
@@ -14330,6 +14351,7 @@ async function addSingleExerciseToStats(exercise, durationSeconds, xpEarned) {
     if (profileResult.success) {
         const currentXp = profileResult.data.totalXp || 0;
         await updateUserProfile(user.uid, { totalXp: currentXp + xpEarned });
+        if (typeof refreshAutoCarousel === 'function') refreshAutoCarousel(); // ★
     }
 
     // Добавляем упражнение как отдельную запись в workout
@@ -17025,6 +17047,20 @@ function shuffleArray(arr) {
 }
 
 const CAROUSEL_CARDS = [
+    // ★★★ КАРТОЧКА УРОВНЯ ★★★
+    {
+        dynamic: true,
+        isLevelCard: true,
+        icon: 'fa-solid fa-trophy',
+        iconImg: null,
+        title: 'НОВИЧОК',
+        desc: '0 / 100 XP',
+        action: () => {
+            if (typeof openLevelInfoModal === 'function') {
+                openLevelInfoModal();
+            }
+        }
+    },
     {
         icon: 'fa-solid fa-dumbbell',
         iconImg: null,
@@ -17176,22 +17212,21 @@ function initAutoCarousel() {
     console.log('🎲 Карусель перемешана:', shuffledCards.map(c => c.title));
 
     // Дублируем карточки для бесконечной прокрутки
-    const cardsHtml = shuffledCards.map((card) => {
-        // ★★★ data-card-index — ИСХОДНЫЙ индекс в CAROUSEL_CARDS, чтобы клики работали правильно ★★★
-        const originalIndex = CAROUSEL_CARDS.indexOf(card);
-        const iconHtml = card.iconImg
-            ? `<img src="${card.iconImg}" alt="${card.title}">`
-            : `<i class="${card.icon}"></i>`;
-        return `
-            <div class="carousel-card" data-card-index="${originalIndex}">
-                <div class="carousel-card-icon">${iconHtml}</div>
-                <div class="carousel-card-info">
-                    <div class="carousel-card-title">${card.title}</div>
-                    <div class="carousel-card-desc">${card.desc}</div>
-                </div>
+const cardsHtml = shuffledCards.map((card) => {
+    const originalIndex = CAROUSEL_CARDS.indexOf(card);
+    const iconHtml = card.iconImg
+        ? `<img src="${card.iconImg}" alt="${card.title}">`
+        : `<i class="${card.icon}"></i>`;
+    return `
+        <div class="carousel-card" data-card-index="${originalIndex}">
+            <div class="carousel-card-icon">${iconHtml}</div>
+            <div class="carousel-card-info">
+                <div class="carousel-card-title">${card.title}</div>
+                <div class="carousel-card-desc">${card.desc}</div>
             </div>
-        `;
-    }).join('');
+        </div>
+    `;
+}).join('');
 
     track.innerHTML = cardsHtml + cardsHtml;
 
@@ -17206,8 +17241,47 @@ function initAutoCarousel() {
     });
 }
 
+/**
+ * Обновляет карточку уровня в карусели (название, XP).
+ * Номер уровня из CAROUSEL_CARDS убран — вместо него иконка-трофей.
+ */
+async function updateLevelCarouselCard() {
+    const levelCard = CAROUSEL_CARDS.find(c => c.isLevelCard);
+    if (!levelCard) return;
+
+    try {
+        const user = await getFirebaseUser();
+        if (!user) return;
+
+        const profileResult = await getUserProfile(user.uid);
+        if (!profileResult.success) return;
+
+        const profile = profileResult.data;
+        const xp = profile.totalXp || 0;
+
+        const currentLevel = getCurrentLevel(xp);
+        const nextLevel = getNextLevel(xp);
+        const xpRounded = Math.round(xp);
+
+        // ★ Название уровня
+        levelCard.title = currentLevel.name;
+
+        // ★ XP
+        if (nextLevel) {
+            levelCard.desc = `${xpRounded} / ${nextLevel.minXp} XP`;
+        } else {
+            levelCard.desc = `${xpRounded}+ XP`;
+        }
+
+    } catch (error) {
+        console.warn('⚠️ Ошибка обновления карточки уровня:', error);
+    }
+}
+
 // ★★★ ОБНОВЛЕНИЕ ДИНАМИЧЕСКИХ КАРТОЧЕК ★★★
 function updateCarouselDynamicCards() {
+    // ★★★ Обновляем карточку уровня ★★★
+    updateLevelCarouselCard();
     CAROUSEL_CARDS.forEach(card => {
         if (!card.dynamic) return;
 
@@ -17256,21 +17330,21 @@ function refreshAutoCarousel() {
     // ★★★ ПОЛНАЯ СЛУЧАЙНАЯ ТАСОВКА ★★★
     const shuffledCards = shuffleArray(CAROUSEL_CARDS);
 
-    const cardsHtml = shuffledCards.map((card) => {
-        const originalIndex = CAROUSEL_CARDS.indexOf(card);
-        const iconHtml = card.iconImg
-            ? `<img src="${card.iconImg}" alt="${card.title}">`
-            : `<i class="${card.icon}"></i>`;
-        return `
-            <div class="carousel-card" data-card-index="${originalIndex}">
-                <div class="carousel-card-icon">${iconHtml}</div>
-                <div class="carousel-card-info">
-                    <div class="carousel-card-title">${card.title}</div>
-                    <div class="carousel-card-desc">${card.desc}</div>
-                </div>
+const cardsHtml = shuffledCards.map((card) => {
+    const originalIndex = CAROUSEL_CARDS.indexOf(card);
+    const iconHtml = card.iconImg
+        ? `<img src="${card.iconImg}" alt="${card.title}">`
+        : `<i class="${card.icon}"></i>`;
+    return `
+        <div class="carousel-card" data-card-index="${originalIndex}">
+            <div class="carousel-card-icon">${iconHtml}</div>
+            <div class="carousel-card-info">
+                <div class="carousel-card-title">${card.title}</div>
+                <div class="carousel-card-desc">${card.desc}</div>
             </div>
-        `;
-    }).join('');
+        </div>
+    `;
+}).join('');
 
     track.innerHTML = cardsHtml + cardsHtml;
 
@@ -18239,383 +18313,6 @@ function showLinkForManualCopy(url) {
 document.getElementById('shareProfileBtn')?.addEventListener('click', openQRCodeModal);
 document.getElementById('qrCodeCopyBtn')?.addEventListener('click', copyProfileShareLink);
 document.getElementById('qrCodeDownloadBtn')?.addEventListener('click', downloadQRCode);
-
-// =================== ПОДЕЛИТЬСЯ РЕЗУЛЬТАТОМ ТРЕНИРОВКИ ===================
-
-// ★★★ ХЕЛПЕРЫ ★★★
-function loadImageWithCors(url, timeoutMs = 5000) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error('load error'));
-        img.src = url;
-        setTimeout(() => reject(new Error('timeout')), timeoutMs);
-    });
-}
-
-// ★★★ ГЕНЕРАЦИЯ PNG ЧЕРЕЗ CANVAS ★★★
-async function generateWorkoutShareImage() {
-    const user = await getFirebaseUser();
-    if (!user) return null;
-
-    const profileResult = await getUserProfile(user.uid);
-    const profile = profileResult.success ? profileResult.data : {};
-    const userName = profile.displayName || 'Пользователь';
-
-    const completed = sessionCompleted.size;
-    const total = sessionExercises.length;
-    const xpEarned = Math.round(calculateWorkoutXp(sessionExercises, sessionCompletedSets));
-    const minutes = Math.floor(sessionSeconds / 60);
-
-    // ★★★ ЦВЕТА ★★★
-    const ACCENT = '#DC143C';
-    const DARK   = '#0F172A';
-
-    // ★★★ РАЗМЕР: ФОРМАТ ТЕЛЕФОНА (9:19.5) ★★★
-    const W = 900, H = 1800;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = W;
-    canvas.height = H;
-    const ctx = canvas.getContext('2d');
-    const SANS = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-
-    // Фон прозрачный — НЕ заливаем
-
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    // ═══════════════════════════════════════
-    //  ВЕРХ: SportApp
-    // ═══════════════════════════════════════
-    ctx.fillStyle = ACCENT;
-    ctx.font = `bold 90px ${SANS}`;
-    ctx.fillText('SportApp', W / 2, 130);
-
-    // ═══════════════════════════════════════
-    //  ПОД ЗАГОЛОВКОМ: ТАБЛИЧКА СТАТИСТИКИ
-    // ═══════════════════════════════════════
-    const numbersY = 250;
-    const labelsY = 320;
-
-    const col1X = W * 0.2;
-    const col2X = W * 0.5;
-    const col3X = W * 0.8;
-
-    // ЦИФРЫ
-    ctx.fillStyle = DARK;
-    ctx.font = `bold 70px ${SANS}`;
-    ctx.fillText(String(minutes), col1X, numbersY);
-    ctx.fillText(`${completed}/${total}`, col2X, numbersY);
-    ctx.fillText(`+${xpEarned}`, col3X, numbersY);
-
-    // ПОДПИСИ
-    ctx.fillStyle = DARK;
-    ctx.font = `500 30px ${SANS}`;
-    ctx.fillText('минут', col1X, labelsY);
-    ctx.fillText('упражнений', col2X, labelsY);
-    ctx.fillText('XP', col3X, labelsY);
-
-    // ═══════════════════════════════════════
-    //  ЦЕНТР: ПУСТО
-    // ═══════════════════════════════════════
-
-    // ═══════════════════════════════════════
-    //  ВНИЗУ: ИМЯ И ПОДПИСЬ
-    // ═══════════════════════════════════════
-    ctx.fillStyle = ACCENT;
-    ctx.font = `bold 50px ${SANS}`;
-    ctx.fillText(userName, W / 2, H - 170);
-
-    ctx.fillStyle = DARK;
-    ctx.font = `500 30px ${SANS}`;
-    ctx.fillText('Присоединяйся ко мне в SportApp!', W / 2, H - 110);
-
-    return canvas;
-}
-
-// ★★★ ОТКРЫТЬ МОДАЛКУ С ПРЕВЬЮ ★★★
-async function openWorkoutShareModal() {
-    const preview = document.getElementById('workoutSharePreview');
-    preview.innerHTML = '<div style="color:var(--slate);padding:2rem;">Генерация...</div>';
-
-    openModal('workoutShareModal');
-
-    try {
-        const canvas = await generateWorkoutShareImage();
-        if (!canvas) {
-            preview.innerHTML = '<div style="color:var(--danger);padding:2rem;">Ошибка генерации</div>';
-            return;
-        }
-
-        window._currentShareCanvas = canvas;
-        const dataUrl = canvas.toDataURL('image/png');
-        window._currentShareDataUrl = dataUrl;
-
-        preview.innerHTML = `<img src="${dataUrl}" style="max-width:100%; max-height:60vh;">`;
-    } catch (e) {
-        console.error('Ошибка генерации:', e);
-        preview.innerHTML = '<div style="color:var(--danger);padding:2rem;">Ошибка</div>';
-    }
-}
-
-// ★★★ ПОДЕЛИТЬСЯ — ОТКРЫВАЕТ СИСТЕМНОЕ МЕНЮ ★★★
-async function shareWorkoutImage() {
-    const canvas = window._currentShareCanvas;
-    if (!canvas) {
-        showToast('❌ Изображение не готово');
-        return;
-    }
-
-    const title = sessionWorkoutTitle || 'Тренировка';
-    const text = `Моя тренировка "${title}" в SportApp: ` +
-                 `${sessionCompleted.size} упражнений за ${Math.floor(sessionSeconds / 60)} мин! 💪`;
-
-    try {
-        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-        if (!blob) throw new Error('Blob не создан');
-
-        const file = new File([blob], 'sportapp-workout.png', { type: 'image/png' });
-
-        // Web Share API с файлом
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-                files: [file],
-                title: 'Моя тренировка в SportApp',
-                text: text
-            });
-            return;
-        }
-
-        // Web Share API без файла (старые браузеры)
-        if (navigator.share) {
-            await navigator.share({
-                title: 'Моя тренировка в SportApp',
-                text: text
-            });
-            showToast('💡 Картинка сохранена отдельно');
-            downloadWorkoutImage();
-            return;
-        }
-    } catch (e) {
-        if (e.name === 'AbortError') return;
-        console.warn('Share API не сработал:', e);
-    }
-
-    // Совсем нет Share API — просто скачиваем
-    downloadWorkoutImage();
-}
-
-// ★★★ СКАЧАТЬ PNG ★★★
-function downloadWorkoutImage() {
-    const canvas = window._currentShareCanvas;
-    if (!canvas) {
-        showToast('❌ Изображение не готово');
-        return;
-    }
-
-    const fileName = `sportapp-workout-${Date.now()}.png`;
-
-    canvas.toBlob(function(blob) {
-        if (!blob) {
-            showToast('❌ Не удалось сохранить');
-            return;
-        }
-
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.download = fileName;
-        link.href = url;
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        link.click();
-
-        setTimeout(() => {
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-        }, 1000);
-
-        showToast('✅ Изображение сохранено');
-    }, 'image/png');
-}
-
-// ★★★ ПРИВЯЗКА КНОПОК ★★★
-document.getElementById('workoutShareSendBtn')?.addEventListener('click', shareWorkoutImage);
-document.getElementById('workoutShareDownloadBtn')?.addEventListener('click', downloadWorkoutImage);
-
-// =================== ГЕНЕРАЦИЯ PNG ДЛЯ СОВМЕСТНОЙ ТРЕНИРОВКИ ===================
-async function generateCoopShareImage() {
-    const user = await getFirebaseUser();
-    if (!user) return null;
-
-    const profileResult = await getUserProfile(user.uid);
-    const profile = profileResult.success ? profileResult.data : {};
-    const userName = profile.displayName || 'Пользователь';
-
-    // ★★★ УЧАСТНИКИ ★★★
-    const participants = sessionData?.participants || [];
-    const names = participants.map(p => p.name || 'Пользователь');
-
-    // ★★★ МОИ СТАТЫ ★★★
-    const completed = sessionCompleted.size;
-    const total = sessionData?.totalExercises || coopExercises.length || 0;
-    const xpEarned = Math.round(calculateWorkoutXp(coopExercises, sessionCompletedSets));
-    const minutes = Math.floor(sessionSeconds / 60);
-
-    // ★★★ ЦВЕТА ★★★
-    const ACCENT = '#DC143C';
-    const DARK   = '#0F172A';
-
-    // ★★★ РАЗМЕР (телефон 9:19.5) ★★★
-    const W = 900, H = 1800;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = W;
-    canvas.height = H;
-    const ctx = canvas.getContext('2d');
-    const SANS = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    // ═══════════════════════════════════════
-    //  ВЕРХ: SportApp
-    // ═══════════════════════════════════════
-    ctx.fillStyle = ACCENT;
-    ctx.font = `bold 90px ${SANS}`;
-    ctx.fillText('SportApp', W / 2, 130);
-
-    // ═══════════════════════════════════════
-    //  ТАБЛИЧКА СТАТИСТИКИ
-    // ═══════════════════════════════════════
-    const numbersY = 250;
-    const labelsY = 320;
-
-    const col1X = W * 0.2;
-    const col2X = W * 0.5;
-    const col3X = W * 0.8;
-
-    ctx.fillStyle = DARK;
-    ctx.font = `bold 70px ${SANS}`;
-    ctx.fillText(String(minutes), col1X, numbersY);
-    ctx.fillText(`${completed}/${total}`, col2X, numbersY);
-    ctx.fillText(`+${xpEarned}`, col3X, numbersY);
-
-    ctx.fillStyle = DARK;
-    ctx.font = `500 30px ${SANS}`;
-    ctx.fillText('минут', col1X, labelsY);
-    ctx.fillText('упражнений', col2X, labelsY);
-    ctx.fillText('XP', col3X, labelsY);
-
-    // ═══════════════════════════════════════
-    //  ЦЕНТР: ПУСТО
-    // ═══════════════════════════════════════
-
-    // ═══════════════════════════════════════
-    //  ВНИЗУ: ИМЕНА УЧАСТНИКОВ + ПОДПИСЬ
-    // ═══════════════════════════════════════
-
-    // ★★★ ФОРМИРУЕМ СПИСОК ИМЁН: Я ПЕРВЫЙ, ПОТОМ ДРУЗЬЯ ★★★
-    const currentUserId = user ? user.uid : null;
-    const otherNames = participants
-        .filter(p => p.id !== currentUserId)
-        .map(p => p.name || 'Пользователь');
-
-    const allNames = [userName, ...otherNames];
-
-    // ★★★ РАСПРЕДЕЛЯЕМ ПО СТРОКАМ ★★★
-    let line1 = '';
-    let line2 = '';
-
-    if (allNames.length === 1) {
-        // Только я — одна строка
-        line1 = allNames[0];
-    } else if (allNames.length === 2) {
-        // 2 участника: я / друг
-        line1 = allNames[0];
-        line2 = allNames[1];
-    } else if (allNames.length === 3) {
-        // 3 участника: я / друг1 · друг2
-        line1 = allNames[0];
-        line2 = `${allNames[1]} · ${allNames[2]}`;
-    } else {
-        // 4 участника: я · друг1 / друг2 · друг3
-        line1 = `${allNames[0]} · ${allNames[1]}`;
-        line2 = `${allNames[2]} · ${allNames[3]}`;
-    }
-
-    // ★★★ ПОДБИРАЕМ РАЗМЕР ШРИФТА ПОД ШИРИНУ ★★★
-    const maxTextWidth = W - 100; // отступы 50px с каждой стороны
-
-    function fitNameFont(text, baseSize = 50, minSize = 28) {
-        let size = baseSize;
-        while (size > minSize) {
-            ctx.font = `bold ${size}px ${SANS}`;
-            if (ctx.measureText(text).width <= maxTextWidth) return size;
-            size -= 2;
-        }
-        ctx.font = `bold ${minSize}px ${SANS}`;
-        return minSize;
-    }
-
-    const footerTextY = H - 120;              // где стоит "Мы тренировались вместе!"
-    const lineHeight = 70;
-    const line2Y = footerTextY - 80;
-    const line1Y = line2Y - lineHeight;
-
-    // ★★★ РИСУЕМ ИМЕНА ★★★
-    ctx.fillStyle = ACCENT;
-    ctx.textAlign = 'center';
-
-    if (line2) {
-        // Две строки
-        const size1 = fitNameFont(line1);
-        ctx.font = `bold ${size1}px ${SANS}`;
-        ctx.fillText(line1, W / 2, line1Y);
-
-        const size2 = fitNameFont(line2);
-        ctx.font = `bold ${size2}px ${SANS}`;
-        ctx.fillText(line2, W / 2, line2Y);
-    } else {
-        // Одна строка
-        const size1 = fitNameFont(line1);
-        ctx.font = `bold ${size1}px ${SANS}`;
-        ctx.fillText(line1, W / 2, line2Y);
-    }
-
-    // ПОДПИСЬ
-    ctx.fillStyle = DARK;
-    ctx.font = `500 30px ${SANS}`;
-    ctx.fillText('Мы тренировались вместе!', W / 2, footerTextY);
-
-    return canvas;
-}
-
-// ★★★ ОТКРЫТЬ МОДАЛКУ ДЛЯ СОВМЕСТНОЙ ★★★
-async function openCoopShareModal() {
-    const preview = document.getElementById('workoutSharePreview');
-    preview.innerHTML = '<div style="color:var(--slate);padding:2rem;">Генерация...</div>';
-
-    openModal('workoutShareModal');
-
-    try {
-        const canvas = await generateCoopShareImage();
-        if (!canvas) {
-            preview.innerHTML = '<div style="color:var(--danger);padding:2rem;">Ошибка генерации</div>';
-            return;
-        }
-
-        window._currentShareCanvas = canvas;
-        const dataUrl = canvas.toDataURL('image/png');
-        window._currentShareDataUrl = dataUrl;
-
-        preview.innerHTML = `<img src="${dataUrl}" style="max-width:100%; max-height:60vh;">`;
-    } catch (e) {
-        console.error('Ошибка генерации:', e);
-        preview.innerHTML = '<div style="color:var(--danger);padding:2rem;">Ошибка</div>';
-    }
-}
 
 // =================== APPLE LIQUID GLASS TAB BAR ===================
 (function initAppleTabBar() {
@@ -20894,7 +20591,9 @@ window.scrollFeedToTop = scrollFeedToTop;
 /**
  * Открыть модалку создания поста
  */
-async function openCreatePostModal() {
+async function openCreatePostModal(options = {}) {
+    const { autoSelectLatest = false } = options;
+
     _postImageDataUrl = null;
     _postShareLink = true;
     document.getElementById('postShareLinkBlock').style.display = 'none';
@@ -20946,6 +20645,12 @@ async function openCreatePostModal() {
                 const dateStr = d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
                 return `<option value="${i}">${dateStr} · ${w.title || 'Тренировка'}</option>`;
             }).join('');
+
+        // ★★★ АВТОВЫБОР ПОСЛЕДНЕЙ ТРЕНИРОВКИ ★★★
+        if (autoSelectLatest && workouts.length > 0) {
+            select.value = '0';                  // самая свежая — первая в массиве
+            handlePostWorkoutChange();            // сразу показываем превью статистики
+        }
     } catch (error) {
         console.error('Ошибка загрузки тренировок:', error);
         select.innerHTML = '<option value="">Ошибка загрузки</option>';
@@ -21287,4 +20992,307 @@ function resumeSession() {
     if (overlay) overlay.classList.remove('visible');
 
     console.log('▶️ Тренировка продолжена');
+}
+
+/**
+ * Завершает тренировку так же, как кнопка "Закончить", но после сохранения
+ * открывает модалку создания поста в ленте с уже выбранной тренировкой.
+ */
+function finishWorkoutAndShare(completedCount, xpEarned, exercisesCount, seconds) {
+    if (completedCount === 0) {
+        showToast('⚠️ Выполнено 0 упражнений.');
+        sessionExercises = [];
+        sessionCompleted = new Set();
+        sessionCompletedSets = {};
+        sessionSeconds = 0;
+        sessionWorkoutTitle = '';
+        sessionCategory = '';
+        sessionWorkoutIcon = null;
+        window.navigateTo('workouts');
+        return;
+    }
+
+    if (!preventDoubleClick('finishShareBtn', 3000)) {
+        showToast('⏳ Подождите, тренировка уже сохраняется...');
+        return;
+    }
+
+    // Определяем категорию (та же логика, что и в «Закончить»)
+    let finalCategory = sessionCategory;
+    if (!finalCategory || finalCategory === 'Без категории') {
+        const title = sessionWorkoutTitle || '';
+        if (title.includes('Руки')) finalCategory = 'Руки';
+        else if (title.includes('Плечи')) finalCategory = 'Плечи';
+        else if (title.includes('Пресс')) finalCategory = 'Пресс';
+        else if (title.includes('Грудь')) finalCategory = 'Грудь';
+        else if (title.includes('Спина')) finalCategory = 'Спина';
+        else if (title.includes('Ноги')) finalCategory = 'Ноги';
+        else if (title.includes('Кардио')) finalCategory = 'Кардио';
+        else if (title.includes('Растяжка')) finalCategory = 'Гибкость';
+        else if (title.includes('Пилатес') || title.includes('Кроссфит') || title.includes('Всё тело')) finalCategory = 'Всё тело';
+        else if (title.includes('Мужская сила') || title.includes('Женское счастье')) finalCategory = 'Ягодицы';
+        else finalCategory = 'Без категории';
+    }
+
+    const workoutExercises = sessionExercises.map((ex, index) => ({
+        ...ex,
+        icon: ex.icon || null,
+        completed: sessionCompleted.has(index)
+    }));
+
+    const workoutIcon = sessionWorkoutIcon || null;
+
+    const workoutData = {
+        title: sessionWorkoutTitle || 'Тренировка',
+        date: new Date().toISOString(),
+        durationSeconds: seconds,
+        exercises: workoutExercises,
+        xpEarned: xpEarned,
+        category: finalCategory,
+        icon: workoutIcon
+    };
+
+    (async function() {
+        try {
+            const user = await getFirebaseUser();
+            if (user) {
+                const result = await saveWorkoutToFirestore(user.uid, workoutData);
+                if (result.success) {
+                    const profileResult = await getUserProfile(user.uid);
+                    if (profileResult.success) {
+                        const currentXp = profileResult.data.totalXp || 0;
+                        await updateUserProfile(user.uid, { totalXp: currentXp + xpEarned });
+                        if (typeof refreshAutoCarousel === 'function') refreshAutoCarousel(); // ★
+                    }
+                    showToast('💾 Тренировка сохранена');
+                    await updateAchievementsAfterWorkout();
+                    await updateProfileStreak();
+                } else {
+                    addPendingWorkout(workoutData);
+                    showToast('⚠️ Тренировка сохранена локально, синхронизация позже');
+                }
+            } else {
+                addPendingWorkout(workoutData);
+                showToast('⚠️ Тренировка сохранена локально');
+            }
+
+            // Сбрасываем переменные
+            sessionExercises = [];
+            sessionCompleted = new Set();
+            sessionCompletedSets = {};
+            sessionSeconds = 0;
+            sessionWorkoutTitle = '';
+            sessionCategory = '';
+            sessionWorkoutIcon = null;
+
+            // Переходим в ленту → вкладка «Моя» → открываем модалку поста
+            window.navigateTo('feed');
+            setTimeout(() => {
+                setFeedFilter('my');
+                openCreatePostModal({ autoSelectLatest: true });
+            }, 500);
+
+            // Проверяем награду
+            setTimeout(() => {
+                checkAndGiveCommunityGoalReward(true);
+            }, 1000);
+
+            // Счётчик тренировок и PREMIUM
+            incrementWorkoutsCount();
+            const showPremium = shouldShowPremiumOffer();
+            if (showPremium) {
+                markPremiumOfferShown();
+                setTimeout(() => {
+                    enqueueModal({ type: 'premium' });
+                }, 1500);
+            }
+
+        } catch (error) {
+            console.error('❌ Ошибка сохранения тренировки:', error);
+            showToast('❌ Ошибка сохранения тренировки');
+        }
+    })();
+}
+
+// =================== ИСТОРИЯ ТРЕНИРОВОК: ФИЛЬТРЫ ===================
+
+/**
+ * Инициализация обработчиков фильтров истории.
+ * Вызывается один раз при каждой загрузке статистики.
+ */
+function initHistoryFilters() {
+    const searchInput = document.getElementById('historySearchInput');
+    const categorySelect = document.getElementById('historyCategoryFilter');
+    const periodSelect = document.getElementById('historyPeriodFilter');
+    const resetBtn = document.getElementById('historyResetBtn');
+
+    if (!searchInput || !categorySelect || !periodSelect) return;
+
+    // Чтобы не вешать обработчики повторно
+    if (searchInput._historyBound) return;
+    searchInput._historyBound = true;
+
+    // Поиск (с дебаунсом)
+    let searchTimeout = null;
+    searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            _historySearchQuery = searchInput.value.trim().toLowerCase();
+            renderWorkoutHistory();
+        }, 200);
+    });
+
+    // Категория
+    categorySelect.addEventListener('change', () => {
+        _historyCategory = categorySelect.value;
+        renderWorkoutHistory();
+    });
+
+    // Период
+    periodSelect.addEventListener('change', () => {
+        _historyPeriod = periodSelect.value;
+        renderWorkoutHistory();
+    });
+
+    // Сброс
+    resetBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        categorySelect.value = 'all';
+        periodSelect.value = 'all';
+
+        _historySearchQuery = '';
+        _historyCategory = 'all';
+        _historyPeriod = 'all';
+
+        renderWorkoutHistory();
+    });
+}
+
+/**
+ * Получить нижнюю границу периода (timestamp в мс) или null, если «всё время».
+ */
+function getHistoryPeriodStart(period) {
+    if (period === 'all') return null;
+
+    const now = new Date();
+    const start = new Date(now);
+
+    switch (period) {
+        case 'week':
+            start.setDate(now.getDate() - 7);
+            break;
+        case 'month':
+            start.setMonth(now.getMonth() - 1);
+            break;
+        case '3months':
+            start.setMonth(now.getMonth() - 3);
+            break;
+        case 'year':
+            start.setFullYear(now.getFullYear() - 1);
+            break;
+        default:
+            return null;
+    }
+
+    start.setHours(0, 0, 0, 0);
+    return start.getTime();
+}
+
+/**
+ * Отфильтровать тренировки по текущим условиям.
+ */
+function filterHistoryWorkouts() {
+    let result = _historyAllWorkouts;
+
+    // 1. Поиск по названию
+    if (_historySearchQuery) {
+        result = result.filter(w =>
+            String(w.title || '').toLowerCase().includes(_historySearchQuery)
+        );
+    }
+
+    // 2. Категория
+    if (_historyCategory !== 'all') {
+        result = result.filter(w => {
+            const cat = w.category || 'Без категории';
+            return cat === _historyCategory;
+        });
+    }
+
+    // 3. Период
+    const periodStart = getHistoryPeriodStart(_historyPeriod);
+    if (periodStart !== null) {
+        result = result.filter(w => {
+            const t = new Date(w.date).getTime();
+            return !isNaN(t) && t >= periodStart;
+        });
+    }
+
+    return result;
+}
+
+/**
+ * Отрисовать историю с учётом фильтров.
+ */
+function renderWorkoutHistory() {
+    const container = document.getElementById('workoutHistory');
+    const countEl = document.getElementById('historyFilterCount');
+    const resetBtn = document.getElementById('historyResetBtn');
+    if (!container) return;
+
+    const filtered = filterHistoryWorkouts();
+    const total = _historyAllWorkouts.length;
+    const found = filtered.length;
+
+    // ★ Счётчик и кнопка сброса
+    const hasFilters = _historySearchQuery || _historyCategory !== 'all' || _historyPeriod !== 'all';
+
+    if (countEl) {
+        if (hasFilters) {
+            countEl.textContent = `Найдено ${found} из ${total}`;
+        } else {
+            countEl.textContent = `Всего тренировок: ${total}`;
+        }
+    }
+    if (resetBtn) {
+        resetBtn.style.display = hasFilters ? 'inline-flex' : 'none';
+    }
+
+    // ★ Пустые состояния
+    if (total === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-icon">📋</span>
+                <h3 class="empty-title">Нет выполненных тренировок</h3>
+                <p class="empty-text">Выполните свою первую тренировку!</p>
+            </div>`;
+        return;
+    }
+
+    if (found === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-icon">🔍</span>
+                <h3 class="empty-title">Ничего не найдено</h3>
+                <p class="empty-text">Попробуйте изменить фильтры.</p>
+            </div>`;
+        return;
+    }
+
+    // ★ Рендер
+    container.innerHTML = filtered.map(w => {
+        const totalEx = w.exercises?.length || 0;
+        const completedEx = w.exercises?.filter(e => e.completed === true).length || 0;
+        const xpEarned = w.xpEarned || 0;
+        const minutes = Math.floor((w.durationSeconds || 0) / 60);
+        const detailsText = `${minutes} мин · ${completedEx}/${totalEx} ${declOfNum(totalEx, ['упражнение', 'упражнения', 'упражнений'])} · ${xpEarned.toFixed(1)} XP`;
+
+        return `<div class="history-item">
+            <div class="history-item-header">
+                <strong class="history-item-title">${w.title}</strong>
+                <span class="history-item-date">${new Date(w.date).toLocaleDateString('ru-RU')}</span>
+            </div>
+            <div class="history-item-details">${detailsText}</div>
+        </div>`;
+    }).join('');
 }

@@ -2329,7 +2329,6 @@ body.theme-dark-mode .btn-submit-arrow {
     font-size: 22px;
     cursor: pointer;
     padding: 0;
-    transition: color 0.3s ease, transform 0.25s ease;
     -webkit-tap-highlight-color: transparent;
 }
 
@@ -2344,8 +2343,7 @@ body.theme-dark-mode .btn-submit-arrow {
     font-size: 22px;
     pointer-events: none;
     transition: color 0.25s ease,
-                transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1),
-                filter 0.25s ease;
+                transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1);
     color: #94A3B8;
 }
 
@@ -5714,21 +5712,23 @@ body.theme-dark-mode .upload-zone-placeholder .upload-zone-text {
 .session-timer-wrapper {
     position: absolute;
     top: 0.3rem;
-    right: 0.3rem;
+    right: 0rem;
     display: flex;
-    flex-direction: column;      /* ← вертикально: таймер сверху, кнопка снизу */
-    align-items: flex-end;       /* ← прижимаем к правому краю */
-    gap: 0.3rem;
+    flex-direction: row;         /* ← в одну строку */
+    align-items: center;
+    gap: 0.2rem;
     z-index: 3;
+    padding: 0.2rem 0.2rem 0.2rem 0.5rem;
+    background: transparent;     /* прозрачный фон */
+    border: 1.5px solid var(--light-grey);
+    border-radius: 999px;        /* закруглённая обводка */
 }
 
 .session-timer {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: 700;
     color: var(--dark);
     font-variant-numeric: tabular-nums;
-    backdrop-filter: blur(4px);
-    border-radius: 12px;
     line-height: 1;
     white-space: nowrap;
 }
@@ -5738,9 +5738,9 @@ body.theme-dark-mode .upload-zone-placeholder .upload-zone-text {
     height: 28px;
     min-width: 28px;
     border: none;
-    border-radius: 50%;
-    background: transparent;
-    color: var(--slate);
+    border-radius: 50%;          /* круглая */
+    background: var(--accent-light);   /* ← фон только у кнопки */
+    color: var(--accent);
     font-size: 0.85rem;
     cursor: pointer;
     display: flex;
@@ -5750,12 +5750,17 @@ body.theme-dark-mode .upload-zone-placeholder .upload-zone-text {
     -webkit-tap-highlight-color: transparent;
 }
 
+body.theme-dark-mode .session-timer-wrapper {
+    border-color: var(--border-color);
+}
+
 body.theme-dark-mode .session-timer {
     color: var(--text-primary);
 }
 
 body.theme-dark-mode .session-pause-btn {
-    color: var(--text-secondary);
+    background: var(--accent-dark);
+    color: var(--accent);
 }
 
 /* =================== ЭКРАН ПАУЗЫ ==================== */
@@ -5848,7 +5853,7 @@ body.theme-dark-mode .session-pause-btn {
 
 /* ★★★ Время секундомера ★★★ */
 .session-pause-overlay-time {
-    font-size: 2rem;
+    font-size: 3rem;
     font-weight: 700;
     color: var(--accent);
     font-variant-numeric: tabular-nums;
@@ -5883,3 +5888,73 @@ body.theme-dark-mode .session-pause-overlay-time {
 body.theme-dark-mode .session-pause-overlay-btn i {
     color: var(--white);
 }
+
+/* =================== ФИЛЬТРЫ ИСТОРИИ ТРЕНИРОВОК ==================== */
+.history-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: var(--shadow-card);
+}
+
+.history-search-input {
+    width: 100%;
+    max-height: 34px;
+}
+
+.history-filter-row {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.history-filter-row .form-select {
+    flex: 1;
+    min-width: 0;
+    max-height: 34px;
+    padding: 0.4rem 1.6rem 0.4rem 0.6rem;
+    font-size: 0.8rem;
+}
+
+.history-filter-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 22px;
+    padding: 0 0.2rem;
+}
+
+.history-count {
+    font-size: 0.7rem;
+    color: var(--slate);
+    font-weight: 500;
+}
+
+.history-reset-btn {
+    width: auto !important;
+    padding: 0.25rem 0.6rem !important;
+    font-size: 0.7rem !important;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.history-reset-btn i {
+    font-size: 0.65rem;
+}
+
+/* Тёмная тема */
+body.theme-dark-mode .history-filters {
+    background: var(--bg-secondary);
+    box-shadow: var(--shadow-card-dark);
+}
+
+body.theme-dark-mode .history-count {
+    color: var(--text-secondary);
+}
+

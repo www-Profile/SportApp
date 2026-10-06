@@ -41,7 +41,6 @@
                 <button class="tab-btn tab-btn-active" data-tab="ready">Готовые</button>
                 <button class="tab-btn" data-tab="my">Личные</button>
             </div>
-
 <!-- ===== КАРУСЕЛЬ (АВТО-ЛИСТАНИЕ) ===== -->
 <div class="auto-carousel" id="autoCarousel">
     <div class="auto-carousel-track" id="autoCarouselTrack">
@@ -358,11 +357,11 @@
         <!-- ★★★ ОВЕРЛЕЙ ПАУЗЫ ★★★ -->
 <!-- ★★★ ОВЕРЛЕЙ ПАУЗЫ ★★★ -->
 <div id="sessionPauseOverlay" class="session-pause-overlay">
+    <div class="session-pause-overlay-time" id="sessionPauseTime">00:00</div>
     <button class="session-pause-overlay-btn" id="sessionPauseResumeBtn">
         <i class="fa-solid fa-play"></i>
     </button>
     <div class="session-pause-overlay-text">ПАУЗА</div>
-    <div class="session-pause-overlay-time" id="sessionPauseTime">00:00</div>
 </div>
     </main>
 </div>
@@ -987,18 +986,65 @@
     </div>
 </div>
 
-                    <div class="section-block" data-block-id="history">
-                        <div class="section-header">
-                            <h2 class="section-title">История тренировок</h2>
-                            <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
-                            <button class="section-drag" touch-action="none"><i class="fa-solid fa-grip-lines"></i></button>
-                        </div>
-                        <div class="section-body">
-                            <div class="scroll-wrapper" id="workoutHistoryWrapper">
-                                <div id="workoutHistory" class="history-list"></div>
-                            </div>
-                        </div>
-                    </div>
+<div class="section-block" data-block-id="history">
+    <div class="section-header">
+        <h2 class="section-title">История тренировок</h2>
+        <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
+        <button class="section-drag" touch-action="none"><i class="fa-solid fa-grip-lines"></i></button>
+    </div>
+    <div class="section-body">
+
+        <!-- ★★★ ФИЛЬТРЫ ИСТОРИИ ★★★ -->
+        <div class="history-filters" id="historyFilters">
+            <!-- Поиск по названию -->
+            <input type="text"
+                   id="historySearchInput"
+                   class="search-input history-search-input"
+                   placeholder="Поиск по названию..." />
+
+            <!-- Категория + период в одну строку -->
+            <div class="history-filter-row">
+                <select id="historyCategoryFilter" class="form-select">
+                    <option value="all">Все категории</option>
+                    <option value="Руки">Руки</option>
+                    <option value="Плечи">Плечи</option>
+                    <option value="Пресс">Пресс</option>
+                    <option value="Грудь">Грудь</option>
+                    <option value="Спина">Спина</option>
+                    <option value="Ноги">Ноги</option>
+                    <option value="Ягодицы">Ягодицы</option>
+                    <option value="Кардио">Кардио</option>
+                    <option value="Гибкость">Гибкость</option>
+                    <option value="Всё тело">Всё тело</option>
+                    <option value="Без категории">Без категории</option>
+                </select>
+
+                <select id="historyPeriodFilter" class="form-select">
+                    <option value="all">Всё время</option>
+                    <option value="week">Неделя</option>
+                    <option value="month">Месяц</option>
+                    <option value="3months">3 месяца</option>
+                    <option value="year">Год</option>
+                </select>
+            </div>
+
+            <!-- Кнопка сброса + счётчик -->
+            <div class="history-filter-footer">
+                <span class="history-count" id="historyFilterCount"></span>
+                <button class="btn btn-secondary btn-sm history-reset-btn"
+                        id="historyResetBtn"
+                        style="display:none;">
+                    <i class="fa-solid fa-xmark"></i> Сбросить
+                </button>
+            </div>
+        </div>
+
+        <!-- ★★★ СПИСОК ★★★ -->
+        <div class="scroll-wrapper" id="workoutHistoryWrapper">
+            <div id="workoutHistory" class="history-list"></div>
+        </div>
+    </div>
+</div>
 
                     <!-- ===== БЛОК: ЕЖЕМЕСЯЧНЫЕ ЗАДАНИЯ ===== -->
 <div class="section-block" data-block-id="monthly-badges" id="monthly-badges-block">
@@ -2171,38 +2217,6 @@
     </div>
 </div>
 
-    <!-- ===== МОДАЛКА: ПОДЕЛИТЬСЯ РЕЗУЛЬТАТОМ ===== -->
-<div id="workoutShareModal" class="modal-overlay" style="display:none;">
-    <div class="modal-content" style="max-width:440px; width:95%;">
-        <div class="modal-title">Поделиться результатом</div>
-
-        <p class="modal-text">У фотографии прозрачный фон.</p>
-
-        <div id="workoutSharePreview" style="
-            width:100%;
-            display:flex;
-            justify-content:center;
-            align-items:center;
-            min-height:180px;
-            margin-bottom:1rem;
-            background:var(--light);
-            border-radius:12px;
-            overflow:hidden;
-        ">
-            <div style="color:var(--slate);padding:2rem;">Генерация...</div>
-        </div>
-
-<div style="display:flex; gap:0.5rem; width:100%;">
-    <button class="btn btn-secondary" onclick="closeModal('workoutShareModal')" style="flex:1;">
-        Закрыть
-    </button>
-    <button class="btn btn-primary" id="workoutShareSendBtn" style="flex:1;">
-        <i class="fa-solid fa-link"></i> Поделиться
-    </button>
-</div>
-    </div>
-</div>
-
     <!-- ===== МОДАЛКА: QR-КОД ПРОФИЛЯ ===== -->
 <div id="qrCodeModal" class="modal-overlay" style="display:none;">
     <div class="modal-content" style="max-width: 400px; width: 95%;">
@@ -2815,12 +2829,10 @@
             <button class="color-btn" data-color="gray" style="background:#607D8B;" onclick="selectColor('gray')"></button>
         </div>
         
-        <!-- Кнопка Палитра -->
-<button class="btn btn-secondary" onclick="openPaletteWithPremiumCheck()" style="margin-bottom: 0.5rem;">
-    <i class="fa-solid fa-palette"></i> Палитра
-</button>
-        
-        <button class="btn btn-primary" onclick="applyColor()">Готово</button>
+<div style="display:flex; gap:0.5rem;">
+    <button class="btn btn-secondary" onclick="openPaletteWithPremiumCheck()" style="flex:1; margin:0;"><i class="fa-solid fa-palette"></i> Палитра</button>
+    <button class="btn btn-primary" onclick="applyColor()" style="flex:1; margin:0;">Готово</button>
+</div>
     </div>
 </div>
 
