@@ -3960,7 +3960,6 @@ body.theme-dark-mode .weekly-load-value { color: var(--accent); }
     border-radius: 16px;
     padding: 0.4rem;
     margin-bottom: 0rem;
-    box-shadow: var(--shadow-card);
     border: 1px solid var(--light-grey);
 }
 
@@ -5718,7 +5717,7 @@ body.theme-dark-mode .upload-zone-placeholder .upload-zone-text {
     align-items: center;
     gap: 0.2rem;
     z-index: 3;
-    padding: 0.2rem 0.2rem 0.2rem 0.5rem;
+    padding: 0.2rem 0.2rem 0.2rem 0.4rem;
     background: transparent;     /* прозрачный фон */
     border: 1.5px solid var(--light-grey);
     border-radius: 999px;        /* закруглённая обводка */
@@ -5734,14 +5733,14 @@ body.theme-dark-mode .upload-zone-placeholder .upload-zone-text {
 }
 
 .session-pause-btn {
-    width: 28px;
-    height: 28px;
-    min-width: 28px;
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
     border: none;
     border-radius: 50%;          /* круглая */
     background: var(--accent-light);   /* ← фон только у кнопки */
     color: var(--accent);
-    font-size: 0.85rem;
+    font-size: 0.6rem;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -5861,16 +5860,6 @@ body.theme-dark-mode .session-pause-btn {
     line-height: 1;
 }
 
-@media (max-width: 480px) {
-    .session-pause-overlay-btn {
-        width: 104px;
-        height: 104px;
-        font-size: 2.4rem;
-    }
-    .session-pause-overlay-time {
-        font-size: 1.7rem;
-    }
-}
 
 /* ★★★ Тёмная тема ★★★ */
 body.theme-dark-mode .session-pause-overlay {
@@ -5958,3 +5947,17 @@ body.theme-dark-mode .history-count {
     color: var(--text-secondary);
 }
 
+ /* ★★★ ПОДСКАЗКА: СЛЕДУЮЩЕЕ УПРАЖНЕНИЕ ★★★ */
+
+.session-next-hint {
+    text-align: center;
+    color: var(--dark);
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    font-weight: 700;
+}
+
+.session-next-hint span {
+    color: var(--slate);
+    font-weight: 500;
+}

@@ -1006,6 +1006,7 @@ markCurrentComplete = function() {
         }
         
         sessionCompleted.add(sessionCurrentIndex);
+        renderSessionProgress();   // ★ обновляем полоски СРАЗУ
         if (currentSessionId && sessionData) {
             updateCoopProgress(sessionCompleted.size, false);
         }
@@ -1030,6 +1031,7 @@ markCurrentComplete = function() {
             function() {
                 sessionCompletedSets[key] = totalSets;
                 sessionCompleted.add(sessionCurrentIndex);
+                renderSessionProgress();   // ← ДОБАВИЛИ
                 if (currentSessionId && sessionData) {
                     updateCoopProgress(sessionCompleted.size, false);
                 }
@@ -1050,6 +1052,7 @@ markCurrentComplete = function() {
         sessionCompletedSets[key] = totalSets;
     }
     sessionCompleted.add(sessionCurrentIndex);
+    renderSessionProgress();   // ← ДОБАВИЛИ
     if (currentSessionId && sessionData) {
         updateCoopProgress(sessionCompleted.size, false);
     }
@@ -3943,6 +3946,22 @@ function updateRestUI() {
     if (restControls) {
         restControls.classList.add('visible');
     }
+
+    // ★★★ ПОКАЗЫВАЕМ СЛЕДУЮЩЕЕ УПРАЖНЕНИЕ ★★★
+    const hint = document.getElementById('sessionNextExerciseHint');
+    if (hint) {
+        // Следующее упражнение — это sessionCurrentIndex + 1,
+        // потому что во время отдыха индекс ещё не сдвинут
+        const nextEx = sessionExercises[sessionCurrentIndex + 1];
+        if (nextEx) {
+            hint.innerHTML = `Далее: <span>${nextEx.name}</span>`;
+            hint.style.display = 'block';
+        } else {
+            // Следующего нет — это было последнее упражнение
+            hint.innerHTML = `Это было последнее упражнение`;
+            hint.style.display = 'block';
+        }
+    }
 }
 
 // Запуск таймера отдыха
@@ -3981,6 +4000,10 @@ function finishRest() {
     if (bgText) bgText.style.display = 'block';
     if (restTimer) restTimer.style.display = 'none';
     if (restControls) restControls.classList.remove('visible');
+
+        // ★★★ СКРЫВАЕМ ПОДСКАЗКУ ★★★
+    const hint = document.getElementById('sessionNextExerciseHint');
+    if (hint) hint.style.display = 'none';
     
     // ★★★ ВОССТАНАВЛИВАЕМ СТРОКУ С ВЕСОМ ★★★
     const ex = sessionExercises[sessionCurrentIndex];
@@ -4012,6 +4035,10 @@ function skipRest() {
     if (bgText) bgText.style.display = 'block';
     if (restTimer) restTimer.style.display = 'none';
     if (restControls) restControls.classList.remove('visible');
+
+        // ★★★ СКРЫВАЕМ ПОДСКАЗКУ ★★★
+    const hint = document.getElementById('sessionNextExerciseHint');
+    if (hint) hint.style.display = 'none';
     
     // ★★★ ВОССТАНАВЛИВАЕМ СТРОКУ С ВЕСОМ ★★★
     const ex = sessionExercises[sessionCurrentIndex];
@@ -4234,9 +4261,13 @@ function renderSessionProgress() {
     for (let i = 0; i < total; i++) {
         const dash = document.createElement('div');
         dash.className = 'progress-dash';
-        if (i < current) {
+
+        // ★★★ ЗАКРАШИВАЕМ ПОЛОСКУ, ЕСЛИ УПРАЖНЕНИЕ ЗАВЕРШЕНО ★★★
+        if (sessionCompleted.has(i)) {
             dash.classList.add('progress-dash-active');
-        } else if (i === current) {
+        }
+        // ★★★ ТЕКУЩЕЕ УПРАЖНЕНИЕ — СВЕТЛАЯ ПОДСВЕТКА ★★★
+        else if (i === current) {
             dash.classList.add('progress-dash-current');
         }
         container.appendChild(dash);
@@ -4387,6 +4418,7 @@ function markCurrentComplete() {
         }
         
         sessionCompleted.add(sessionCurrentIndex);
+        renderSessionProgress();   // ★ обновляем полоски СРАЗУ
         const isLast = sessionCurrentIndex === sessionExercises.length - 1;
         if (isLast) {
             finishTrainingSession();
@@ -4408,6 +4440,7 @@ function markCurrentComplete() {
             function() {
                 sessionCompletedSets[key] = totalSets;
                 sessionCompleted.add(sessionCurrentIndex);
+                renderSessionProgress();   // ★ обновляем полоски СРАЗУ
                 
                 if (currentSessionId && sessionData) {
                     updateCoopProgress(sessionCompleted.size, false);
@@ -4433,6 +4466,7 @@ function markCurrentComplete() {
             function() {
                 sessionCompletedSets[key] = totalSets;
                 sessionCompleted.add(sessionCurrentIndex);
+                renderSessionProgress();   // ★ обновляем полоски СРАЗУ
                 
                 if (currentSessionId && sessionData) {
                     updateCoopProgress(sessionCompleted.size, false);
@@ -4452,6 +4486,7 @@ function markCurrentComplete() {
     
     // ★★★ ВСЕ ПОДХОДЫ ВЫПОЛНЕНЫ ★★★
     sessionCompleted.add(sessionCurrentIndex);
+    renderSessionProgress();   // ★ обновляем полоски СРАЗУ
     
     if (currentSessionId && sessionData) {
         updateCoopProgress(sessionCompleted.size, false);
@@ -4495,6 +4530,9 @@ function stopSessionTimer() {
         // ★★★ СКРЫВАЕМ КНОПКИ УПРАВЛЕНИЯ (УБИРАЕМ КЛАСС visible) ★★★
         if (restControls) {
             restControls.classList.remove('visible');
+                    // ★★★ СКРЫВАЕМ ПОДСКАЗКУ ★★★
+        const hint = document.getElementById('sessionNextExerciseHint');
+        if (hint) hint.style.display = 'none';
         }
     }
 
@@ -4638,6 +4676,7 @@ exerciseTimerInterval = setInterval(() => {
             } else {
                 // ★★★ ВСЕ ПОДХОДЫ ВЫПОЛНЕНЫ ★★★
                 sessionCompleted.add(sessionCurrentIndex);
+                 renderSessionProgress();
                 console.log('✅ Все подходы выполнены! Упражнение завершено.');
                 
                 const timerEl = document.getElementById('sessionExerciseTimer');

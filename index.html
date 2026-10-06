@@ -260,7 +260,7 @@
             <h1 class="dashboard-title" id="workoutDetailTitle">ТРЕНИРОВКА</h1>
         </header>
 <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
-    <h3 class="section-title" style="margin: 0;">Упражнения</h3>
+    <h3 class="section-title">Упражнения</h3>
     <button class="workout-share-btn" id="shareWorkoutLinkBtn" title="Поделиться тренировкой">
         <i class="fa-solid fa-link"></i>
     </button>
@@ -343,6 +343,8 @@
         <button class="session-rest-control-btn" onclick="adjustRestTime(-15)">-15с</button>
         <button class="session-rest-control-btn" onclick="adjustRestTime(15)">+15с</button>
     </div>
+    <!-- ★★★ ПОДСКАЗКА: СЛЕДУЮЩЕЕ УПРАЖНЕНИЕ ★★★ -->
+    <div id="sessionNextExerciseHint" class="session-next-hint" style="display: none;"></div>
 </div>
             <div class="session-controls">
                 <button class="session-btn session-btn-prev" id="sessionPrevBtn">
