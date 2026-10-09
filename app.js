@@ -550,14 +550,15 @@ async function acceptInvite(sessionId, notificationId) {
             updatedParticipants.push({ id: user.uid, name: userName });
         }
         
-        const updateData = {
-            participants: updatedParticipants,
-            [`participantProgress.${user.uid}`]: 0,
-            [`participantFinished.${user.uid}`]: false,
-            [`participantFinishedSeconds.${user.uid}`]: null,
-            [`participantXp.${user.uid}`]: 0,
-            [`participantReady.${user.uid}`]: true
-        };
+const updateData = {
+    participants: updatedParticipants,
+    participantIds: firebase.firestore.FieldValue.arrayUnion(user.uid),   // ★★★ НОВОЕ ★★★
+    [`participantProgress.${user.uid}`]: 0,
+    [`participantFinished.${user.uid}`]: false,
+    [`participantFinishedSeconds.${user.uid}`]: null,
+    [`participantXp.${user.uid}`]: 0,
+    [`participantReady.${user.uid}`]: true
+};
         
         await firebase.firestore()
             .collection('trainingSessions')
@@ -1353,21 +1354,22 @@ async function sendCoopInvite(friendId, friendName) {
         readyMap[user.uid] = true;
         
         // Создаём сессию
-        const sessionRef = await firebase.firestore().collection('trainingSessions').add({
-            hostId: user.uid,
-            workoutTitle: workoutData.title,
-            exercises: workoutData.exercises.map(ex => ({ ...ex, completed: false })),
-            status: 'waiting',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            totalExercises: workoutData.exercises.length,
-            participants: allParticipants,
-            participantProgress: progressMap,
-            participantFinished: finishedMap,
-            participantFinishedSeconds: secondsMap,
-            participantXp: xpMap,
-            participantReady: readyMap,
-            closedFinish: {}
-        });
+const sessionRef = await firebase.firestore().collection('trainingSessions').add({
+    hostId: user.uid,
+    workoutTitle: workoutData.title,
+    exercises: workoutData.exercises.map(ex => ({ ...ex, completed: false })),
+    status: 'waiting',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    totalExercises: workoutData.exercises.length,
+    participants: allParticipants,
+    participantIds: allParticipants.map(p => p.id),   // ★★★ НОВОЕ ПОЛЕ ★★★
+    participantProgress: progressMap,
+    participantFinished: finishedMap,
+    participantFinishedSeconds: secondsMap,
+    participantXp: xpMap,
+    participantReady: readyMap,
+    closedFinish: {}
+});
         
         currentSessionId = sessionRef.id;
         isHost = true;
@@ -8152,7 +8154,7 @@ async function openFriendRequestProfile(requestId, fromUserId) {
         
         const name = userData.displayName || 'Пользователь';
         document.getElementById('friendRequestName').textContent = name;
-        document.getElementById('friendRequestEmail').textContent = userData.email || 'email не указан';
+        document.getElementById('friendRequestEmail').textContent = '';
         document.getElementById('friendRequestAvatar').textContent = name[0].toUpperCase();
         
         const xp = userData.totalXp || 0;
@@ -10809,7 +10811,8 @@ async function openFriendProfile(friendId) {
         const name = currentFriendData.displayName || 'Пользователь';
         document.getElementById('friendProfileAvatar').textContent = name[0].toUpperCase();
         document.getElementById('friendProfileName').textContent = name;
-        document.getElementById('friendProfileEmail').textContent = currentFriendData.email || 'email не указан';
+        // email других пользователей не показываем — приватность
+document.getElementById('friendProfileEmail').textContent = '';
         
         // Уровень
         const xp = currentFriendData.totalXp || 0;
@@ -17918,7 +17921,7 @@ async function openFriendInviteModal(friendId) {
         // ★★★ ЗАПОЛНЯЕМ ТУ ЖЕ МОДАЛКУ ★★★
         document.getElementById('friendProfileAvatar').textContent = name[0].toUpperCase();
         document.getElementById('friendProfileName').textContent = name;
-        document.getElementById('friendProfileEmail').textContent = profile.email || 'email не указан';
+        document.getElementById('friendProfileEmail').textContent = '';
 
         document.getElementById('friendLevelLvl').textContent = level.id + ' LVL';
         document.getElementById('friendLevelTitle').textContent = level.name;
@@ -20343,7 +20346,7 @@ async function openProfileFromPost(userId) {
         // ★ Шапка
         document.getElementById('friendProfileAvatar').textContent = name[0].toUpperCase();
         document.getElementById('friendProfileName').textContent = name;
-        document.getElementById('friendProfileEmail').textContent = profile.email || 'email не указан';
+        document.getElementById('friendProfileEmail').textContent = '';
 
         // ★ Уровень
         const xp = profile.totalXp || 0;
