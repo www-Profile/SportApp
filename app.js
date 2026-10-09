@@ -15,6 +15,72 @@ const DEBUG_LOGS = true;
 
     // console.warn и console.error не трогаем — они показывают реальные проблемы
 })();
+
+// =================== КЭШ FIRESTORE ===================
+// Единая точка кэширования. Все функции чтения/записи проходят через него.
+const Cache = {
+    profiles:   new Map(),
+    workouts:   new Map(),
+    aggregates: new Map(),
+    local:      new Map(),
+
+    // ★ ДЕДУПЛИКАЦИЯ ЗАПРОСОВ «В ПОЛЁТЕ»
+    inflightProfiles: new Map(),
+    inflightWorkouts: new Map(),
+
+    TTL: {
+        profile:   60_000,
+        workouts:  30_000,
+        aggregate: 5 * 60_000,
+        local:     2_000
+    },
+
+    _get(map, key, ttl) {
+        const e = map.get(key);
+        if (!e) return null;
+        if (Date.now() - e.ts > ttl) { map.delete(key); return null; }
+        return e.data;
+    },
+    _set(map, key, data) {
+        map.set(key, { data, ts: Date.now() });
+    },
+
+    getProfile(id)    { return this._get(this.profiles,   id, this.TTL.profile); },
+    setProfile(id, d) { this._set(this.profiles,   id, d); },
+    clearProfile(id)  { this.profiles.delete(id); },
+
+    getWorkouts(id)    { return this._get(this.workouts, id, this.TTL.workouts); },
+    setWorkouts(id, d) { this._set(this.workouts, id, d); },
+    clearWorkouts(id)  { this.workouts.delete(id); },
+
+    getAggregate(k)    { return this._get(this.aggregates, k, this.TTL.aggregate); },
+    setAggregate(k, d) { this._set(this.aggregates, k, d); },
+
+    getLocal(k)    { return this._get(this.local, k, this.TTL.local); },
+    setLocal(k, d) { this._set(this.local, k, d); },
+    clearLocal(k)  { this.local.delete(k); },
+
+    clearAll() {
+        this.profiles.clear();
+        this.workouts.clear();
+        this.aggregates.clear();
+        this.local.clear();
+        this.inflightProfiles.clear();
+        this.inflightWorkouts.clear();
+    },
+
+    stats() {
+        return {
+            profiles:   this.profiles.size,
+            workouts:   this.workouts.size,
+            aggregates: this.aggregates.size,
+            local:      this.local.size
+        };
+    }
+};
+
+window.Cache = Cache; // для отладки из консоли
+
 // =================== МАППИНГ ИКОНОК В КАТЕГОРИИ ДЛЯ СТАТИСТИКИ ===================
 const ICON_TO_CATEGORY = {
     'bodybuilding': 'Руки',
@@ -332,85 +398,78 @@ window.cancelInvite = async function() {
     }
 }
 
-function listenForInvites() {
-    firebase.auth().onAuthStateChanged(async (user) => {
-        // ★★★ ОТПИСЫВАЕМСЯ ОТ СТАРОГО СЛУШАТЕЛЯ ★★★
-        if (inviteListener) {
-            inviteListener();
-            inviteListener = null;
-        }
-        
-        if (!user) {
-            if (inviteListener) {
-                inviteListener();
-                inviteListener = null;
-            }
-            return;
-        }
-        
-        inviteListener = firebase.firestore()
-            .collection('notifications')
-            .where('to', '==', user.uid)
-            .where('type', '==', 'train_invite')
-            .where('read', '==', false)
-            .onSnapshot(async (snapshot) => {
-                for (const change of snapshot.docChanges()) {
-                    if (change.type === 'added') {
-                        const data = change.doc.data();
-                        if (!data.sessionId) {
+function setupInviteListener(user) {
+    // ★ Сначала отписываемся от старого слушателя
+    if (inviteListener) {
+        inviteListener();
+        inviteListener = null;
+    }
+
+    // ★ Если пользователя нет — слушать нечего
+    if (!user) return;
+
+    inviteListener = firebase.firestore()
+        .collection('notifications')
+        .where('to', '==', user.uid)
+        .where('type', '==', 'train_invite')
+        .where('read', '==', false)
+        .onSnapshot(async (snapshot) => {
+            for (const change of snapshot.docChanges()) {
+                if (change.type === 'added') {
+                    const data = change.doc.data();
+                    if (!data.sessionId) {
+                        await firebase.firestore()
+                            .collection('notifications')
+                            .doc(change.doc.id)
+                            .delete();
+                        continue;
+                    }
+                    try {
+                        const doc = await firebase.firestore()
+                            .collection('trainingSessions')
+                            .doc(data.sessionId)
+                            .get();
+                        if (!doc.exists) {
                             await firebase.firestore()
                                 .collection('notifications')
                                 .doc(change.doc.id)
                                 .delete();
                             continue;
                         }
-                        try {
-                            const doc = await firebase.firestore()
+                        const sessionData = doc.data();
+                        if (isSessionExpired(sessionData.createdAt)) {
+                            await firebase.firestore()
+                                .collection('notifications')
+                                .doc(change.doc.id)
+                                .delete();
+                            await firebase.firestore()
                                 .collection('trainingSessions')
                                 .doc(data.sessionId)
-                                .get();
-                            if (!doc.exists) {
-                                await firebase.firestore()
-                                    .collection('notifications')
-                                    .doc(change.doc.id)
-                                    .delete();
-                                continue;
-                            }
-                            const sessionData = doc.data();
-                            if (isSessionExpired(sessionData.createdAt)) {
-                                await firebase.firestore()
-                                    .collection('notifications')
-                                    .doc(change.doc.id)
-                                    .delete();
-                                await firebase.firestore()
-                                    .collection('trainingSessions')
-                                    .doc(data.sessionId)
-                                    .delete();
-                                continue;
-                            }
-                            const participants = sessionData.participants || [];
-                            const participantFinished = sessionData.participantFinished || {};
-                            const allFinished = participants.every(p => participantFinished[p.id] === true);
-                            if (sessionData.status === 'completed' || allFinished) {
-                                await firebase.firestore()
-                                    .collection('notifications')
-                                    .doc(change.doc.id)
-                                    .delete();
-                                continue;
-                            }
-                        } catch (error) {}
-                        
-                        showNotification(
-                            '🏋️',
-                            `${data.fromName} приглашает вас на тренировку!`,
-                            function() {
-                                acceptInvite(data.sessionId, change.doc.id);
-                            }
-                        );
-                    }
+                                .delete();
+                            continue;
+                        }
+                        const participants = sessionData.participants || [];
+                        const participantFinished = sessionData.participantFinished || {};
+                        const allFinished = participants.every(p => participantFinished[p.id] === true);
+                        if (sessionData.status === 'completed' || allFinished) {
+                            await firebase.firestore()
+                                .collection('notifications')
+                                .doc(change.doc.id)
+                                .delete();
+                            continue;
+                        }
+                    } catch (error) {}
+
+                    showNotification(
+                        '🏋️',
+                        `${data.fromName} приглашает вас на тренировку!`,
+                        function() {
+                            acceptInvite(data.sessionId, change.doc.id);
+                        }
+                    );
                 }
-            });
-    });
+            }
+        });
 }
 
 function showInviteNotification(data, notificationId) {
@@ -2683,17 +2742,23 @@ async function syncSaveToFirestore(fieldName, value) {
     }
 }
 
-/**
- * Универсальный хелпер: загрузить поле из users/{uid}
- */
 async function syncLoadFromFirestore(fieldName) {
     const user = await getFirebaseUser();
     if (!user) return null;
-    
+
+    // ★ Сначала ищем в кэше профиля — если он уже загружен, читаем оттуда
+    const cached = Cache.getProfile(user.uid);
+    if (cached && cached[fieldName] !== undefined) {
+        return cached[fieldName];
+    }
+
     try {
         const doc = await firebase.firestore().collection('users').doc(user.uid).get();
-        if (doc.exists && doc.data()[fieldName] !== undefined) {
-            return doc.data()[fieldName];
+        if (doc.exists) {
+            const data = doc.data();
+            // ★ Кэшируем весь документ — следующие вызовы пойдут из памяти
+            Cache.setProfile(user.uid, data);
+            return data[fieldName] !== undefined ? data[fieldName] : null;
         }
         return null;
     } catch (error) {
@@ -2724,18 +2789,21 @@ async function syncLoadWithFallback(firestoreField, localStorageKey, defaultValu
     // 2. Fallback на localStorage
     const fromLocal = localStorage.getItem(localStorageKey);
     if (fromLocal !== null) {
-        // ★★★ ПЕРЕНОСИМ В FIRESTORE ★★★
-        try {
-            let parsed = fromLocal;
-            if (fromLocal.startsWith('{') || fromLocal.startsWith('[')) {
-                parsed = JSON.parse(fromLocal);
-            } else if (fromLocal === 'true' || fromLocal === 'false') {
-                parsed = fromLocal === 'true';
-            }
-            await syncSaveToFirestore(firestoreField, parsed);
-            console.log(`📤 ${localStorageKey} перенесён в Firestore`);
-        } catch (e) {}
-        
+        // ★★★ ПЕРЕНОСИМ В FIRESTORE — но НЕ ЖДЁМ завершения ★★★
+        // Пожарная запись: главное — вернуть данные сейчас, синхронизация не критична
+        (async () => {
+            try {
+                let parsed = fromLocal;
+                if (fromLocal.startsWith('{') || fromLocal.startsWith('[')) {
+                    parsed = JSON.parse(fromLocal);
+                } else if (fromLocal === 'true' || fromLocal === 'false') {
+                    parsed = fromLocal === 'true';
+                }
+                await syncSaveToFirestore(firestoreField, parsed);
+                console.log(`📤 ${localStorageKey} перенесён в Firestore`);
+            } catch (e) {}
+        })();
+
         return fromLocal;
     }
     
@@ -2743,39 +2811,103 @@ async function syncLoadWithFallback(firestoreField, localStorageKey, defaultValu
 }
 
 // ===================ПРОФИЛЬ ===================
-async function saveUserProfile(userId, data) {
-    try {
-        await firebase.firestore().collection('users').doc(userId).set(data, { merge: true });
-        return { success: true };
-    } catch (error) {
-        console.error('Ошибка сохранения профиля:', error);
-        showToast('❌ Не удалось сохранить профиль. Попробуйте позже.');
-        return { success: false, error: error.message };
+async function getUserProfile(userId, options = {}) {
+    // 1. Кэш
+    if (!options.force) {
+        const cached = Cache.getProfile(userId);
+        if (cached) return { success: true, data: cached };
     }
+
+    // ★ ДЕДУПЛИКАЦИЯ: если запрос уже летит — ждём его
+    if (Cache.inflightProfiles.has(userId)) {
+        return Cache.inflightProfiles.get(userId);
+    }
+
+    const promise = (async () => {
+        try {
+            const doc = await firebase.firestore()
+                .collection('users').doc(userId).get();
+            if (doc.exists) {
+                const data = doc.data();
+                Cache.setProfile(userId, data);
+                return { success: true, data };
+            }
+            return { success: false, error: 'Профиль не найден' };
+        } catch (error) {
+            console.error('Ошибка получения профиля:', error);
+            showToast('❌ Не удалось загрузить профиль. Проверьте интернет.');
+            return { success: false, error: error.message };
+        } finally {
+            // ★ ВСЕГДА очищаем — даже при ошибке
+            Cache.inflightProfiles.delete(userId);
+        }
+    })();
+
+    Cache.inflightProfiles.set(userId, promise);
+    return promise;
 }
 
-async function getUserProfile(userId) {
-    try {
-        const doc = await firebase.firestore().collection('users').doc(userId).get();
-        if (doc.exists) {
-            return { success: true, data: doc.data() };
-        } else {
-            return { success: false, error: 'Профиль не найден' };
-        }
-    } catch (error) {
-        console.error('Ошибка получения профиля:', error);
-        showToast('❌ Не удалось загрузить профиль. Проверьте интернет.');
-        return { success: false, error: error.message };
+async function getProfilesBatch(userIds) {
+    const result = {};
+    const missing = [];
+
+    for (const id of userIds) {
+        const cached = Cache.getProfile(id);
+        if (cached) result[id] = cached;
+        else missing.push(id);
     }
+
+    if (missing.length === 0) return result;
+
+    try {
+        const db = firebase.firestore();
+        const CHUNK = 300; // мягкий лимит — 300 параллельных запросов
+
+        for (let i = 0; i < missing.length; i += CHUNK) {
+            const chunk = missing.slice(i, i + CHUNK);
+
+            // ★ Promise.all вместо getAll (работает во всех версиях SDK)
+            const snaps = await Promise.all(
+                chunk.map(id => db.collection('users').doc(id).get())
+            );
+
+            snaps.forEach(snap => {
+                if (snap.exists) {
+                    const data = snap.data();
+                    result[snap.id] = data;
+                    Cache.setProfile(snap.id, data);
+                }
+            });
+        }
+    } catch (e) {
+        console.warn('⚠️ getProfilesBatch:', e);
+    }
+
+    return result;
 }
 
 async function updateUserProfile(userId, updates) {
     try {
-        await firebase.firestore().collection('users').doc(userId).update(updates);
+        await firebase.firestore()
+            .collection('users').doc(userId).update(updates);
+        Cache.clearProfile(userId);   // ← инвалидация
         return { success: true };
     } catch (error) {
         console.error('Ошибка обновления профиля:', error);
         showToast('❌ Не удалось обновить профиль. Попробуйте позже.');
+        return { success: false, error: error.message };
+    }
+}
+
+async function saveUserProfile(userId, data) {
+    try {
+        await firebase.firestore()
+            .collection('users').doc(userId).set(data, { merge: true });
+        Cache.clearProfile(userId);   // ← инвалидация
+        return { success: true };
+    } catch (error) {
+        console.error('Ошибка сохранения профиля:', error);
+        showToast('❌ Не удалось сохранить профиль. Попробуйте позже.');
         return { success: false, error: error.message };
     }
 }
@@ -2803,7 +2935,7 @@ async function syncUserProfile() {
 async function saveWorkoutToFirestore(userId, workoutData) {
     try {
         const docRef = await firebase.firestore().collection('workouts').add({
-            userId: userId,
+            userId,
             title: workoutData.title,
             date: workoutData.date || new Date().toISOString(),
             durationSeconds: workoutData.durationSeconds || 0,
@@ -2813,6 +2945,7 @@ async function saveWorkoutToFirestore(userId, workoutData) {
             icon: workoutData.icon || null,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
+        Cache.clearWorkouts(userId);   // ← инвалидация
         return { success: true, id: docRef.id };
     } catch (error) {
         console.error('Ошибка сохранения тренировки:', error);
@@ -2821,61 +2954,78 @@ async function saveWorkoutToFirestore(userId, workoutData) {
     }
 }
 
-async function getUserWorkoutsFromFirestore(userId) {
-    try {
-        const snapshot = await firebase.firestore()
-            .collection('workouts')
-            .where('userId', '==', userId)
-            .orderBy('date', 'desc')
-            .get();
-        
-        const workouts = [];
-        snapshot.forEach(doc => {
-            workouts.push({ id: doc.id, ...doc.data() });
-        });
-        return { success: true, data: workouts };
-    } catch (error) {
-        console.error('Ошибка получения тренировок:', error);
-        
-        // ★★★ ЕСЛИ ОШИБКА ИЗ-ЗА ОТСУТСТВИЯ ИНДЕКСА ★★★
-        if (error.code === 'failed-precondition' && error.message.includes('index')) {
-            console.warn('⚠️ Требуется создать индекс в Firebase Console');
-            showToast('⚠️ Требуется создать индекс для сортировки тренировок');
-            
-            // ★★★ ПЫТАЕМСЯ ПОЛУЧИТЬ БЕЗ СОРТИРОВКИ ★★★
-            try {
-                const fallbackSnapshot = await firebase.firestore()
-                    .collection('workouts')
-                    .where('userId', '==', userId)
-                    .get();
-                
-                const workouts = [];
-                fallbackSnapshot.forEach(doc => {
-                    workouts.push({ id: doc.id, ...doc.data() });
-                });
-                // Сортируем вручную
-                workouts.sort((a, b) => new Date(b.date) - new Date(a.date));
-                return { success: true, data: workouts };
-            } catch (fallbackError) {
-                console.error('❌ Ошибка fallback запроса:', fallbackError);
-                return { success: false, error: fallbackError.message };
-            }
-        }
-        
-        showToast('❌ Не удалось загрузить тренировки. Проверьте интернет.');
-        return { success: false, error: error.message };
-    }
-}
-
 async function deleteWorkoutFromFirestore(workoutId) {
     try {
         await firebase.firestore().collection('workouts').doc(workoutId).delete();
+        // userId неизвестен — сбросим кэш для текущего пользователя
+        const user = await getFirebaseUser();
+        if (user) Cache.clearWorkouts(user.uid);
         return { success: true };
     } catch (error) {
         console.error('Ошибка удаления тренировки:', error);
         showToast('❌ Не удалось удалить тренировку. Попробуйте позже.');
         return { success: false, error: error.message };
     }
+}
+
+async function getUserWorkoutsFromFirestore(userId, options = {}) {
+    // 1. Кэш
+    if (!options.force) {
+        const cached = Cache.getWorkouts(userId);
+        if (cached) return { success: true, data: cached };
+    }
+
+    // ★ ДЕДУПЛИКАЦИЯ: если запрос уже летит — ждём его
+    if (Cache.inflightWorkouts.has(userId)) {
+        return Cache.inflightWorkouts.get(userId);
+    }
+
+    const promise = (async () => {
+        // 2. Сеть
+        try {
+            const snapshot = await firebase.firestore()
+                .collection('workouts')
+                .where('userId', '==', userId)
+                .orderBy('date', 'desc')
+                .get();
+
+            const workouts = [];
+            snapshot.forEach(doc => workouts.push({ id: doc.id, ...doc.data() }));
+            Cache.setWorkouts(userId, workouts);
+            return { success: true, data: workouts };
+
+        } catch (error) {
+            console.error('Ошибка получения тренировок:', error);
+
+            // Fallback — без orderBy (нет индекса)
+            if (error.code === 'failed-precondition' && error.message.includes('index')) {
+                console.warn('⚠️ Нет индекса — запрос без сортировки');
+                try {
+                    const snap = await firebase.firestore()
+                        .collection('workouts')
+                        .where('userId', '==', userId)
+                        .get();
+                    const arr = [];
+                    snap.forEach(doc => arr.push({ id: doc.id, ...doc.data() }));
+                    arr.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    Cache.setWorkouts(userId, arr);
+                    return { success: true, data: arr };
+                } catch (e2) {
+                    console.error('❌ Fallback тоже упал:', e2);
+                    return { success: false, error: e2.message };
+                }
+            }
+
+            showToast('❌ Не удалось загрузить тренировки. Проверьте интернет.');
+            return { success: false, error: error.message };
+        } finally {
+            // ★ ВСЕГДА очищаем — даже при ошибке
+            Cache.inflightWorkouts.delete(userId);
+        }
+    })();
+
+    Cache.inflightWorkouts.set(userId, promise);
+    return promise;
 }
 
 // ===================УПРАВЛЕНИЕ ЦВЕТОМ ===================
@@ -3352,20 +3502,40 @@ function updateStats(tab) {
     
     try {
 if (currentTab === 'world') {
+    // ★ Первая волна — только самое видимое (одно поле)
     loadGlobalStats();
-    loadGlobalUsersCount();
-    loadOnlineUsersCount();           // ← ★★★ НОВАЯ ПЛЯШКА ★★★
-    loadCommunityAchievements();
-    loadCommunityGoal();
-    loadWorldLeaderboard();
-    loadFriendsLeaderboard();
+
+    // ★ Вторая волна — после отрисовки
+    const runLater = () => {
+        // ★ Волна 1: рейтинг мира (визуально важный) + счётчик пользователей
+        loadGlobalUsersCount();
+        loadWorldLeaderboard();
+    };
+
+    const runVeryLate = () => {
+        // ★ Волна 2: остальное — после того, как первый рендер устоялся
+        loadOnlineUsersCount();
+        loadCommunityAchievements();
+        loadCommunityGoal();
+        loadFriendsLeaderboard();
+    };
+
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(runLater, { timeout: 1000 });
+        setTimeout(() => {
+            requestIdleCallback(runVeryLate, { timeout: 3000 });
+        }, 800);
+    } else {
+        setTimeout(runLater, 100);
+        setTimeout(runVeryLate, 800);
+    }
+
     setTimeout(() => {
         applySavedWorldStatsOrder();
         statsUpdatePending = false;
     }, 200);
-} else {
+        } else {
             loadStats();
-            loadPremiumStats
             setTimeout(() => {
                 statsUpdatePending = false;
                 console.log('✅ [updateStats] Личная статистика обновлена');
@@ -5736,15 +5906,17 @@ document.getElementById('resetConfirmNo').addEventListener('click', function() {
 
 // ===================МОИ ТРЕНИРОВКИ (localStorage) ===================
 function getMyWorkouts() {
-    // Синхронная функция — читает из localStorage (кэш)
-    return JSON.parse(localStorage.getItem('myCustomWorkouts')) || [];
+    const cached = Cache.getLocal('myCustomWorkouts');
+    if (cached) return cached;
+
+    const data = JSON.parse(localStorage.getItem('myCustomWorkouts')) || [];
+    Cache.setLocal('myCustomWorkouts', data);
+    return data;
 }
 
 function saveMyWorkouts(workouts) {
-    // 1. Локально
+    Cache.setLocal('myCustomWorkouts', workouts);
     localStorage.setItem('myCustomWorkouts', JSON.stringify(workouts));
-    
-    // 2. В Firestore
     syncSaveToFirestore('customWorkouts', workouts);
 }
 
@@ -5905,22 +6077,30 @@ workouts.forEach(w => {
     // === КАЛЕНДАРЬ ===
     renderCalendar(currentMonth, currentYear);
 
-// === ИСТОРИЯ ТРЕНИРОВОК ★ с фильтрами ===
-_historyAllWorkouts = workouts.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
-initHistoryFilters();
-renderWorkoutHistory();
-applyStatsTab(activeStatsTab);
-initAccordion();
-loadPremiumStats();
+    // === ИСТОРИЯ ТРЕНИРОВОК ★ с фильтрами ===
+    _historyAllWorkouts = workouts.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+    initHistoryFilters();
+    renderWorkoutHistory();
+    applyStatsTab(activeStatsTab);
+    initAccordion();
 
-// ★ Загружаем прогресс тела
-loadBodyMeasurements();
+    // ★★★ РЕНДЕРИМ ЕЖЕМЕСЯЧНЫЕ ЗНАЧКИ ★★★
+    renderMonthlyBadges();
 
-// ★★★ РЕНДЕРИМ ЕЖЕМЕСЯЧНЫЕ ЗНАЧКИ ★★★
-renderMonthlyBadges();
+    // ★★★ ПРИМЕНЯЕМ ПОРЯДОК БЛОКОВ ★★★
+    applySavedStatsOrder();
 
-// ★★★ ПРИМЕНЯЕМ ПОРЯДОК БЛОКОВ ★★★
-applySavedStatsOrder();
+    // ★★★ ОТЛОЖЕННАЯ ЗАГРУЗКА: не блокируем первый рендер ★★★
+    const runDeferred = () => {
+        loadPremiumStats();
+        loadBodyMeasurements();
+    };
+
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(runDeferred, { timeout: 2000 });
+    } else {
+        setTimeout(runDeferred, 400);
+    }
 }
 
 // =================== КАЛЕНДАРЬ ===================
@@ -6016,6 +6196,8 @@ async function loadProfile() {
     const profileResult = await getUserProfile(user.uid);
     if (!profileResult.success) return;
     const profile = profileResult.data;
+    // ★★★ СИНХРОНИЗИРУЕМ PREMIUM ★★★
+    window._userPremium = profile.premium === true;
     const xp = profile.totalXp || 0;
     const currentLevel = getCurrentLevel(xp);
     const progress = getXpProgress(xp);
@@ -6023,6 +6205,7 @@ async function loadProfile() {
     
     // ★★★ ОКРУГЛЯЕМ XP ДО ЦЕЛОГО ★★★
     const xpRounded = Math.round(xp);
+    window._lastProfileXp = xpRounded;
     let progressText = nextLevel ? `${xpRounded}/${nextLevel.minXp} XP` : `${xpRounded}+ XP`;
     
     const profileName = document.getElementById('profileName');
@@ -6109,18 +6292,24 @@ syncSaveToFirestore('prevLevel', currentLevel.id);
     
 await loadInventoryFromProfile();
 
-    // ★★★ ОБНОВЛЯЕМ СЕРИЮ ★★★
-    await updateProfileStreak();
-
-    try {
-        const results = await checkAllAchievements(user.uid);
-        if (results) {
-            renderAchievements();
+    // ★ Откладываем всё второстепенное — не блокируем первый рендер
+    const runDeferred = async () => {
+        try {
+            await updateProfileStreak();
+            const results = await checkAllAchievements(user.uid);
+            if (results) renderAchievements();
+        } catch (error) {
+            console.warn('Ошибка отложенной загрузки профиля:', error);
         }
-    } catch (error) {
-        console.warn('Ошибка проверки достижений:', error);
+    };
+
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(runDeferred, { timeout: 3000 });
+    } else {
+        setTimeout(runDeferred, 800);
     }
-    if (typeof refreshAutoCarousel === 'function') refreshAutoCarousel(); // ★
+
+    if (typeof refreshAutoCarousel === 'function') refreshAutoCarousel();
 }
 
 // ===================ПРОФИЛЬ - РЕДАКТИРОВАНИЕ ===================
@@ -6189,6 +6378,10 @@ document.getElementById('saveProfileBtn')?.addEventListener('click', async () =>
 
 // ===================СЛУШАТЕЛЬ АВТОРИЗАЦИИ ===================
 firebase.auth().onAuthStateChanged(async (user) => {
+    // ★★★ ЕДИНАЯ ТОЧКА УПРАВЛЕНИЯ СЛУШАТЕЛЯМИ ★★★
+    setupInviteListener(user);
+    setupFriendAcceptedListener(user);
+
     // ★★★ ПРОВЕРЯЕМ ФЛАГ РЕГИСТРАЦИИ ★★★
     if (isRegistering) {
         console.log('⏳ Идёт регистрация, пропускаем onAuthStateChanged');
@@ -6309,21 +6502,24 @@ if (loadingPage) {
             getUserWorkoutsFromFirestore(user.uid)
         ]);
 
-        let profile = null;
-        if (profileResult.success) {
-            profile = profileResult.data;
-        } else {
-            const newProfile = {
-                displayName: user.displayName || user.email?.split('@')[0] || 'Пользователь',
-                avatar: 'bodybuilding',
-                level: 1,
-                totalXp: 0,
-                createdAt: new Date().toISOString(),
-                tutorialCompleted: false
-            };
-            await saveUserProfile(user.uid, newProfile);
-            profile = newProfile;
-        }
+let profile = null;
+if (profileResult.success) {
+    profile = profileResult.data;
+} else {
+    const newProfile = {
+        displayName: user.displayName || user.email?.split('@')[0] || 'Пользователь',
+        avatar: 'bodybuilding',
+        level: 1,
+        totalXp: 0,
+        createdAt: new Date().toISOString(),
+        tutorialCompleted: false
+    };
+    await saveUserProfile(user.uid, newProfile);
+    profile = newProfile;
+}
+
+// ★★★ СИНХРОНИЗИРУЕМ PREMIUM ИЗ FIRESTORE ★★★
+window._userPremium = profile.premium === true;
 
         clearAuthFields();
 
@@ -6335,14 +6531,26 @@ if (loadingPage) {
 
         await new Promise(resolve => setTimeout(resolve, 200));
 
-        console.log('📊 Загрузка профиля...');
-        await loadProfile();
-        if (typeof refreshAutoCarousel === 'function') refreshAutoCarousel(); // ★
-        console.log('📊 Загрузка статистики...');
-        await loadStats();
-        console.log('📊 Рендер тренировок...');
-        renderMyWorkouts();
-        await renderCalendar(currentMonth, currentYear);
+        if (typeof refreshAutoCarousel === 'function') refreshAutoCarousel();
+
+        // ★★★ ЕДИНАЯ ПАРАЛЛЕЛЬНАЯ ЗАГРУЗКА ★★★
+        // Прогреваем кэш профиля и тренировок ОДНИМ заходом,
+        // а затем параллельно рендерим всё, что нужно.
+        console.log('📊 Загрузка профиля, статистики и тренировок...');
+
+        await Promise.all([
+            getUserProfile(user.uid),
+            getUserWorkoutsFromFirestore(user.uid)
+        ]);
+
+        // Теперь всё читается из памяти — гоним параллельно
+        await Promise.all([
+            loadProfile(),
+            loadStats(),
+            renderMyWorkouts()
+        ]);
+
+        // renderCalendar уже вызван внутри loadStats — отдельно НЕ надо
         updatePremiumUI();
         initProfileBlocks();
         switchProfileTab('my');
@@ -6467,7 +6675,8 @@ function showHeroButtons() {
 
     const now = Date.now();
     const elapsed = now - _loadingAnimStartTime;
-    const remaining = Math.max(0, LOADING_ANIM_DURATION_MS - elapsed);
+    // ★ Если данные уже загружены и анимация давно стартовала — показываем сразу
+    const remaining = Math.max(0, Math.min(LOADING_ANIM_DURATION_MS - elapsed, 600));
 
     console.log(`⏳ Кнопка появится через ${remaining}мс`);
 
@@ -6492,7 +6701,7 @@ function hideHeroButtons() {
 }
 
 // =================== АНИМАЦИЯ ЭКРАНА ЗАГРУЗКИ ===================
-const LOADING_ANIM_DURATION_MS = 3300;   // длительность всей анимации + запас
+const LOADING_ANIM_DURATION_MS = 1800;   // достаточно, чтобы анимация успела проиграть
 let _loadingAnimStartTime = 0;
 let _showButtonsTimeout = null;
 
@@ -7003,6 +7212,10 @@ function scheduleAccountDeletion(user) {
 }
 
 async function checkAndDeleteExpiredAccounts() {
+    const KEY = 'lastExpiredCheck';
+    const last = parseInt(localStorage.getItem(KEY) || '0');
+    if (Date.now() - last < 5 * 60 * 1000) return;
+    localStorage.setItem(KEY, String(Date.now()));
     try {
         const now = new Date();
         
@@ -7368,23 +7581,17 @@ async function logout() {
         'Выйти из аккаунта?',
         'Введите пароль для подтверждения выхода из аккаунта.',
         function() {
-            // ★★★ ОТПИСЫВАЕМСЯ ОТ ВСЕХ СЛУШАТЕЛЕЙ ★★★
-            if (inviteListener) {
-                inviteListener();
-                inviteListener = null;
-            }
+            if (inviteListener) { inviteListener(); inviteListener = null; }
             if (window._friendAcceptedListener) {
                 window._friendAcceptedListener();
                 window._friendAcceptedListener = null;
             }
-            if (sessionListener) {
-                sessionListener();
-                sessionListener = null;
-            }
+            if (sessionListener) { sessionListener(); sessionListener = null; }
 
-            // ★★★ СБРАСЫВАЕМ ФЛАГ БЕТА-МОДАЛКИ ★★★
+            // ★★★ СБРАСЫВАЕМ PREMIUM ★★★
+            window._userPremium = false;
+
             sessionStorage.removeItem('betaModalShownThisSession');
-
             firebase.auth().signOut();
         },
         'Выйти'
@@ -7661,70 +7868,66 @@ checkDailyTasksAfterAddFriend();
     }
 }
 
-function listenForFriendAcceptedNotifications() {
-    firebase.auth().onAuthStateChanged(async (user) => {
-        if (window._friendAcceptedListener) {
-            window._friendAcceptedListener();
-            window._friendAcceptedListener = null;
-        }
-        
-        if (!user) return;
-        
-        window._friendAcceptedListener = firebase.firestore()
-            .collection('notifications')
-            .where('to', '==', user.uid)
-            .where('type', '==', 'friend_accepted')
-            .where('read', '==', false)
-            .onSnapshot(async (snapshot) => {
-                for (const change of snapshot.docChanges()) {
-                    if (change.type === 'added') {
-                        const data = change.doc.data();
-                        
-                        const notificationId = 'friend_accepted_' + change.doc.id;
-                        if (isNotificationSeen(notificationId)) continue;
-                        
-                        showNotification(
-                            '👥',
-                            data.message || `${data.fromName} принял(а) вашу заявку в друзья!`,
-                            null
-                        );
-                        
-                        // ★★★ ===== ЗАДАНИЕ 4: НОВЫЕ ЗНАКОМСТВА (ДЛЯ ОТПРАВИТЕЛЯ) ===== ★★★
-                        const tasksData = JSON.parse(localStorage.getItem('sportapp_tasks') || '{}');
-                        if (!tasksData[4]) {
-                            tasksData[4] = true;
-                            localStorage.setItem('sportapp_tasks', JSON.stringify(tasksData));
-                            
-                            // ★★★ ОБНОВЛЯЕМ ГЛОБАЛЬНЫЙ МАССИВ tasks ★★★
-                            tasks[4] = true;
-                            
-                            // ★★★ ОБНОВЛЯЕМ UI ★★★
-                            updateTasksUI();
-                            
-                            showToast('✅ Задание "Новые знакомства" выполнено!');
-                            
-                            // Начисляем XP
-                            try {
-                                const senderProfile = await getUserProfile(user.uid);
-                                if (senderProfile.success) {
-                                    const currentXp = senderProfile.data.totalXp || 0;
-                                    await updateUserProfile(user.uid, { totalXp: currentXp + 10 });
-                                }
-                            } catch (error) {
-                                console.error('Ошибка начисления XP:', error);
+function setupFriendAcceptedListener(user) {
+    // ★ Сначала отписываемся от старого слушателя
+    if (window._friendAcceptedListener) {
+        window._friendAcceptedListener();
+        window._friendAcceptedListener = null;
+    }
+
+    // ★ Если пользователя нет — слушать нечего
+    if (!user) return;
+
+    window._friendAcceptedListener = firebase.firestore()
+        .collection('notifications')
+        .where('to', '==', user.uid)
+        .where('type', '==', 'friend_accepted')
+        .where('read', '==', false)
+        .onSnapshot(async (snapshot) => {
+            for (const change of snapshot.docChanges()) {
+                if (change.type === 'added') {
+                    const data = change.doc.data();
+
+                    const notificationId = 'friend_accepted_' + change.doc.id;
+                    if (isNotificationSeen(notificationId)) continue;
+
+                    showNotification(
+                        '👥',
+                        data.message || `${data.fromName} принял(а) вашу заявку в друзья!`,
+                        null
+                    );
+
+                    // ★★★ ===== ЗАДАНИЕ 4: НОВЫЕ ЗНАКОМСТВА (ДЛЯ ОТПРАВИТЕЛЯ) ===== ★★★
+                    const tasksData = JSON.parse(localStorage.getItem('sportapp_tasks') || '{}');
+                    if (!tasksData[4]) {
+                        tasksData[4] = true;
+                        localStorage.setItem('sportapp_tasks', JSON.stringify(tasksData));
+
+                        tasks[4] = true;
+                        updateTasksUI();
+
+                        showToast('✅ Задание "Новые знакомства" выполнено!');
+
+                        try {
+                            const senderProfile = await getUserProfile(user.uid);
+                            if (senderProfile.success) {
+                                const currentXp = senderProfile.data.totalXp || 0;
+                                await updateUserProfile(user.uid, { totalXp: currentXp + 10 });
                             }
+                        } catch (error) {
+                            console.error('Ошибка начисления XP:', error);
                         }
-                        
-                        await firebase.firestore()
-                            .collection('notifications')
-                            .doc(change.doc.id)
-                            .update({ read: true });
-                        
-                        markNotificationSeen(notificationId);
                     }
+
+                    await firebase.firestore()
+                        .collection('notifications')
+                        .doc(change.doc.id)
+                        .update({ read: true });
+
+                    markNotificationSeen(notificationId);
                 }
-            });
-    });
+            }
+        });
 }
 
 async function rejectFriendRequest(requestId) {
@@ -7761,16 +7964,23 @@ async function rejectFriendRequest(requestId) {
 async function getFriendsList() {
     const user = await getFirebaseUser();
     if (!user) return { success: false, error: 'Не авторизован' };
+
     try {
-        const userDoc = await firebase.firestore().collection('users').doc(user.uid).get();
+        const userDoc = await firebase.firestore()
+            .collection('users').doc(user.uid).get();
         const friendIds = userDoc.data()?.friends || [];
+
         if (friendIds.length === 0) return { success: true, data: [] };
+
+        // ★ Один batch вместо цикла
+        const profilesMap = await getProfilesBatch(friendIds);
+
         const friends = [];
         for (const id of friendIds) {
-            const result = await getUserProfile(id);
-            if (result.success) friends.push({ id, ...result.data });
+            if (profilesMap[id]) friends.push({ id, ...profilesMap[id] });
         }
         return { success: true, data: friends };
+
     } catch (error) {
         console.error('Ошибка получения друзей:', error);
         return { success: false, error: error.message };
@@ -7879,7 +8089,6 @@ async function renderFriendsInProfile() {
     if (friends.success && friends.data.length > 0) {
         // ★★★ УБИРАЕМ АВТОМАТИЧЕСКОЕ УВЕДОМЛЕНИЕ ПРИ РЕНДЕРЕ ★★★
         // Уведомления о новых друзьях теперь показываются ТОЛЬКО в acceptFriendRequest
-        // и в listenForFriendAcceptedNotifications
         
 friendsHtml = friends.data.map(f => {
     const initial = (f.displayName || 'П')[0].toUpperCase();
@@ -9216,10 +9425,13 @@ const tutorialSteps = [
 ];
 
 // ===================PREMIUM ===================
-const PREMIUM_KEY = 'sportapp_premium';
+// ★★★ Статус PREMIUM хранится в Firestore (поле users/{uid}.premium).
+// Флаг в localStorage больше НЕ используется — его легко подделать.
+// Глобальный кэш заполняется при загрузке профиля (onAuthStateChanged, loadProfile).
+window._userPremium = false;
 
 function hasPremium() {
-    return localStorage.getItem(PREMIUM_KEY) === 'true';
+    return window._userPremium === true;
 }
 
 // В функцию openPremiumModal() добавить:
@@ -9245,6 +9457,11 @@ function closePremiumActiveModal() {
 }
 
 function buyPremium() {
+    closePremiumModal();
+    showToast('❌ Ошибка');
+}
+
+/* function buyPremium() {
     localStorage.setItem(PREMIUM_KEY, 'true');
     closePremiumModal();
     
@@ -9286,8 +9503,9 @@ function buyPremium() {
             await updateUserProfile(user.uid, { premium: true });
             console.log('✅ PREMIUM сохранен в Firestore');
             
-            // ★★★ ОБНОВЛЯЕМ СЧЕТЧИК ★★★
-            await updatePremiumCounter();
+            // ★ Сбрасываем кэш — только что добавился +1 premium
+            Cache.aggregates.delete('premiumCount');
+            await updatePremiumCounter(true);
         }
     })();
     
@@ -9296,7 +9514,7 @@ function buyPremium() {
     
     // ★★★ ОТКРЫВАЕМ МОДАЛКУ PREMIUM АКТИВИРОВАН ★★★
     setTimeout(() => openPremiumActiveModal(), 500);
-}
+} */
 
 function updatePremiumUI() {
     const premium = hasPremium();
@@ -9543,6 +9761,9 @@ document.addEventListener('DOMContentLoaded', function() {
         TabManager.applyAll();
     }, 100);
 
+        // ★ Инициализация карусели
+    setTimeout(initAutoCarousel, 500);
+
     // ★★★ 12. ИНИЦИАЛИЗИРУЕМ ТЕМУ ★★★
     updateThemeUI();
     setupSystemThemeListener();
@@ -9553,14 +9774,6 @@ document.addEventListener('DOMContentLoaded', function() {
     updateLanguageUI();
 
     updateInventoryStatus();
-
-    setTimeout(() => {
-        listenForInvites();
-    }, 1000);
-    
-    setTimeout(() => {
-        listenForFriendAcceptedNotifications();
-    }, 1500);
     
     // ★★★ 13. ИНИЦИАЛИЗИРУЕМ ВЫБОР ВРЕМЕНИ ОТДЫХА ★★★
     initRestTimePicker();
@@ -9578,36 +9791,38 @@ setTimeout(() => loadSupportCooldown(), 2500);
         // ★★★ ПРОВЕРЯЕМ ПРОСРОЧЕННЫЕ АККАУНТЫ ПРИ ЗАГРУЗКЕ ★★★
     setTimeout(async () => {
         await checkAndDeleteExpiredAccounts();
-    }, 2000);
+    }, 15000);
     
-    // ★★★ ПРОВЕРЯЕМ КАЖДЫЕ 60 СЕКУНД ★★★
-    setInterval(async () => {
-        await checkAndDeleteExpiredAccounts();
-    }, 60000); // Каждую минуту
+// Проверяем раз в 5 минут, плюс cooldown в самой функции
+setInterval(() => {
+    checkAndDeleteExpiredAccounts();
+}, 5 * 60 * 1000);
 
     // ★★★ HEARTBEAT: ОБНОВЛЯЕМ lastSeenAt КАЖДЫЕ 5 МИНУТ ★★★
-    setInterval(async () => {
-        try {
-            const user = firebase.auth().currentUser;
-            if (!user) return;
-            if (document.hidden) return; // вкладка свёрнута — не тратим запросы
-            await firebase.firestore().collection('users').doc(user.uid).set({
-                lastSeenAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-        } catch (e) {}
-    }, 5 * 60 * 1000);
+let _lastHeartbeat = 0;
+const HEARTBEAT_INTERVAL = 10 * 60 * 1000;
 
-    // ★★★ ОБНОВЛЯЕМ lastSeenAt ПРИ ВОЗВРАТЕ НА ВКЛАДКУ ★★★
-    document.addEventListener('visibilitychange', async () => {
-        if (document.hidden) return;
-        try {
-            const user = firebase.auth().currentUser;
-            if (!user) return;
-            await firebase.firestore().collection('users').doc(user.uid).set({
-                lastSeenAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-        } catch (e) {}
-    });
+async function _sendHeartbeat() {
+    if (document.hidden) return;
+    const now = Date.now();
+    if (now - _lastHeartbeat < HEARTBEAT_INTERVAL - 30_000) return;
+    _lastHeartbeat = now;
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) return;
+        await firebase.firestore().collection('users').doc(user.uid).set({
+            lastSeenAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+    } catch (e) {}
+}
+
+setInterval(_sendHeartbeat, HEARTBEAT_INTERVAL);
+
+// Обновляем при возврате на вкладку — но не чаще 10 минут
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    _sendHeartbeat();
+});
 });
 
 // ===================МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ С ПАРОЛЕМ ===================
@@ -9771,16 +9986,12 @@ await updateUserProfile(user.uid, { monthlyBadges: {} });
             localStorage.removeItem('achievement_notified_' + ach.id);
         }
 
-        // ★★★ 6. СОХРАНЯЕМ ТОЛЬКО PREMIUM И ЛОКАЛЬНЫЕ ТРЕНИРОВКИ ★★★
-        const hasPremiumStatus = localStorage.getItem(PREMIUM_KEY) === 'true';
-        const premiumValue = hasPremiumStatus ? 'true' : null;
-        const localWorkouts = localStorage.getItem('myCustomWorkouts');
-
-        // ★★★ 7. КЛЮЧИ, КОТОРЫЕ НУЖНО СОХРАНИТЬ (ТОЛЬКО PREMIUM И ТРЕНИРОВКИ) ★★★
-        const keysToPreserve = [
-            'sportapp_premium',      // PREMIUM — СОХРАНЯЕМ
-            'myCustomWorkouts'       // Локальные тренировки — СОХРАНЯЕМ
-        ];
+// ★ PREMIUM больше не хранится в localStorage — он в Firestore,
+// и после перезагрузки автоматически подтянется обратно.
+// Сохраняем только локальные тренировки.
+const keysToPreserve = [
+    'myCustomWorkouts'
+];
 
         // Получаем значения перед очисткой
         const preservedData = {};
@@ -10508,63 +10719,68 @@ document.querySelectorAll('#finishStars i').forEach(star => {
 });
 
 // =================== ПОЛУЧЕНИЕ ИКОНКИ УПРАЖНЕНИЯ ===================
+const _exerciseIconCache = new Map();
+
 function getExerciseIcon(exerciseName) {
+    // ★ Кэш — не ищем повторно одно и то же имя
+    if (_exerciseIconCache.has(exerciseName)) {
+        return _exerciseIconCache.get(exerciseName);
+    }
+
+    let result = null;
+
     // ★★★ СНАЧАЛА ИЩЕМ В ОТДЕЛЬНОМ КАТАЛОГЕ ★★★
     if (typeof EXERCISES_CATALOG !== 'undefined') {
         const found = EXERCISES_CATALOG.find(e => e.name === exerciseName);
         if (found && found.icon) {
-            return found.icon;
+            result = found.icon;
         }
     }
-    
+
     // ★★★ ПОТОМ В exercisesData (как fallback) ★★★
-    for (const parent in exercisesData) {
-        if (typeof exercisesData[parent] === 'object') {
-            for (const subCategory in exercisesData[parent]) {
-                if (typeof exercisesData[parent][subCategory] === 'object') {
-                    if (exercisesData[parent][subCategory]._premium) continue;
-                    for (const level in exercisesData[parent][subCategory]) {
-                        const levelData = exercisesData[parent][subCategory][level];
-                        if (Array.isArray(levelData)) {
-                            const found = levelData.find(e => e.name === exerciseName);
-                            if (found && found.icon) return found.icon;
-                        } else if (levelData && typeof levelData === 'object' && levelData._exercises) {
-                            const found = levelData._exercises.find(e => e.name === exerciseName);
-                            if (found && found.icon) return found.icon;
+    if (!result) {
+        for (const parent in exercisesData) {
+            if (typeof exercisesData[parent] === 'object') {
+                for (const subCategory in exercisesData[parent]) {
+                    if (typeof exercisesData[parent][subCategory] === 'object') {
+                        if (exercisesData[parent][subCategory]._premium) continue;
+                        for (const level in exercisesData[parent][subCategory]) {
+                            const levelData = exercisesData[parent][subCategory][level];
+                            if (Array.isArray(levelData)) {
+                                const found = levelData.find(e => e.name === exerciseName);
+                                if (found && found.icon) { result = found.icon; break; }
+                            } else if (levelData && typeof levelData === 'object' && levelData._exercises) {
+                                const found = levelData._exercises.find(e => e.name === exerciseName);
+                                if (found && found.icon) { result = found.icon; break; }
+                            }
                         }
+                        if (result) break;
                     }
                 }
+                if (result) break;
             }
         }
     }
-    
+
     // ★★★ ЕСЛИ НЕ НАШЛИ — ОПРЕДЕЛЯЕМ ПО КАТЕГОРИИ ★★★
-    // Ищем категорию упражнения в каталоге
-    if (typeof EXERCISES_CATALOG !== 'undefined') {
+    if (!result && typeof EXERCISES_CATALOG !== 'undefined') {
         const found = EXERCISES_CATALOG.find(e => e.name === exerciseName);
         if (found && found.category) {
             const categoryIconMap = {
-                'Грудь': 'breast',
-                'Спина': 'back',
-                'Ноги': 'legs',
-                'Плечи': 'shoulder',
-                'Пресс': 'press',
-                'Руки': 'bodybuilding',
-                'Всё тело': 'WholeBody',
-                'Кардио': 'cardio',
-                'Растяжка': 'stretching',
-                'Растяжка позвоночника': 'stretching-back',
-                'Зарядка': 'charging',
-                'Пилатес': 'Pilates',
-                'Кроссфит': 'crossfit',
-                'Мужская сила': 'men',
+                'Грудь': 'breast', 'Спина': 'back', 'Ноги': 'legs',
+                'Плечи': 'shoulder', 'Пресс': 'press', 'Руки': 'bodybuilding',
+                'Всё тело': 'WholeBody', 'Кардио': 'cardio',
+                'Растяжка': 'stretching', 'Растяжка позвоночника': 'stretching-back',
+                'Зарядка': 'charging', 'Пилатес': 'Pilates',
+                'Кроссфит': 'crossfit', 'Мужская сила': 'men',
                 'Женское счастье': 'woman'
             };
-                        return categoryIconMap[found.category] || null;
+            result = categoryIconMap[found.category] || null;
         }
     }
-    
-    return null;
+
+    _exerciseIconCache.set(exerciseName, result);
+    return result;
 }
 
 // =================== ФУНКЦИЯ ПОЛУЧЕНИЯ КАТЕГОРИИ ПО ИКОНКЕ ===================
@@ -10704,13 +10920,31 @@ async function removeFriendFromList(friendId) {
 }
 
 // ===================ОБНОВЛЕНИЕ ТОЛЬКО СТРАНИЦ С УВЕДОМЛЕНИЯМИ ===================
-function refreshNotificationData() {
-    renderFriendsInProfile();
-    loadWorldLeaderboard();
-    loadFriendsLeaderboard();
+let _lastRefreshND = 0;
+const REFRESH_ND_COOLDOWN = 30_000;
+
+function refreshNotificationData(force = false) {
+    const now = Date.now();
+    if (!force && now - _lastRefreshND < REFRESH_ND_COOLDOWN) return;
+    _lastRefreshND = now;
+
+    // ★ Критично (для UI, что видно сразу)
     loadProfile();
-    
-    console.log('✅ Страницы с уведомлениями обновлены');
+
+    // ★ Второстепенно — после отрисовки
+    const deferred = () => {
+        renderFriendsInProfile();
+        loadWorldLeaderboard();
+        loadFriendsLeaderboard();
+    };
+
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(deferred, { timeout: 2500 });
+    } else {
+        setTimeout(deferred, 300);
+    }
+
+    console.log('✅ refreshNotificationData выполнен');
 }
 
 // =================== ЕДИНЫЙ ОБРАБОТЧИК ВСЕХ КЛИКОВ ===================
@@ -12722,6 +12956,7 @@ async function addDailyTaskXp() {
                 document.getElementById('levelLvl').textContent = currentLevel.id + ' LVL';
                 document.getElementById('levelTitle').textContent = currentLevel.name;
                 document.getElementById('levelProgressText').textContent = progressText;
+                window._lastProfileXp = xpRounded;
                 document.getElementById('levelFill').style.width = progress + '%';
                 
                 console.log(`✅ Профиль принудительно обновлён: ${xpRounded} XP`);
@@ -15528,40 +15763,6 @@ async function getPremiumUsersCount() {
     }
 }
 
-async function updatePremiumCounter() {
-    try {
-        const user = await getFirebaseUser();
-        if (!user) {
-            console.warn('⚠️ Пользователь не авторизован');
-            return 0;
-        }
-        
-        const snapshot = await firebase.firestore()
-            .collection('users')
-            .get();
-        
-        let premiumCount = 0;
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            if (data.premium === true) {
-                premiumCount++;
-            }
-        });
-        
-        // ★★★ ОБНОВЛЯЕМ ВСЕ ЭЛЕМЕНТЫ С СЧЕТЧИКОМ ★★★
-        const counterElements = document.querySelectorAll('#premiumCounter');
-counterElements.forEach(el => {
-    el.textContent = `PREMIUM оформили: ${premiumCount} ${declOfNum(premiumCount, ['пользователь', 'пользователя', 'пользователей'])}`;
-});
-        
-        console.log(`📊 PREMIUM пользователей: ${premiumCount}`);
-        return premiumCount;
-    } catch (error) {
-        console.error('Ошибка обновления счетчика PREMIUM:', error);
-        return 0;
-    }
-}
-
 // =================== СТРАНИЦА: ВЫБОР ИНВЕНТАРЯ ===================
 
 // Массив выбранного инвентаря
@@ -15972,68 +16173,50 @@ window.openInventoryModal = openInventoryModal;
 window.saveInventoryFromModal = saveInventoryFromModal;
 
 // =================== ГЛОБАЛЬНЫЕ АГРЕГАТЫ ===================
-async function loadGlobalStats() {
+async function loadGlobalStats(force = false) {
     const container = document.getElementById('globalStatsContainer');
     if (!container) return;
 
     const ids = ['globalTotalMinutes', 'globalTotalWorkouts', 'globalTotalExercises'];
-    ids.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = '...';
-    });
 
-    try {
-        const user = await getFirebaseUser();
-        if (!user) {
+    let data = Cache.getAggregate('globalStats');
+
+    if (!data || force) {
+        try {
+            const snapshot = await firebase.firestore().collection('workouts').get();
+
+            let totalWorkouts = 0, totalMinutes = 0, totalExercises = 0;
+
+            snapshot.forEach(doc => {
+                const d = doc.data();
+                const icon = d.icon || null;
+                if (!icon || icon === 'charging' || d.isSingle === true) return;
+
+                totalWorkouts++;
+                totalMinutes += Math.floor((d.durationSeconds || 0) / 60);
+                if (Array.isArray(d.exercises)) {
+                    totalExercises += d.exercises.filter(e => e.completed === true).length;
+                }
+            });
+
+            data = { totalWorkouts, totalMinutes, totalExercises };
+            Cache.setAggregate('globalStats', data);
+        } catch (error) {
+            console.error('loadGlobalStats:', error);
             ids.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.textContent = '—';
             });
             return;
         }
-
-        // ★★★ СЧИТАЕМ ТРЕНИРОВКИ / МИНУТЫ / УПРАЖНЕНИЯ ★★★
-        const workoutsSnapshot = await firebase.firestore()
-            .collection('workouts')
-            .get();
-
-        let totalWorkouts = 0;
-        let totalMinutes = 0;
-        let totalExercises = 0;
-
-        workoutsSnapshot.forEach(doc => {
-            const data = doc.data();
-
-            // Исключаем зарядку и одиночные упражнения
-            const icon = data.icon || null;
-            if (!icon || icon === 'charging' || data.isSingle === true) return;
-
-            totalWorkouts++;
-            totalMinutes += Math.floor((data.durationSeconds || 0) / 60);
-
-            if (Array.isArray(data.exercises)) {
-                totalExercises += data.exercises.filter(e => e.completed === true).length;
-            }
-        });
-
-        // ★★★ ОБНОВЛЯЕМ UI ★★★
-        const minutesEl = document.getElementById('globalTotalMinutes');
-        const workoutsEl = document.getElementById('globalTotalWorkouts');
-        const exercisesEl = document.getElementById('globalTotalExercises');
-
-        if (minutesEl) minutesEl.textContent = formatBigNumber(totalMinutes);
-        if (workoutsEl) workoutsEl.textContent = formatBigNumber(totalWorkouts);
-        if (exercisesEl) exercisesEl.textContent = formatBigNumber(totalExercises);
-
-        console.log(`📊 Глобальные агрегаты: ${totalWorkouts} трен., ${totalMinutes} мин, ${totalExercises} упр.`);
-
-    } catch (error) {
-        console.error('❌ Ошибка загрузки глобальных агрегатов:', error);
-        ids.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.textContent = '—';
-        });
     }
+
+    const minutesEl = document.getElementById('globalTotalMinutes');
+    const workoutsEl = document.getElementById('globalTotalWorkouts');
+    const exercisesEl = document.getElementById('globalTotalExercises');
+    if (minutesEl) minutesEl.textContent = formatBigNumber(data.totalMinutes);
+    if (workoutsEl) workoutsEl.textContent = formatBigNumber(data.totalWorkouts);
+    if (exercisesEl) exercisesEl.textContent = formatBigNumber(data.totalExercises);
 }
 
 // Форматирование больших чисел: 1234 → 1 234, 12345 → 12,3K, 1234567 → 1,2M
@@ -16047,30 +16230,52 @@ function formatBigNumber(num) {
 }
 
 // =================== ПЛАШКА: ПОЛЬЗОВАТЕЛИ ===================
-async function loadGlobalUsersCount() {
+async function loadGlobalUsersCount(force = false) {
     const el = document.getElementById('globalTotalUsers');
     if (!el) return;
-    el.textContent = '...';
 
+    let total = Cache.getAggregate('usersCount');
+
+    if (!total || force) {
+        try {
+            const snap = await firebase.firestore().collection('users').get();
+            total = snap.size;
+            Cache.setAggregate('usersCount', total);
+        } catch (e) {
+            el.textContent = '—';
+            return;
+        }
+    }
+
+    el.textContent = formatBigNumber(total);
+    const labelEl = document.getElementById('globalTotalUsersLabel');
+    if (labelEl) labelEl.textContent = declOfNum(total, ['человек', 'человека', 'человек']);
+}
+
+async function updatePremiumCounter(force = false) {
     try {
         const user = await getFirebaseUser();
-        if (!user) { el.textContent = '—'; return; }
+        if (!user) return 0;
 
-const snap = await firebase.firestore().collection('users').get();
-const total = snap.size;
+        let premiumCount = Cache.getAggregate('premiumCount');
 
-        el.textContent = formatBigNumber(total);
-
-        const labelEl = document.getElementById('globalTotalUsersLabel');
-        if (labelEl) {
-            labelEl.textContent = declOfNum(total, ['человек', 'человека', 'человек']);
+        if (premiumCount === null || premiumCount === undefined || force) {
+            const snapshot = await firebase.firestore().collection('users').get();
+            premiumCount = 0;
+            snapshot.forEach(doc => {
+                if (doc.data().premium === true) premiumCount++;
+            });
+            Cache.setAggregate('premiumCount', premiumCount);
         }
 
-        console.log(`👥 Всего пользователей: ${total}`);
+        document.querySelectorAll('#premiumCounter').forEach(el => {
+            el.textContent = `PREMIUM оформили: ${premiumCount} ${declOfNum(premiumCount, ['пользователь', 'пользователя', 'пользователей'])}`;
+        });
 
+        return premiumCount;
     } catch (error) {
-        console.error('❌ Ошибка загрузки пользователей:', error);
-        el.textContent = '—';
+        console.error('updatePremiumCounter:', error);
+        return 0;
     }
 }
 
@@ -16112,104 +16317,65 @@ async function loadCommunityAchievements() {
     const container = document.getElementById('communityAchievementsContainer');
     if (!container) return;
 
-const achievementsMap = {
-    friendly: 'communityPercFriendly',
-    marathoner: 'communityPercMarathoner',
-    fitnessMaster: 'communityPercFitnessMaster',
-    unstoppable: 'communityPercUnstoppable',
-    ironEndurance: 'communityPercIronEndurance',
-    masterOfStyles: 'communityPercMasterOfStyles',
-    vip: 'communityPercVip'
-};
-
-    // Показываем загрузку
-    Object.values(achievementsMap).forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = '...';
-    });
+    const achievementsMap = {
+        friendly: 'communityPercFriendly',
+        marathoner: 'communityPercMarathoner',
+        fitnessMaster: 'communityPercFitnessMaster',
+        unstoppable: 'communityPercUnstoppable',
+        ironEndurance: 'communityPercIronEndurance',
+        masterOfStyles: 'communityPercMasterOfStyles',
+        vip: 'communityPercVip'
+    };
 
     try {
         const user = await getFirebaseUser();
-        if (!user) {
-            Object.values(achievementsMap).forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.textContent = '—';
-            });
-            return;
-        }
+        if (!user) return;
 
-        // ★★★ 1. ПОЛУЧАЕМ ВСЕХ ПОЛЬЗОВАТЕЛЕЙ ★★★
-        const snapshot = await firebase.firestore()
-            .collection('users')
-            .get();
+        // ★ КЭШ на 10 минут
+        let data = Cache.getAggregate('communityAchievements');
 
-        const totalUsers = snapshot.size;
+        if (!data) {
+            const snapshot = await firebase.firestore().collection('users').get();
+            const totalUsers = snapshot.size;
 
-        if (totalUsers === 0) {
-            Object.values(achievementsMap).forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.textContent = '0%';
-            });
-            return;
-        }
+            const counts = {
+                friendly: 0, marathoner: 0, fitnessMaster: 0,
+                unstoppable: 0, ironEndurance: 0, masterOfStyles: 0, vip: 0
+            };
+            let myAchievements = {};
 
-        // ★★★ 2. СЧИТАЕМ СКОЛЬКО У КОГО ЕСТЬ + СВОИ ДОСТИЖЕНИЯ ★★★
-const counts = {
-    friendly: 0,
-    marathoner: 0,
-    fitnessMaster: 0,
-    unstoppable: 0,
-    ironEndurance: 0,
-    masterOfStyles: 0,
-    vip: 0
-};
-
-        let myAchievements = {};
-
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            const ach = data.achievements || {};
-
-            // Если это текущий пользователь — сохраняем его достижения
-            if (doc.id === user.uid) {
-                myAchievements = ach;
-            }
-
-            for (const key in counts) {
-                if (ach[key] === true) {
-                    counts[key]++;
+            snapshot.forEach(doc => {
+                const d = doc.data();
+                const ach = d.achievements || {};
+                if (doc.id === user.uid) myAchievements = ach;
+                for (const key in counts) {
+                    if (ach[key] === true) counts[key]++;
                 }
-            }
-        });
+            });
 
-        // ★★★ 3. ОБНОВЛЯЕМ ПРОЦЕНТЫ И ЦВЕТ ИКОНОК ★★★
-        for (const [key, count] of Object.entries(counts)) {
-            const percent = Math.round((count / totalUsers) * 100);
-            const elId = achievementsMap[key];
-            const el = document.getElementById(elId);
+            data = { counts, totalUsers, myAchievements };
+            Cache.setAggregate('communityAchievements', data);
+        }
 
-            // Обновляем процент
+        // ★ Рендер
+        for (const [key, count] of Object.entries(data.counts)) {
+            const percent = data.totalUsers > 0
+                ? Math.round((count / data.totalUsers) * 100)
+                : 0;
+            const el = document.getElementById(achievementsMap[key]);
             if (el) el.textContent = percent + '%';
 
-            // ★★★ ОБНОВЛЯЕМ ЦВЕТ ИКОНКИ ★★★
             const tile = el?.closest('.community-achievement-tile');
             const icon = tile?.querySelector('.community-achievement-icon');
             if (icon) {
-                const hasIt = myAchievements[key] === true;
+                const hasIt = data.myAchievements[key] === true;
                 icon.classList.toggle('unlocked', hasIt);
                 icon.classList.toggle('locked', !hasIt);
             }
         }
 
-        console.log(`🏆 Достижения сообщества (${totalUsers} юзеров):`, counts);
-        console.log(`🏆 Мои достижения:`, myAchievements);
-
     } catch (error) {
-        console.error('❌ Ошибка загрузки достижений сообщества:', error);
-        Object.values(achievementsMap).forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.textContent = '—';
-        });
+        console.error('❌ loadCommunityAchievements:', error);
     }
 }
 
@@ -16259,28 +16425,26 @@ async function getCommunityGoalState() {
     }
 }
 
-/**
- * Считает тренировки всех пользователей.
- * Возвращает { counts, totalWorkouts }.
- */
-async function countAllWorkouts() {
-    // ★★★ ПОЛУЧАЕМ ДАТУ СТАРТА ЦЕЛИ ★★★
-    const state = await getCommunityGoalState();
-    const startedAt = state?.startedAt;
+async function countAllWorkouts(force = false) {
+    const CACHE_KEY = 'goalWorkoutsAggregate';
 
-    // Преобразуем Firestore Timestamp в миллисекунды
-    let startMs = 0;
-    if (startedAt) {
-        if (typeof startedAt.toMillis === 'function') {
-            startMs = startedAt.toMillis();          // Firestore Timestamp
-        } else if (startedAt.seconds) {
-            startMs = startedAt.seconds * 1000;      // сырой объект
-        } else {
-            startMs = new Date(startedAt).getTime();
+    if (!force) {
+        const cached = Cache.getAggregate(CACHE_KEY);
+        if (cached) {
+            console.log('📦 countAllWorkouts из кэша');
+            return cached;
         }
     }
 
-    console.log('🎯 Считаем тренировки с даты:', new Date(startMs).toISOString());
+    const state = await getCommunityGoalState();
+    const startedAt = state?.startedAt;
+
+    let startMs = 0;
+    if (startedAt) {
+        if (typeof startedAt.toMillis === 'function') startMs = startedAt.toMillis();
+        else if (startedAt.seconds) startMs = startedAt.seconds * 1000;
+        else startMs = new Date(startedAt).getTime();
+    }
 
     const snapshot = await firebase.firestore()
         .collection('workouts')
@@ -16291,12 +16455,9 @@ async function countAllWorkouts() {
 
     snapshot.forEach(doc => {
         const data = doc.data();
-
-        // Исключаем зарядку и одиночные упражнения
         const icon = data.icon || null;
         if (!icon || icon === 'charging' || data.isSingle === true) return;
 
-        // ★★★ ФИЛЬТР ПО ДАТЕ СТАРТА ЦЕЛИ ★★★
         const workoutDate = data.date ? new Date(data.date).getTime() : 0;
         if (workoutDate < startMs) return;
 
@@ -16306,7 +16467,9 @@ async function countAllWorkouts() {
         counts[userId] = (counts[userId] || 0) + 1;
     });
 
-    return { counts, totalWorkouts };
+    const result = { counts, totalWorkouts };
+    Cache.setAggregate(CACHE_KEY, result);
+    return result;
 }
 
 /**
@@ -16352,6 +16515,9 @@ async function completeCommunityGoal(totalWorkouts, counts) {
             top10: top10,
             totalWorkouts: totalWorkouts
         });
+
+        // ★ Сбрасываем кэш агрегата — цель зафиксирована, данные устарели
+        Cache.aggregates.delete('goalWorkoutsAggregate');
 
         console.log('🏆 Цель зафиксирована! Топ-10 сохранён.');
         return top10;
@@ -16458,32 +16624,24 @@ async function loadCommunityGoalTop() {
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, COMMUNITY_GOAL.topCount);
 
-            for (let i = 0; i < sorted.length; i++) {
-                const [userId, count] = sorted[i];
-                const position = i + 1;
+// СТАЛО:
+const userIds = sorted.map(([id]) => id);
+const profilesMap = await getProfilesBatch(userIds);
 
-                let name = 'Пользователь';
-                let xp = 0;
-                let achievements = {};
-                try {
-                    const profileResult = await getUserProfile(userId);
-                    if (profileResult.success) {
-                        name = profileResult.data.displayName || 'Пользователь';
-                        xp = profileResult.data.totalXp || 0;
-                        achievements = profileResult.data.achievements || {};
-                    }
-                } catch (e) {}
-
-                topUsers.push({
-                    id: userId,
-                    name,
-                    count,
-                    xp,
-                    achievements,
-                    position,
-                    reward: COMMUNITY_GOAL.getRewardByPosition(position)
-                });
-            }
+for (let i = 0; i < sorted.length; i++) {
+    const [userId, count] = sorted[i];
+    const position = i + 1;
+    const p = profilesMap[userId] || {};
+    topUsers.push({
+        id: userId,
+        name: p.displayName || 'Пользователь',
+        count,
+        xp: p.totalXp || 0,
+        achievements: p.achievements || {},
+        position,
+        reward: COMMUNITY_GOAL.getRewardByPosition(position)
+    });
+}
         }
 
         if (topUsers.length === 0) {
@@ -16906,51 +17064,48 @@ const GTO_AGE_MAP = {
 
 // =================== СЕРИЯ ТРЕНИРОВОК ===================
 async function calculateStreak(userId) {
+    const cacheKey = `streak_${userId}`;
+    const cached = Cache.getAggregate(cacheKey);
+    if (cached !== null && cached !== undefined) return cached;
+
     try {
-        const result = await getUserWorkoutsFromFirestore(userId);
+        const result = await getUserWorkoutsFromFirestore(userId); // ← уже кэш
         if (!result.success) return 0;
-        
+
         const workouts = result.data.filter(w => {
             const icon = getWorkoutIcon(w);
             return icon && icon !== 'charging' && !w.isSingle;
         });
-        
-        if (workouts.length === 0) return 0;
-        
-        // Собираем уникальные даты (YYYY-MM-DD)
+
+        if (workouts.length === 0) {
+            Cache.setAggregate(cacheKey, 0);
+            return 0;
+        }
+
         const dates = new Set();
         workouts.forEach(w => {
             const d = new Date(w.date);
-            const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             dates.add(key);
         });
-        
-        // Считаем серию подряд идущих дней, начиная с сегодня/вчера
+
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
         let streak = 0;
         let current = new Date(today);
-        
-        // Если сегодня нет тренировки — проверяем со вчера
-        const todayKey = `${current.getFullYear()}-${String(current.getMonth()+1).padStart(2,'0')}-${String(current.getDate()).padStart(2,'0')}`;
-        if (!dates.has(todayKey)) {
-            current.setDate(current.getDate() - 1);
-        }
-        
-        // Идём назад по дням, пока есть тренировки
+
+        const todayKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`;
+        if (!dates.has(todayKey)) current.setDate(current.getDate() - 1);
+
         while (true) {
-            const key = `${current.getFullYear()}-${String(current.getMonth()+1).padStart(2,'0')}-${String(current.getDate()).padStart(2,'0')}`;
-            if (dates.has(key)) {
-                streak++;
-                current.setDate(current.getDate() - 1);
-            } else {
-                break;
-            }
+            const key = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`;
+            if (dates.has(key)) { streak++; current.setDate(current.getDate() - 1); }
+            else break;
         }
-        
+
+        Cache.setAggregate(cacheKey, streak);
         return streak;
-        
+
     } catch (error) {
         console.error('❌ Ошибка подсчёта серии:', error);
         return 0;
@@ -17359,42 +17514,78 @@ const total = (dailyTasksList && dailyTasksList.length > 0)
 }
 
 // ★★★ ПЕРЕЗАПУСК КАРУСЕЛИ (для обновления после выполнения заданий) ★★★
+let _carouselTimer = null;
+let _lastCarouselRenderTs = 0;
+let _carouselDataHash = '';
+const CAROUSEL_COOLDOWN = 1000;
+
+function _carouselHash() {
+    const profileXp = window._lastProfileXp ?? '';
+    const tasksHash = Object.values(tasks).map(v => v ? '1' : '0').join('');
+    const dailyDone = (dailyTasksList || []).filter(t => t.completed).length;
+    const dailyTotal = (dailyTasksList || []).length;
+    return `${profileXp}|${tasksHash}|${dailyDone}/${dailyTotal}`;
+}
+
 function refreshAutoCarousel() {
+    // 1. Если данные не менялись — выходим
+    const hash = _carouselHash();
+    if (hash === _carouselDataHash) return;
+    _carouselDataHash = hash;
+
+    // 2. Throttle
+    if (_carouselTimer) return;
+    const elapsed = Date.now() - _lastCarouselRenderTs;
+    const delay = Math.max(0, CAROUSEL_COOLDOWN - elapsed);
+
+    _carouselTimer = setTimeout(() => {
+        _carouselTimer = null;
+        _lastCarouselRenderTs = Date.now();
+        _renderCarouselTrack();
+    }, delay);
+}
+
+/**
+ * Внутренний рендер. Использует сохранённую перемешку.
+ */
+let _carouselShuffleCache = null;
+function _renderCarouselTrack() {
     const track = document.getElementById('autoCarouselTrack');
     if (!track) return;
 
-    track.style.animation = 'none';
     updateCarouselDynamicCards();
 
-    // ★★★ ПОЛНАЯ СЛУЧАЙНАЯ ТАСОВКА ★★★
-    const shuffledCards = shuffleArray(CAROUSEL_CARDS);
+    // Один раз перемешали — зафиксировали на сессию
+    if (!_carouselShuffleCache) {
+        _carouselShuffleCache = shuffleArray([...CAROUSEL_CARDS]);
+    }
 
-const cardsHtml = shuffledCards.map((card) => {
-    const originalIndex = CAROUSEL_CARDS.indexOf(card);
-    const iconHtml = card.iconImg
-        ? `<img src="${card.iconImg}" alt="${card.title}">`
-        : `<i class="${card.icon}"></i>`;
-    return `
-        <div class="carousel-card" data-card-index="${originalIndex}">
-            <div class="carousel-card-icon">${iconHtml}</div>
-            <div class="carousel-card-info">
-                <div class="carousel-card-title">${card.title}</div>
-                <div class="carousel-card-desc">${card.desc}</div>
-            </div>
-        </div>
-    `;
-}).join('');
+    const html = _carouselShuffleCache.map(card => {
+        const idx = CAROUSEL_CARDS.indexOf(card);
+        const iconHtml = card.iconImg
+            ? `<img src="${card.iconImg}" alt="${card.title}">`
+            : `<i class="${card.icon}"></i>`;
+        return `
+            <div class="carousel-card" data-card-index="${idx}">
+                <div class="carousel-card-icon">${iconHtml}</div>
+                <div class="carousel-card-info">
+                    <div class="carousel-card-title">${card.title}</div>
+                    <div class="carousel-card-desc">${card.desc}</div>
+                </div>
+            </div>`;
+    }).join('');
 
-    track.innerHTML = cardsHtml + cardsHtml;
-
+    track.style.animation = 'none';
+    track.innerHTML = html + html;
     void track.offsetWidth;
     track.style.animation = '';
 }
 
-// Запускаем после загрузки DOM
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(initAutoCarousel, 500);
-});
+// Заменить в initAutoCarousel всё на вызов _renderCarouselTrack()
+function initAutoCarousel() {
+    _carouselDataHash = '';   // сброс, чтобы первый раз отрендерилось
+    _renderCarouselTrack();
+}
 
 // =================== СВЯЗЬ С АДМИНИСТРАЦИЕЙ ===================
 
@@ -19908,11 +20099,28 @@ function getLocalDateKey() {
 
 /** Проверка: может ли пользователь публиковать сегодня */
 async function canPostToday() {
-    // ★★★ ВРЕМЕННО СНЯТО ОГРАНИЧЕНИЕ — 1 ПОСТ В ДЕНЬ ★★★
     const user = await getFirebaseUser();
     if (!user) return { allowed: false, reason: 'no-auth' };
 
-    return { allowed: true };
+    try {
+        const profileResult = await getUserProfile(user.uid);
+        const profile = profileResult.success ? profileResult.data : {};
+
+        const lastPostDate = profile.lastPostDate
+            || localStorage.getItem(POST_DATE_KEY)
+            || '';
+
+        const today = getLocalDateKey();
+
+        if (lastPostDate === today) {
+            return { allowed: false, reason: 'limit' };
+        }
+        return { allowed: true };
+    } catch (e) {
+        // При ошибке — разрешаем, чтобы не блокировать пользователя зря
+        console.warn('canPostToday: ошибка проверки, разрешаем пост', e);
+        return { allowed: true };
+    }
 }
 
 /** Секунд до полуночи локального времени */
