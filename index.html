@@ -9,7 +9,7 @@
 
     <!-- ★ Манифест и иконки — БЕЗ ?v= (иначе сломается PWA) -->
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="images/preview.png">
+    <link rel="apple-touch-icon" href="images/preview-Iphone.png">
     <link rel="icon" type="image/png" href="images/preview.png">
 
     <!-- ★★★ Open Graph (Telegram, WhatsApp, VK, Discord и т.д.) ★★★ -->
@@ -1970,6 +1970,28 @@
     </div>
 </nav>
 
+<!-- ===== МОДАЛКА: ФУНКЦИЯ НЕ ДОСТУПНА ===== -->
+<div id="notAvailableModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 420px; width: 95%;">
+
+        <div class="modal-title">Функция не доступна</div>
+
+        <div style="text-align: center; font-size: 3.5rem; color: var(--accent); margin: 0.5rem 0 0.8rem 0;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+
+        <p class="modal-text" style="margin-bottom: 1rem;">
+            Эта функция ещё в разработке. Приложение активно развивается,
+            поэтому скоро здесь появится что-то интересное.
+        </p>
+
+        <button class="btn btn-primary" onclick="closeModal('notAvailableModal')">
+            Понятно
+        </button>
+
+    </div>
+</div>
+
 <!-- ===== МОДАЛКА: ЛИМИТ ПОСТОВ НА ДЕНЬ ===== -->
 <div id="postLimitModal" class="modal-overlay" style="display:none;">
     <div class="modal-content" style="max-width:400px;">
@@ -2401,12 +2423,12 @@
             <div id="communityGoalTop" class="item-grid"></div>
         </div>
 
-        <!-- ★★★ МОЁ МЕСТО И НАГРАДА ★★★ -->
-        <div id="communityGoalMyPlace" style="margin-bottom: 0.5rem;">
-            <span class="modal-text">
-                <span id="communityGoalMyPlaceText">Вы на 1-ом месте</span>, ваша награда: <span id="communityGoalMyReward" style="color: var(--accent);">+100XP</span>
-            </span>
-        </div>
+<!-- ★★★ МОЁ МЕСТО И НАГРАДА ★★★ -->
+<div id="communityGoalMyPlace" style="margin-bottom: 0.5rem;">
+    <span class="modal-text">
+        <span id="communityGoalMyPlaceText">Вы на ... месте</span>, ваша награда: <span id="communityGoalMyReward" style="color: var(--accent);">+...XP</span>
+    </span>
+</div>
 
         <button class="btn btn-primary" onclick="closeModal('communityGoalModal')">
             Понятно

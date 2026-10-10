@@ -9460,7 +9460,7 @@ function closePremiumActiveModal() {
 
 function buyPremium() {
     closePremiumModal();
-    showToast('❌ Ошибка');
+    openNotAvailableModal(); 
 }
 
 /* function buyPremium() {
@@ -15744,28 +15744,6 @@ async function getFriendsEvents() {
     }
 }
 
-// =================== СЧЕТЧИК PREMIUM ПОЛЬЗОВАТЕЛЕЙ ===================
-async function getPremiumUsersCount() {
-    try {
-        const snapshot = await firebase.firestore()
-            .collection('users')
-            .get();
-        
-        let premiumCount = 0;
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            if (data.premium === true) {
-                premiumCount++;
-            }
-        });
-        
-        return premiumCount;
-    } catch (error) {
-        console.error('Ошибка подсчета PREMIUM пользователей:', error);
-        return 0;
-    }
-}
-
 // =================== СТРАНИЦА: ВЫБОР ИНВЕНТАРЯ ===================
 
 // Массив выбранного инвентаря
@@ -16699,6 +16677,15 @@ const achievementIcons = [
 
 // =================== МОДАЛКА «ОБЩАЯ ЦЕЛЬ» ===================
 async function openCommunityGoalModal() {
+    // ★★★ СНАЧАЛА ЗАГРУЖАЕМ ДАННЫЕ, ПОТОМ ОТКРЫВАЕМ МОДАЛКУ ★★★
+    const placeTextEl = document.getElementById('communityGoalMyPlaceText');
+    const rewardEl = document.getElementById('communityGoalMyReward');
+    if (placeTextEl) placeTextEl.textContent = 'Вы на ... месте';
+    if (rewardEl) {
+        rewardEl.textContent = '+...XP';
+        rewardEl.style.color = 'var(--slate)';
+    }
+
     openModal('communityGoalModal');
 
     // Обновляем текст статуса
@@ -16716,30 +16703,40 @@ async function openCommunityGoalModal() {
         }
     }
 
-    // Топ-10
-    loadCommunityGoalTop();
-
-    // ★★★ МОЁ МЕСТО И НАГРАДА ★★★
-    loadCommunityGoalMyPlace();
+    // Загружаем топ-10 и моё место параллельно
+    await Promise.all([
+        loadCommunityGoalTop(),
+        loadCommunityGoalMyPlace()
+    ]);
 }
 
 window.openCommunityGoalModal = openCommunityGoalModal;
 
-// ★★★ НОВАЯ ФУНКЦИЯ: МОЁ МЕСТО И НАГРАДА ★★★
+// ★★★ МОЁ МЕСТО И НАГРАДА ★★★
 async function loadCommunityGoalMyPlace() {
     const placeTextEl = document.getElementById('communityGoalMyPlaceText');
     const rewardEl = document.getElementById('communityGoalMyReward');
     if (!placeTextEl || !rewardEl) return;
 
+    // ★ Показываем индикатор загрузки
     placeTextEl.textContent = 'Вы на ... месте';
     rewardEl.textContent = '+...XP';
+    rewardEl.style.color = 'var(--slate)';
 
     try {
         const user = await getFirebaseUser();
-        if (!user) return;
+        if (!user) {
+            placeTextEl.textContent = 'Авторизуйтесь';
+            rewardEl.textContent = '';
+            return;
+        }
 
         const state = await getCommunityGoalState();
-        if (!state) return;
+        if (!state) {
+            placeTextEl.textContent = 'Вы на ... месте';
+            rewardEl.textContent = '+...XP';
+            return;
+        }
 
         let myPosition = 0;
         let myReward = 0;
@@ -16754,9 +16751,8 @@ async function loadCommunityGoalMyPlace() {
                 // Не в топ-10 — считаем место по общей статистике
                 const { counts } = await countAllWorkouts();
                 const myCount = counts[user.uid] || 0;
-                // Место = количество людей с большим счётом + 1
                 myPosition = Object.values(counts).filter(c => c > myCount).length + 1;
-                myReward = 0; // Вне топ-10 награды нет
+                myReward = 0;
             }
         } else {
             // ★★★ ЦЕЛЬ АКТИВНА — СЧИТАЕМ АКТУАЛЬНОЕ МЕСТО ★★★
@@ -16764,7 +16760,6 @@ async function loadCommunityGoalMyPlace() {
             const myCount = counts[user.uid] || 0;
             myPosition = Object.values(counts).filter(c => c > myCount).length + 1;
 
-            // Награда по позиции из конфига
             if (myPosition === 1) myReward = 100;
             else if (myPosition === 2) myReward = 80;
             else if (myPosition === 3) myReward = 60;
@@ -16773,7 +16768,7 @@ async function loadCommunityGoalMyPlace() {
             else myReward = 0;
         }
 
-        // ★★★ ОБНОВЛЯЕМ UI ★★★
+        // ★★★ ОБНОВЛЯЕМ UI — ГАРАНТИРОВАННО ★★★
         placeTextEl.textContent = `Вы на ${myPosition}-м месте`;
         rewardEl.textContent = myReward > 0 ? `+${myReward}XP` : 'без награды';
         rewardEl.style.color = myReward > 0 ? 'var(--accent)' : 'var(--slate)';
@@ -17426,17 +17421,22 @@ const cardsHtml = shuffledCards.map((card) => {
 }).join('');
 
     track.innerHTML = cardsHtml + cardsHtml;
-
-    // Обработчик клика
-    track.addEventListener('click', function(e) {
-        const card = e.target.closest('.carousel-card');
-        if (!card) return;
-        const index = parseInt(card.dataset.cardIndex);
-        if (CAROUSEL_CARDS[index] && typeof CAROUSEL_CARDS[index].action === 'function') {
-            CAROUSEL_CARDS[index].action();
-        }
-    });
 }
+
+// ★★★ ГЛОБАЛЬНЫЙ ОБРАБОТЧИК КЛИКОВ ПО КАРУСЕЛИ ★★★
+document.addEventListener('click', function(e) {
+    const card = e.target.closest('#autoCarouselTrack .carousel-card');
+    if (!card) return;
+
+    const index = parseInt(card.dataset.cardIndex, 10);
+    if (isNaN(index)) return;
+
+    const cardData = CAROUSEL_CARDS[index];
+    if (cardData && typeof cardData.action === 'function') {
+        console.log('🎠 Клик по карточке карусели:', cardData.title);
+        cardData.action();
+    }
+});
 
 /**
  * Обновляет карточку уровня в карусели (название, XP).
@@ -17551,14 +17551,19 @@ function refreshAutoCarousel() {
 /**
  * Внутренний рендер. Использует сохранённую перемешку.
  */
+function initAutoCarousel() {
+    _carouselDataHash = '';
+    _renderCarouselTrack();
+}
+
 let _carouselShuffleCache = null;
+
 function _renderCarouselTrack() {
     const track = document.getElementById('autoCarouselTrack');
     if (!track) return;
 
     updateCarouselDynamicCards();
 
-    // Один раз перемешали — зафиксировали на сессию
     if (!_carouselShuffleCache) {
         _carouselShuffleCache = shuffleArray([...CAROUSEL_CARDS]);
     }
@@ -17582,12 +17587,6 @@ function _renderCarouselTrack() {
     track.innerHTML = html + html;
     void track.offsetWidth;
     track.style.animation = '';
-}
-
-// Заменить в initAutoCarousel всё на вызов _renderCarouselTrack()
-function initAutoCarousel() {
-    _carouselDataHash = '';   // сброс, чтобы первый раз отрендерилось
-    _renderCarouselTrack();
 }
 
 // =================== СВЯЗЬ С АДМИНИСТРАЦИЕЙ ===================
@@ -21546,3 +21545,9 @@ function renderWorkoutHistory() {
         </div>`;
     }).join('');
 }
+
+// =================== МОДАЛКА: ФУНКЦИЯ НЕ ДОСТУПНА ===================
+function openNotAvailableModal() {
+    openModal('notAvailableModal');
+}
+window.openNotAvailableModal = openNotAvailableModal;
