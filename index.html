@@ -6,6 +6,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>SportApp</title>
+
+    <!-- ★ Манифест и иконки — БЕЗ ?v= (иначе сломается PWA) -->
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="images/preview.png">
     <link rel="icon" type="image/png" href="images/preview.png">
@@ -25,8 +27,11 @@
     <meta name="twitter:description" content="Отслеживай прогресс, создавай тренировки и соревнуйся с друзьями.">
     <meta name="twitter:image" content="https://www-profile.github.io/SportApp/images/preview.png">
 
+    <!-- ★ Внешние CDN — БЕЗ ?v= (они сами управляют кэшем) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+
+    <!-- ★ Локальные стили — С ?v= для сброса кэша -->
+    <link rel="stylesheet" href="style.css?v=20261010">
 </head>
 <body class="theme-red">
     <!-- ===== СТРАНИЦА: ТРЕНИРОВКИ ===== -->
