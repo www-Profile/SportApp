@@ -7649,12 +7649,15 @@ function enterApp() {
     // Если туториал активен или бета-модалка показана — canShowBanner() вернёт false
     setTimeout(() => PWA.tryShowBanner(), 5000);
 
-    // ★★★ МОДАЛКА ОБНОВЛЕНИЙ ★★★
-// Показываем через 2 секунды после входа, если:
-// - не видели эту версию
-// - туториал не активен и его не было в сессии
-// - нет открытых модалок
-setTimeout(() => CHANGELOG.tryShow(), 2000);
+        // ★★★ МОДАЛКА ОБНОВЛЕНИЙ ★★★
+    // Показываем через 2 секунды после входа, если:
+    // - не видели эту версию
+    // - туториал не активен и его не было в сессии
+    // - нет открытых модалок
+    setTimeout(() => CHANGELOG.tryShow(), 2000);
+
+        // ★ ДОБАВЬ ЭТУ СТРОКУ:
+        setTimeout(() => FCM.init(), 3000);
 }
 
 // ===================ПОВТОРНАЯ ОТПРАВКА ПИСЬМА ===================
@@ -21926,3 +21929,68 @@ function closeChangelogModal() {
 
 window.CHANGELOG = CHANGELOG;
 window.closeChangelogModal = closeChangelogModal;
+
+// =================== FCM: PUSH-УВЕДОМЛЕНИЯ ===================
+const FCM = {
+    messaging: null,
+    token: null,
+
+    async init() {
+        // 1. Проверяем поддержку
+        if (!('serviceWorker' in navigator) || !('Notification' in window)) {
+            console.warn('FCM: push не поддерживается');
+            return;
+        }
+
+        // 2. Ждём пользователя (не запрашиваем разрешение до логина)
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.log('FCM: пользователь не авторизован, пропускаем');
+            return;
+        }
+
+        // 3. Запрашиваем разрешение
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            console.log('FCM: пользователь запретил уведомления');
+            return;
+        }
+
+        // 4. Инициализация messaging
+        this.messaging = firebase.messaging();
+
+        // 5. Получаем токен с VAPID-ключом
+        try {
+            this.token = await this.messaging.getToken({
+                vapidKey: 'BGpP4nhyFFPERRlmdfDi2fTLUB-bb6cGCD4KhwkZQFbJiFWXC10TMEyz4ydhlzEdbJXrc-T-9A37vdG9QHOM8RI'
+            });
+
+            if (this.token) {
+                console.log('📬 FCM Token:', this.token);
+
+                // ★ Сохраняем токен в Firestore в профиль пользователя
+                await firebase.firestore()
+                    .collection('users')
+                    .doc(user.uid)
+                    .update({ fcmToken: this.token });
+
+                console.log('✅ FCM токен сохранён в Firestore');
+            }
+        } catch (err) {
+            console.error('FCM: ошибка получения токена', err);
+        }
+
+        // 6. Обработка push, когда вкладка активна (в фореграунде)
+        this.messaging.onMessage((payload) => {
+            console.log('📬 Push в фореграунде:', payload);
+            // Показываем твой внутренний тост
+            const title = payload.notification?.title || 'SportApp';
+            const body = payload.notification?.body || '';
+            showToast(`🔔 ${title}: ${body}`);
+        });
+    }
+};
+
+// ★ Вызываем FCM.init() при входе в приложение
+// Добавь эту строку в конец функции enterApp():
+// setTimeout(() => FCM.init(), 3000);
