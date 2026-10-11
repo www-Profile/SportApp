@@ -143,20 +143,6 @@ body {
     justify-content: center;
 }
 
-.section-drag {
-    flex-shrink: 0;
-    width: 32px;
-    height: 32px;
-    border: none;
-    background: transparent;
-    color: var(--slate);
-    font-size: 1.2rem;
-    cursor: grab;
-    display: none;
-    align-items: center;
-    justify-content: center;
-}
-
 .section-block.open .section-toggle { transform: rotate(90deg); }
 
 .section-body {
@@ -6315,18 +6301,59 @@ body.theme-dark-mode .changelog-version-changes li {
 }
 
 /* =================== ВЫЗОВЫ ДРУЗЬЯМ ==================== */
+
+/* ★ ПАНЕЛЬ ФИЛЬТРОВ ВЫЗОВОВ ★ */
+.challenges-filters {
+    display: flex;
+    gap: 0.3rem;
+    margin-bottom: 0.5rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.challenges-filters::-webkit-scrollbar {
+    display: none;
+}
+
+.challenge-filter-btn {
+    flex: 0 0 auto;
+    padding: 0.4rem 0.9rem;
+    border-radius: 8px;
+    border: none;
+    border: 2px solid var(--light-grey);
+    background: var(--white);
+    color: var(--slate);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.challenge-filter-btn.challenge-filter-active {
+    border: 2px solid var(--accent);
+    color: var(--accent);
+}
+
+/* ★ КАРТОЧКА ВЫЗОВА — БЕЗ ОБВОДКИ СЛЕВА ★ */
 .challenge-card {
     background: var(--white);
+    border: 1.5px solid var(--light-grey);
+    box-shadow: var(--shadow-card);
     border-radius: 12px;
     padding: 0.7rem 0.9rem;
     margin-bottom: 0.5rem;
-    border-left: 4px solid var(--accent);
-    box-shadow: var(--shadow-card);
 }
 
-.challenge-card.pending { border-left-color: var(--gold); }
-.challenge-card.completed { border-left-color: var(--slate); opacity: 0.85; }
-.challenge-card.declined { border-left-color: var(--danger); opacity: 0.6; }
+/* ★ ФОН ОДИНАКОВЫЙ ДЛЯ ВСЕХ СТАТУСОВ ★ */
+.challenge-card.pending,
+.challenge-card.active,
+.challenge-card.completed,
+.challenge-card.declined {
+    background: var(--white);
+    border: 1.5px solid var(--light-grey);
+    box-shadow: var(--shadow-card);
+    opacity: 1;                /* ★ completed тоже без прозрачности */
+}
 
 .challenge-header {
     display: flex;
@@ -6362,8 +6389,9 @@ body.theme-dark-mode .changelog-version-changes li {
 }
 
 .challenge-name {
-    font-size: 0.75rem;
-    color: var(--slate);
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--dark);
     min-width: 60px;
     white-space: nowrap;
     overflow: hidden;
@@ -6372,7 +6400,7 @@ body.theme-dark-mode .changelog-version-changes li {
 
 .challenge-bar {
     flex: 1;
-    height: 8px;
+    height: 10px;
     background: var(--light-grey);
     border-radius: 4px;
     overflow: hidden;
@@ -6388,6 +6416,7 @@ body.theme-dark-mode .changelog-version-changes li {
 
 .challenge-fill.loser {
     background: var(--slate);
+    opacity: 0.5;
 }
 
 .challenge-value {
@@ -6399,19 +6428,26 @@ body.theme-dark-mode .changelog-version-changes li {
     white-space: nowrap;
 }
 
+/* ★ СТАТУСЫ — ВСЕ ОДИНАКОВЫЕ, АКЦЕНТНЫЙ ЦВЕТ ★ */
 .challenge-status {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     text-align: center;
-    padding: 0.2rem 0.5rem;
+    padding: 0.3rem 0.5rem;
     border-radius: 6px;
     margin-top: 0.4rem;
-    font-weight: 600;
+    font-weight: 700;
+    background: var(--accent-light);
+    color: var(--accent);
+    border: none;
 }
 
-.challenge-status.win { background: #dcfce7; color: #15803d; }
-.challenge-status.lose { background: #fee2e2; color: #b91c1c; }
-.challenge-status.draw { background: var(--light-grey); color: var(--slate); }
-.challenge-status.wait { background: #fef3c7; color: #b45309; }
+.challenge-status.win,
+.challenge-status.lose,
+.challenge-status.draw,
+.challenge-status.wait {
+    color: var(--accent);
+    border: none;
+}
 
 .challenge-actions {
     display: flex;
@@ -6425,12 +6461,25 @@ body.theme-dark-mode .changelog-version-changes li {
     flex: 1;
 }
 
-/* Тёмная тема */
+/* ★ ТЁМНАЯ ТЕМА ★ */
 body.theme-dark-mode .challenge-card {
-    background: var(--bg-secondary);
-    box-shadow: var(--shadow-card-dark);
+    background: var(--accent-light);
+    box-shadow: none;
+}
+body.theme-dark-mode .challenge-card.pending,
+body.theme-dark-mode .challenge-card.active,
+body.theme-dark-mode .challenge-card.completed,
+body.theme-dark-mode .challenge-card.declined {
+    background: var(--accent-light);
 }
 body.theme-dark-mode .challenge-title { color: var(--text-primary); }
 body.theme-dark-mode .challenge-value { color: var(--text-primary); }
-body.theme-dark-mode .challenge-bar { background: var(--border-color); }
-body.theme-dark-mode .challenge-status.wait { background: var(--bg-primary); color: var(--gold); }
+body.theme-dark-mode .challenge-bar { background: rgba(255, 255, 255, 0.15); }
+body.theme-dark-mode .challenge-status,
+body.theme-dark-mode .challenge-status.win,
+body.theme-dark-mode .challenge-status.lose,
+body.theme-dark-mode .challenge-status.draw,
+body.theme-dark-mode .challenge-status.wait {
+    background: transparent;
+    color: var(--accent);
+}

@@ -3462,12 +3462,29 @@ window.closeModal = function(modalId) {
         setTimeout(() => {
             if (_closingModalId === modalId) _closingModalId = null;
             _tryShowNextModal();
+
+            // ★★★ ПРОВЕРЯЕМ ВЫЗОВЫ ПОСЛЕ ЗАКРЫТИЯ МОДАЛКИ ★★★
+            if (window.Challenges) {
+                setTimeout(() => {
+                    Challenges.checkIncoming();
+                    Challenges._tryShowNextResult();
+                }, 300);
+            }
         }, 650);
     } else {
-        // Закрываем неактивную — на всякий случай убираем из очереди
         const idx = _modalQueue.indexOf(modalId);
         if (idx !== -1) _modalQueue.splice(idx, 1);
-        setTimeout(_tryShowNextModal, 650);
+        setTimeout(() => {
+            _tryShowNextModal();
+
+            // ★★★ ПРОВЕРЯЕМ ВЫЗОВЫ ★★★
+            if (window.Challenges) {
+                setTimeout(() => {
+                    Challenges.checkIncoming();
+                    Challenges._tryShowNextResult();
+                }, 300);
+            }
+        }, 650);
     }
 };
 
@@ -7607,8 +7624,7 @@ async function logout() {
 }
 
 function enterApp() {
-
-        // ★★★ ЗАПУСКАЕМ СЛУШАТЕЛЬ ВЫЗОВОВ ★★★
+    // ★★★ ЗАПУСКАЕМ СЛУШАТЕЛЬ ВЫЗОВОВ ★★★
     if (typeof startChallengesListener === 'function') {
         startChallengesListener();
     }
@@ -22065,45 +22081,53 @@ window.updateNotificationsSettingsItem = updateNotificationsSettingsItem;
 
 // =================== ВЫЗОВЫ ДРУЗЬЯМ ===================
 const Challenges = {
-    list: [],            // все вызовы, где участвует текущий пользователь
-    unsubscribe: null,   // слушатель Firestore
-    _incomingQueue: [],  // очередь входящих, ожидающих модалки
+    list: [],
+    unsubscribe: null,
     _currentIncoming: null,
+    _currentIncomingShown: false,
+    _incomingRetryTimer: null,
+    _resultQueue: [],           // очередь результатов, ждущих показа
+    _currentResult: null,
+    _filter: 'all',
 
     // ── Слушатель Firestore ──
-subscribe() {
-    const user = firebase.auth().currentUser;
-    if (!user) {
-        console.warn('Challenges.subscribe: нет пользователя');
-        return;
-    }
+    subscribe() {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.warn('Challenges.subscribe: нет пользователя');
+            return;
+        }
 
-    if (this.unsubscribe) this.unsubscribe();
+        if (this.unsubscribe) this.unsubscribe();
 
-    console.log('🎯 Запуск слушателя вызовов для', user.uid);
+        console.log('🎯 Запуск слушателя вызовов для', user.uid);
 
-    this.unsubscribe = firebase.firestore()
-        .collection('challenges')
-        .where('participantIds', 'array-contains', user.uid)
-        .onSnapshot(snapshot => {
-            console.log(`🎯 Вызовов получено: ${snapshot.size}`);
-            
-            const list = [];
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                list.push({ id: doc.id, ...data });
-                console.log('  →', doc.id, data.status, data.fromName, '→', data.toName);
+        this.unsubscribe = firebase.firestore()
+            .collection('challenges')
+            .where('participantIds', 'array-contains', user.uid)
+            .onSnapshot(snapshot => {
+                console.log(`🎯 Вызовов получено: ${snapshot.size}`);
+
+                const list = [];
+                snapshot.forEach(doc => {
+                    list.push({ id: doc.id, ...doc.data() });
+                });
+
+                this.list = list;
+
+                // ★ СНАЧАЛА завершаем просроченные (могут появиться новые completed)
+                this.refreshStatuses();
+
+                // ★ Потом проверяем входящие и результаты
+                this.checkIncoming();
+                this.checkResults();
+
+                // ★ Рендер списка
+                this.render();
+            }, err => {
+                console.error('❌ Challenges listener error:', err);
             });
-
-            this.list = list;
-
-            this.checkIncoming();
-            this.refreshStatuses();
-            this.render();
-        }, err => {
-            console.error('❌ Challenges listener error:', err);
-        });
-},
+    },
 
     unsubscribeAll() {
         if (this.unsubscribe) {
@@ -22126,8 +22150,25 @@ subscribe() {
             return;
         }
 
+        // ★ Фильтруем друзей, с которыми уже есть активный/pending вызов
+        const busyIds = new Set();
+        this.list.forEach(c => {
+            if (c.status === 'active' || c.status === 'pending') {
+                const otherId = c.from === firebase.auth().currentUser?.uid ? c.to : c.from;
+                busyIds.add(otherId);
+            }
+        });
+
+        const availableFriends = result.data.filter(f => !busyIds.has(f.id));
+
+        if (availableFriends.length === 0) {
+            select.innerHTML = '<option value="">Все друзья уже в вызовах</option>';
+            openModal('createChallengeModal');
+            return;
+        }
+
         select.innerHTML = '<option value="">Выберите друга</option>' +
-            result.data.map(f => `
+            availableFriends.map(f => `
                 <option value="${f.id}">${f.displayName || 'Пользователь'}</option>
             `).join('');
 
@@ -22158,7 +22199,6 @@ subscribe() {
         btn.textContent = 'Отправка...';
 
         try {
-            // Профиль друга
             const profileResult = await getUserProfile(toId);
             const toName = profileResult.success
                 ? (profileResult.data.displayName || 'Пользователь')
@@ -22166,18 +22206,16 @@ subscribe() {
 
             const fromName = user.displayName || 'Пользователь';
 
-            // Даты
             const startDate = new Date();
             const endDate = new Date(startDate);
             endDate.setDate(endDate.getDate() + duration);
 
-            // Создаём документ
             await firebase.firestore().collection('challenges').add({
                 from: user.uid,
                 fromName: fromName,
                 to: toId,
                 toName: toName,
-                participantIds: [user.uid, toId],  // ★ для слушателя
+                participantIds: [user.uid, toId],
                 type: type,
                 target: target,
                 duration: duration,
@@ -22190,7 +22228,6 @@ subscribe() {
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            // Push в Firestore notifications — для дальнейшей интеграции
             await firebase.firestore().collection('notifications').add({
                 to: toId,
                 from: user.uid,
@@ -22212,372 +22249,703 @@ subscribe() {
         }
     },
 
-    // ── Входящие вызовы ──
-checkIncoming() {
-    const user = firebase.auth().currentUser;
-    if (!user) return;
+    // ═══════════════════════════════════════════════════════════
+    // ★ МОЖНО ЛИ ПОКАЗЫВАТЬ МОДАЛКИ ВЫЗОВА ПРЯМО СЕЙЧАС ★
+    // ═══════════════════════════════════════════════════════════
+    _canShowChallengeModal() {
+        const user = firebase.auth().currentUser;
+        if (!user) return false;
 
-    // ★ Если уже показываем — проверяем, актуален ли ещё тот вызов
-    if (this._currentIncoming) {
-        const stillPending = this.list.find(c => 
-            c.id === this._currentIncoming.id && c.status === 'pending'
+        // Запрещённые страницы
+        const FORBIDDEN = [
+            'page-hero', 'page-loading',
+            'page-login', 'page-login-password',
+            'page-register', 'page-register-email',
+            'page-register-password', 'page-register-verify',
+            'page-register-gender', 'page-register-body',
+            'page-inventory',
+            'page-training-session', 'page-task-session',
+            'page-training-waiting', 'page-coop-waiting',
+            'page-finish', 'page-coop-finish'
+        ];
+        for (const id of FORBIDDEN) {
+            const el = document.getElementById(id);
+            if (el && el.classList.contains('page-active')) return false;
+        }
+
+        // Только на главных страницах
+        const ALLOWED = ['page-workouts', 'page-stats', 'page-profile', 'page-feed'];
+        const isInside = ALLOWED.some(id => {
+            const el = document.getElementById(id);
+            return el && el.classList.contains('page-active');
+        });
+        if (!isInside) return false;
+
+        // Открыта другая модалка
+        const busy = document.querySelector(
+            '.modal-overlay.modal-overlay-visible, .modal-overlay.modal-overlay-closing'
         );
-        if (stillPending) return; // всё ещё актуален, не трогаем
-        
-        // Иначе — сбрасываем и покажем следующий
-        this._currentIncoming = null;
-    }
+        if (busy) return false;
 
-    const incoming = this.list.filter(c =>
-        c.status === 'pending' && c.to === user.uid
-    );
+        // Туториал
+        if (document.getElementById('tutorialOverlay')) return false;
+        if (typeof tutorialActive !== 'undefined' && tutorialActive) return false;
 
-    console.log(`📬 Входящих вызовов: ${incoming.length}`);
+        // Очередь модалок (premium / goalReward)
+        if (typeof modalQueue !== 'undefined' && modalQueue.length > 0) return false;
+        if (typeof isModalQueueProcessing !== 'undefined' && isModalQueueProcessing) return false;
 
-    if (incoming.length > 0) {
-        this._currentIncoming = incoming[0];
-        this.showIncoming(this._currentIncoming);
-    }
-},
-
-    showIncoming(challenge) {
-        const textEl = document.getElementById('incomingChallengeText');
-        const detailsEl = document.getElementById('incomingChallengeDetails');
-
-        if (textEl) {
-            textEl.textContent = `${challenge.fromName} бросает вам вызов!`;
+        // Changelog ещё не показан — ждём
+        if (window.CHANGELOG && typeof CHANGELOG.canShow === 'function') {
+            try {
+                if (CHANGELOG.canShow()) return false;
+            } catch (e) {}
         }
 
-        if (detailsEl) {
-            const typeLabels = {
-                workouts: 'тренировок',
-                minutes: 'минут',
-                xp: 'XP',
-                streak: 'дней подряд'
-            };
-            detailsEl.innerHTML = `
-                <div style="font-size:1.1rem; font-weight:700; color:var(--accent); margin-bottom:0.3rem;">
-                    ${challenge.target} ${typeLabels[challenge.type] || ''}
-                </div>
-                <div style="font-size:0.8rem; color:var(--slate);">
-                    за ${challenge.duration} ${declOfNum(challenge.duration, ['день', 'дня', 'дней'])}
-                </div>
-            `;
-        }
-
-        openModal('incomingChallengeModal');
+        return true;
     },
 
-async acceptIncoming() {
-    const c = this._currentIncoming;
-    if (!c) return;
-
-    try {
-        const startDate = new Date();
-        const endDate = new Date(startDate);
-        endDate.setDate(endDate.getDate() + c.duration);
-
-        await firebase.firestore().collection('challenges').doc(c.id).update({
-            status: 'active',
-            startDate: startDate.toISOString(),
-            endDate: endDate.toISOString()
-        });
-
-        showToast('✅ Вызов принят!');
-    } catch (err) {
-        console.error('Challenge accept error:', err);
-        showToast('❌ Не удалось принять вызов');
-    }
-
-    this._currentIncoming = null;
-    closeModal('incomingChallengeModal');
-    
-    // ★ Проверяем следующий входящий
-    setTimeout(() => this.checkIncoming(), 500);
-},
-
-async declineIncoming() {
-    const c = this._currentIncoming;
-    if (!c) return;
-
-    try {
-        await firebase.firestore().collection('challenges').doc(c.id).update({
-            status: 'declined'
-        });
-        showToast('❌ Вызов отклонён');
-    } catch (err) {
-        console.error('Challenge decline error:', err);
-    }
-
-    this._currentIncoming = null;
-    closeModal('incomingChallengeModal');
-    
-    // ★ Проверяем следующий входящий
-    setTimeout(() => this.checkIncoming(), 500);
-},
-
-    // ── Обновление прогресса ──
-    async refreshStatuses() {
+    // ═══════════════════════════════════════════════════════════
+    // ★ ВХОДЯЩИЕ ВЫЗОВЫ ★
+    // ═══════════════════════════════════════════════════════════
+    checkIncoming() {
         const user = firebase.auth().currentUser;
         if (!user) return;
 
-        const now = Date.now();
-
-        for (const c of this.list) {
-            if (c.status !== 'active') continue;
-
-            // Проверяем: не истёк ли срок
-            const endMs = new Date(c.endDate).getTime();
-            if (now >= endMs) {
-                // Определяем победителя
-                const winner = c.fromProgress > c.toProgress
-                    ? c.from
-                    : (c.toProgress > c.fromProgress ? c.to : null);
-
-                try {
-                    await firebase.firestore().collection('challenges').doc(c.id).update({
-                        status: 'completed',
-                        winner: winner
-                    });
-                } catch (e) {}
-                continue;
+        // Если уже показываем — проверяем актуальность
+        if (this._currentIncoming) {
+            const stillPending = this.list.find(c =>
+                c.id === this._currentIncoming.id && c.status === 'pending'
+            );
+            if (stillPending) {
+                if (this._currentIncomingShown) return;
+                this._tryShowIncoming(this._currentIncoming);
+                return;
             }
-
-            // Обновляем прогресс обеих сторон
-            const newFromProgress = await this.calcProgress(c.from, c.type, c.startDate, c.endDate);
-            const newToProgress = await this.calcProgress(c.to, c.type, c.startDate, c.endDate);
-
-            if (newFromProgress !== c.fromProgress || newToProgress !== c.toProgress) {
-                try {
-                    await firebase.firestore().collection('challenges').doc(c.id).update({
-                        fromProgress: newFromProgress,
-                        toProgress: newToProgress
-                    });
-                } catch (e) {}
+            // Неактуален — сбрасываем
+            this._currentIncoming = null;
+            this._currentIncomingShown = false;
+            if (this._incomingRetryTimer) {
+                clearTimeout(this._incomingRetryTimer);
+                this._incomingRetryTimer = null;
             }
+        }
+
+        const incoming = this.list.filter(c =>
+            c.status === 'pending' && c.to === user.uid
+        );
+
+        if (incoming.length > 0) {
+            this._currentIncoming = incoming[0];
+            this._currentIncomingShown = false;
+            this._tryShowIncoming(this._currentIncoming);
         }
     },
 
-    async calcProgress(userId, type, startDate, endDate) {
+    _tryShowIncoming(challenge) {
+        if (this._currentIncomingShown) return;
+
+        if (!this._canShowChallengeModal()) {
+            if (this._incomingRetryTimer) clearTimeout(this._incomingRetryTimer);
+            this._incomingRetryTimer = setTimeout(() => {
+                this._tryShowIncoming(challenge);
+            }, 1500);
+            return;
+        }
+
+        this._incomingRetryTimer = null;
+        this._currentIncomingShown = true;
+        this.showIncoming(challenge);
+    },
+
+showIncoming(challenge) {
+    const modal = document.getElementById('incomingChallengeModal');
+    if (modal && modal.classList.contains('modal-overlay-visible')) return;
+
+    const textEl = document.getElementById('incomingChallengeText');
+    const taskEl = document.getElementById('incomingChallengeTask');
+    const durationEl = document.getElementById('incomingChallengeDuration');
+
+    if (textEl) {
+        textEl.textContent = `${challenge.fromName} бросает вам вызов!`;
+    }
+
+const typeLabels = {
+    workouts: { single: 'тренировку', many: 'тренировок' },
+    minutes:  { single: 'минуту',     many: 'минут' },
+    pushups:  { single: 'отжимание',  many: 'отжиманий' },
+    pullups:  { single: 'подтягивание', many: 'подтягиваний' },
+    squats:   { single: 'приседание', many: 'приседаний' }
+};
+
+    const t = typeLabels[challenge.type] || typeLabels.workouts;
+    const targetWord = challenge.target === 1 ? t.single : t.many;
+    const durationWord = declOfNum(challenge.duration, ['день', 'дня', 'дней']);
+
+    if (taskEl) {
+        taskEl.textContent = `Выполнить ${challenge.target} ${targetWord}`;
+    }
+    if (durationEl) {
+        durationEl.textContent = `за ${challenge.duration} ${durationWord}`;
+    }
+
+    openModal('incomingChallengeModal');
+},
+
+    async acceptIncoming() {
+        const c = this._currentIncoming;
+        if (!c) return;
+
         try {
-            const result = await getUserWorkoutsFromFirestore(userId);
-            if (!result.success) return 0;
+            const startDate = new Date();
+            const endDate = new Date(startDate);
+            endDate.setDate(endDate.getDate() + c.duration);
 
-            const start = new Date(startDate).getTime();
-            const end = new Date(endDate).getTime();
-
-            const filtered = result.data.filter(w => {
-                const t = new Date(w.date).getTime();
-                return t >= start && t <= end && !w.isSingle && getWorkoutIcon(w) !== 'charging';
+            await firebase.firestore().collection('challenges').doc(c.id).update({
+                status: 'active',
+                startDate: startDate.toISOString(),
+                endDate: endDate.toISOString()
             });
 
-            if (type === 'workouts') {
-                return filtered.length;
-            }
-            if (type === 'minutes') {
-                const sec = filtered.reduce((sum, w) => sum + (w.durationSeconds || 0), 0);
-                return Math.floor(sec / 60);
-            }
-            if (type === 'xp') {
-                const xp = filtered.reduce((sum, w) => sum + (w.xpEarned || 0), 0);
-                return Math.round(xp);
-            }
-            if (type === 'streak') {
-                return await calculateStreak(userId);
-            }
-            return 0;
-        } catch (e) {
-            return 0;
+            showToast('✅ Вызов принят!');
+        } catch (err) {
+            console.error('Challenge accept error:', err);
+            showToast('❌ Не удалось принять вызов');
         }
+
+        this._currentIncoming = null;
+        this._currentIncomingShown = false;
+        if (this._incomingRetryTimer) {
+            clearTimeout(this._incomingRetryTimer);
+            this._incomingRetryTimer = null;
+        }
+        closeModal('incomingChallengeModal');
+
+        setTimeout(() => this.checkIncoming(), 600);
     },
 
-    // ── Рендер списка вызовов ──
-    render() {
-        const container = document.getElementById('challengesContainer');
-        if (!container) return;
+    async declineIncoming() {
+        const c = this._currentIncoming;
+        if (!c) return;
 
+        try {
+            await firebase.firestore().collection('challenges').doc(c.id).update({
+                status: 'declined'
+            });
+            showToast('❌ Вызов отклонён');
+        } catch (err) {
+            console.error('Challenge decline error:', err);
+        }
+
+        this._currentIncoming = null;
+        this._currentIncomingShown = false;
+        if (this._incomingRetryTimer) {
+            clearTimeout(this._incomingRetryTimer);
+            this._incomingRetryTimer = null;
+        }
+        closeModal('incomingChallengeModal');
+
+        setTimeout(() => this.checkIncoming(), 600);
+    },
+
+    // ═══════════════════════════════════════════════════════════
+    // ★ РЕЗУЛЬТАТЫ ЗАВЕРШЁННЫХ ВЫЗОВОВ ★
+    // ═══════════════════════════════════════════════════════════
+    checkResults() {
         const user = firebase.auth().currentUser;
-        if (!user) {
-            container.innerHTML = '';
+        if (!user) return;
+
+        // Ищем завершённые вызовы, о которых ещё не показывали модалку
+        const pendingResults = this.list.filter(c => {
+            if (c.status !== 'completed') return false;
+            if (c.from !== user.uid && c.to !== user.uid) return false;
+            const key = 'challenge_result_shown_' + c.id;
+            return localStorage.getItem(key) !== 'true';
+        });
+
+        if (pendingResults.length === 0) return;
+
+        // ★ Сортируем: сначала самые свежие
+        pendingResults.sort((a, b) => {
+            const aTime = a.completedAt?.seconds || 0;
+            const bTime = b.completedAt?.seconds || 0;
+            return bTime - aTime;
+        });
+
+        // ★ Добавляем в очередь, если ещё не в ней
+        pendingResults.forEach(c => {
+            const alreadyQueued = this._resultQueue.some(r => r.id === c.id);
+            if (!alreadyQueued) {
+                this._resultQueue.push(c);
+            }
+        });
+
+        // ★ Пытаемся показать следующий результат
+        this._tryShowNextResult();
+    },
+
+    _tryShowNextResult() {
+        // Уже показываем — выходим
+        if (this._currentResult) return;
+
+        // Очередь пуста — выходим
+        if (this._resultQueue.length === 0) return;
+
+        // Нельзя показать сейчас — повторим позже
+        if (!this._canShowChallengeModal()) {
+            setTimeout(() => this._tryShowNextResult(), 1500);
             return;
         }
 
-        const active = this.list
-            .filter(c => c.status === 'active')
-            .sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
+        const result = this._resultQueue.shift();
+        if (!result) return;
 
-        const pending = this.list
-            .filter(c => c.status === 'pending')
-            .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+        this._currentResult = result;
+        this.showResult(result);
+    },
 
-        const completed = this.list
-            .filter(c => c.status === 'completed')
-            .sort((a, b) => new Date(b.endDate) - new Date(a.endDate))
-            .slice(0, 5);
+showResult(challenge) {
+    const user = firebase.auth().currentUser;
+    if (!user) return;
 
-        if (active.length === 0 && pending.length === 0 && completed.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state" style="box-shadow:none; padding:1rem;">
-                    <span class="empty-icon">🎯</span>
-                    <h3 class="empty-title">Нет вызовов</h3>
-                    <p class="empty-text">Брось другу вызов — кто больше натренирует за неделю.</p>
-                </div>
-            `;
-            return;
+    const myId = user.uid;
+    const isFrom = challenge.from === myId;
+    const myProgress = isFrom ? challenge.fromProgress : challenge.toProgress;
+    const oppProgress = isFrom ? challenge.toProgress : challenge.fromProgress;
+    const oppName = isFrom ? challenge.toName : challenge.fromName;
+
+    // ★ Определяем результат
+    let iconClass, subtitleText;
+    if (challenge.winner === myId) {
+        iconClass = 'fa-solid fa-trophy';
+        subtitleText = `Вы обошли ${oppName} в вызове!`;
+    } else if (challenge.winner === null) {
+        iconClass = 'fa-solid fa-handshake';
+        subtitleText = `Равный результат с ${oppName}.`;
+    } else {
+        iconClass = 'fa-solid fa-heart-crack';
+        subtitleText = `${oppName} оказался быстрее. В следующий раз получится!`;
+    }
+
+    // ★ Тип вызова
+const typeLabels = {
+    workouts: { single: 'тренировка', many: 'тренировок' },
+    minutes:  { single: 'минута',    many: 'минут' },
+    pushups:  { single: 'отжимание', many: 'отжиманий' },
+    pullups:  { single: 'подтягивание', many: 'подтягиваний' },
+    squats:   { single: 'приседание', many: 'приседаний' }
+};
+    const t = typeLabels[challenge.type] || typeLabels.workouts;
+    const unit = myProgress === 1 ? t.single : t.many;
+
+    // ★ Заполняем модалку
+    const iconEl = document.getElementById('challengeResultIcon');
+    const subtitleEl = document.getElementById('challengeResultSubtitle');
+    const myLabelEl = document.getElementById('challengeResultMyLabel');
+    const myValueEl = document.getElementById('challengeResultMyValue');
+    const oppLabelEl = document.getElementById('challengeResultOppLabel');
+    const oppValueEl = document.getElementById('challengeResultOppValue');
+
+    if (iconEl) iconEl.className = iconClass;
+    if (subtitleEl) subtitleEl.textContent = subtitleText;
+
+    if (myLabelEl) myLabelEl.textContent = 'Вы';
+    if (myValueEl) myValueEl.textContent = `${myProgress} ${unit}`;
+
+    if (oppLabelEl) oppLabelEl.textContent = oppName;
+    if (oppValueEl) oppValueEl.textContent = `${oppProgress} ${unit}`;
+
+    openModal('challengeResultModal');
+},
+
+    closeResult() {
+        const result = this._currentResult;
+        if (result) {
+            // ★ Помечаем как показанный
+            localStorage.setItem('challenge_result_shown_' + result.id, 'true');
         }
 
-        const typeLabels = {
-            workouts: 'тренировок',
-            minutes: 'минут',
-            xp: 'XP',
-            streak: 'дней подряд'
+        this._currentResult = null;
+        closeModal('challengeResultModal');
+
+        // ★ Проверяем следующий результат через небольшую задержку
+        setTimeout(() => this._tryShowNextResult(), 600);
+    },
+
+    // ═══════════════════════════════════════════════════════════
+    // ★ ОБНОВЛЕНИЕ СТАТУСОВ (проверка окончания) ★
+    // ═══════════════════════════════════════════════════════════
+async refreshStatuses() {
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+
+    const now = Date.now();
+
+    for (const c of this.list) {
+        if (c.status !== 'active') continue;
+
+        const endMs = new Date(c.endDate).getTime();
+        const timeExpired = now >= endMs;
+
+        // ★ Считаем актуальный прогресс обеих сторон
+        let newFromProgress = c.fromProgress || 0;
+        let newToProgress = c.toProgress || 0;
+
+        try {
+            newFromProgress = await this.calcProgress(c.from, c.type, c.startDate, c.endDate);
+            newToProgress = await this.calcProgress(c.to, c.type, c.startDate, c.endDate);
+        } catch (e) {
+            console.warn('Ошибка подсчёта прогресса:', e);
+        }
+
+        // ★★★ ПРОВЕРЯЕМ УСЛОВИЯ ОКОНЧАНИЯ ★★★
+        // 1. Кто-то достиг цели
+        const fromReached = newFromProgress >= c.target;
+        const toReached = newToProgress >= c.target;
+        const someoneReached = fromReached || toReached;
+
+        // 2. Истекло время
+        const shouldFinish = timeExpired || someoneReached;
+
+        if (shouldFinish) {
+            // ★ Определяем победителя
+            let winner = null;
+
+            if (someoneReached) {
+                // Кто-то достиг цели — он и победитель
+                if (fromReached && toReached) {
+                    // Оба достигли — побеждает тот, кто больше набрал
+                    if (newFromProgress > newToProgress) winner = c.from;
+                    else if (newToProgress > newFromProgress) winner = c.to;
+                    else winner = null; // ничья
+                } else if (fromReached) {
+                    winner = c.from;
+                } else {
+                    winner = c.to;
+                }
+            } else {
+                // Время истекло, никто не достиг цели — побеждает тот, у кого больше
+                if (newFromProgress > newToProgress) winner = c.from;
+                else if (newToProgress > newFromProgress) winner = c.to;
+                else winner = null; // ничья
+            }
+
+            try {
+                await firebase.firestore().collection('challenges').doc(c.id).update({
+                    status: 'completed',
+                    winner: winner,
+                    fromProgress: newFromProgress,
+                    toProgress: newToProgress,
+                    completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    completedReason: someoneReached ? 'target' : 'time'
+                });
+                console.log(`🏁 Вызов ${c.id} завершён (${someoneReached ? 'цель достигнута' : 'время истекло'}). Победитель: ${winner || 'ничья'}`);
+            } catch (e) {
+                console.error('Ошибка завершения вызова:', e);
+            }
+            continue;
+        }
+
+        // ★ Иначе — просто обновляем прогресс, если изменился
+        if (newFromProgress !== c.fromProgress || newToProgress !== c.toProgress) {
+            try {
+                await firebase.firestore().collection('challenges').doc(c.id).update({
+                    fromProgress: newFromProgress,
+                    toProgress: newToProgress
+                });
+            } catch (e) {}
+        }
+    }
+},
+
+async calcProgress(userId, type, startDate, endDate) {
+    try {
+        const result = await getUserWorkoutsFromFirestore(userId);
+        if (!result.success) return 0;
+
+        const start = new Date(startDate).getTime();
+        const end = new Date(endDate).getTime();
+
+        const filtered = result.data.filter(w => {
+            const t = new Date(w.date).getTime();
+            return t >= start && t <= end && !w.isSingle && getWorkoutIcon(w) !== 'charging';
+        });
+
+        // ── Тренировки ──
+        if (type === 'workouts') {
+            return filtered.length;
+        }
+
+        // ── Время ──
+        if (type === 'minutes') {
+            const sec = filtered.reduce((sum, w) => sum + (w.durationSeconds || 0), 0);
+            return Math.floor(sec / 60);
+        }
+
+        // ── Упражнения (отжимания / подтягивания / приседания) ──
+        const keywordMap = {
+            pushups: ['отжимани'],
+            pullups: ['подтягивани'],
+            squats:  ['приседани']
         };
 
-        let html = '';
+        const keywords = keywordMap[type];
+        if (!keywords) return 0;
 
-        // ── PENDING ──
-        if (pending.length > 0) {
-            html += `<div style="margin-bottom:0.5rem; font-size:0.75rem; color:var(--slate); font-weight:600;">Ожидают ответа</div>`;
-            pending.forEach(c => {
-                const isMe = c.from === user.uid;
-                html += `
-                    <div class="challenge-card pending">
-                        <div class="challenge-header">
-                            <div class="challenge-title">🎯 ${isMe ? 'Вы → ' + c.toName : c.fromName + ' → Вам'}</div>
-                            <div class="challenge-days">${c.duration} дн</div>
-                        </div>
-                        <div style="font-size:0.8rem; color:var(--slate);">
-                            ${c.target} ${typeLabels[c.type] || ''}
-                        </div>
-                        <div class="challenge-status wait" style="margin-top:0.4rem;">
-                            ${isMe ? '⏳ Ждём ответа' : '⏳ Ожидает вашего ответа'}
-                        </div>
-                    </div>
-                `;
+        let totalReps = 0;
+
+        filtered.forEach(w => {
+            (w.exercises || []).forEach(ex => {
+                if (!ex.completed) return;
+
+                const name = String(ex.name || '').toLowerCase();
+                const matches = keywords.some(k => name.includes(k));
+                if (!matches) return;
+
+                const sets = parseInt(ex.sets) || 0;
+
+                // Значение повторов: "12" или "12 секунд"
+                const repsStr = String(ex.reps || '');
+                const repsValue = parseFloat(repsStr.replace(/[^0-9.]/g, '')) || 0;
+
+                totalReps += sets * repsValue;
             });
-        }
+        });
 
-        // ── ACTIVE ──
-        if (active.length > 0) {
-            html += `<div style="margin:0.5rem 0 0.4rem; font-size:0.75rem; color:var(--slate); font-weight:600;">Активные вызовы</div>`;
-            active.forEach(c => {
-                const isFrom = c.from === user.uid;
-                const myProgress = isFrom ? c.fromProgress : c.toProgress;
-                const oppProgress = isFrom ? c.toProgress : c.fromProgress;
-                const oppName = isFrom ? c.toName : c.fromName;
+        return totalReps;
 
-                const maxVal = Math.max(myProgress, oppProgress, c.target, 1);
-                const myPct = Math.min(100, Math.round((myProgress / c.target) * 100));
-                const oppPct = Math.min(100, Math.round((oppProgress / c.target) * 100));
-
-                const daysLeft = Math.max(0, Math.ceil(
-                    (new Date(c.endDate).getTime() - Date.now()) / 86400000
-                ));
-
-                const iWin = myProgress > oppProgress;
-                const draw = myProgress === oppProgress;
-
-                html += `
-                    <div class="challenge-card">
-                        <div class="challenge-header">
-                            <div class="challenge-title">🎯 ${isFrom ? 'Вы → ' + c.toName : c.fromName + ' → Вам'}</div>
-                            <div class="challenge-days">${daysLeft} дн</div>
-                        </div>
-
-                        <div class="challenge-progress-row">
-                            <div class="challenge-name">Вы</div>
-                            <div class="challenge-bar">
-                                <div class="challenge-fill ${iWin ? '' : 'loser'}"
-                                     style="width:${myPct}%;"></div>
-                            </div>
-                            <div class="challenge-value">${myProgress}/${c.target}</div>
-                        </div>
-
-                        <div class="challenge-progress-row">
-                            <div class="challenge-name">${oppName}</div>
-                            <div class="challenge-bar">
-                                <div class="challenge-fill ${iWin ? 'loser' : ''}"
-                                     style="width:${oppPct}%;"></div>
-                            </div>
-                            <div class="challenge-value">${oppProgress}/${c.target}</div>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        // ── COMPLETED ──
-        if (completed.length > 0) {
-            html += `<div style="margin:0.5rem 0 0.4rem; font-size:0.75rem; color:var(--slate); font-weight:600;">Завершённые</div>`;
-            completed.forEach(c => {
-                const isFrom = c.from === user.uid;
-                const myProgress = isFrom ? c.fromProgress : c.toProgress;
-                const oppProgress = isFrom ? c.toProgress : c.fromProgress;
-                const oppName = isFrom ? c.toName : c.fromName;
-
-                let statusHtml = '';
-                if (c.winner === user.uid) {
-                    statusHtml = '<div class="challenge-status win">🏆 Победа!</div>';
-                } else if (c.winner === null) {
-                    statusHtml = '<div class="challenge-status draw">Ничья</div>';
-                } else {
-                    statusHtml = `<div class="challenge-status lose">Проигрыш · ${oppName}</div>`;
-                }
-
-                html += `
-                    <div class="challenge-card completed">
-                        <div class="challenge-header">
-                            <div class="challenge-title">🎯 ${isFrom ? 'Вы → ' + c.toName : c.fromName + ' → Вам'}</div>
-                            <div class="challenge-days">${c.target} ${typeLabels[c.type] || ''}</div>
-                        </div>
-                        <div style="font-size:0.75rem; color:var(--slate); margin-bottom:0.3rem;">
-                            Вы: ${myProgress} · ${oppName}: ${oppProgress}
-                        </div>
-                        ${statusHtml}
-                    </div>
-                `;
-            });
-        }
-
-        container.innerHTML = html;
+    } catch (e) {
+        return 0;
     }
+},
+
+    // ═══════════════════════════════════════════════════════════
+    // ★ РЕНДЕР СПИСКА ВЫЗОВОВ ★
+    // ═══════════════════════════════════════════════════════════
+render() {
+    const challengeTitles = {
+    workouts: 'Кто больше тренировок',
+    minutes:  'Кто больше минут',
+    pushups:  'Кто больше отжиманий',
+    pullups:  'Кто больше подтягиваний',
+    squats:   'Кто больше приседаний'
 };
+    const container = document.getElementById('challengesContainer');
+    if (!container) return;
+
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        container.innerHTML = '';
+        return;
+    }
+
+    // ★ ПРИМЕНЯЕМ ФИЛЬТР ★
+    let filtered = this.list;
+    if (this._filter === 'pending') {
+        filtered = this.list.filter(c => c.status === 'pending');
+    } else if (this._filter === 'active') {
+        filtered = this.list.filter(c => c.status === 'active');
+    } else if (this._filter === 'completed') {
+        filtered = this.list.filter(c => c.status === 'completed');
+    }
+
+    const active = filtered
+        .filter(c => c.status === 'active')
+        .sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
+
+    const pending = filtered
+        .filter(c => c.status === 'pending')
+        .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+    const completed = filtered
+        .filter(c => c.status === 'completed')
+        .sort((a, b) => {
+            const aT = a.completedAt?.seconds || new Date(a.endDate).getTime() / 1000;
+            const bT = b.completedAt?.seconds || new Date(b.endDate).getTime() / 1000;
+            return bT - aT;
+        })
+        .slice(0, 10);
+
+    // ★ ЕСЛИ ПУСТО — свой текст для каждого фильтра ★
+    if (active.length === 0 && pending.length === 0 && completed.length === 0) {
+        const emptyTexts = {
+            all:       'Брось другу вызов - кто больше натренирует за неделю.',
+            pending:   'Нет вызовов, ожидающих ответа.',
+            active:    'Нет активных вызовов.',
+            completed: 'Нет завершённых вызовов.'
+        };
+        container.innerHTML = `
+            <div class="empty-state" style="box-shadow:none; padding:1rem;">
+                <span class="empty-icon">🎯</span>
+                <h3 class="empty-title">Вызовов нет</h3>
+                <p class="empty-text">${emptyTexts[this._filter] || ''}</p>
+            </div>
+        `;
+        return;
+    }
+
+    const typeLabels = {
+        workouts: 'тренировок',
+        minutes: 'минут',
+        pushups: 'отжиманий',
+        pullups: 'подтягиваний',
+        squats: 'приседаний'
+    };
+
+    let html = '';
+
+    // ── PENDING ──
+pending.forEach(c => {
+    const isFrom = c.from === user.uid;
+    const oppName = isFrom ? c.toName : c.fromName;
+    html += `
+        <div class="challenge-card pending">
+            <div class="challenge-header">
+                <div class="challenge-title">🎯 ${challengeTitles[c.type] || 'Вызов'}</div>
+                <div class="challenge-days">${c.duration} дн</div>
+            </div>
+            <div style="font-size:0.75rem; color:var(--slate); margin-bottom:0.3rem;">
+                Вы · ${oppName}
+            </div>
+            <div style="font-size:0.8rem; color:var(--slate);">
+                Цель: ${c.target} ${typeLabels[c.type] || ''}
+            </div>
+            <div class="challenge-status wait" style="margin-top:0.4rem;">
+                ${isFrom ? '⏳ Ждём ответа' : '⏳ Ожидает вашего ответа'}
+            </div>
+        </div>
+    `;
+});
+
+    // ── ACTIVE ──
+    active.forEach(c => {
+        const isFrom = c.from === user.uid;
+        const myProgress = isFrom ? c.fromProgress : c.toProgress;
+        const oppProgress = isFrom ? c.toProgress : c.fromProgress;
+        const oppName = isFrom ? c.toName : c.fromName;
+
+        const myPct = Math.min(100, Math.round((myProgress / c.target) * 100));
+        const oppPct = Math.min(100, Math.round((oppProgress / c.target) * 100));
+
+        const daysLeft = Math.max(0, Math.ceil(
+            (new Date(c.endDate).getTime() - Date.now()) / 86400000
+        ));
+
+        const iWin = myProgress > oppProgress;
+
+        html += `
+            <div class="challenge-card">
+                <div class="challenge-header">
+                    <div class="challenge-title">🎯 ${challengeTitles[c.type] || 'Вызов'}</div>
+                    <div class="challenge-days">${daysLeft} дн</div>
+                </div>
+
+                <div class="challenge-progress-row">
+                    <div class="challenge-name">Вы</div>
+                    <div class="challenge-bar">
+                        <div class="challenge-fill ${iWin ? '' : 'loser'}"
+                             style="width:${myPct}%;"></div>
+                    </div>
+                    <div class="challenge-value">${myProgress}/${c.target}</div>
+                </div>
+
+                <div class="challenge-progress-row">
+                    <div class="challenge-name">${oppName}</div>
+                    <div class="challenge-bar">
+                        <div class="challenge-fill ${iWin ? 'loser' : ''}"
+                             style="width:${oppPct}%;"></div>
+                    </div>
+                    <div class="challenge-value">${oppProgress}/${c.target}</div>
+                </div>
+            </div>
+        `;
+    });
+
+    // ── COMPLETED ──
+    completed.forEach(c => {
+        const isFrom = c.from === user.uid;
+        const myProgress = isFrom ? c.fromProgress : c.toProgress;
+        const oppProgress = isFrom ? c.toProgress : c.fromProgress;
+        const oppName = isFrom ? c.toName : c.fromName;
+
+        let statusHtml = '';
+        if (c.winner === user.uid) {
+            statusHtml = '<div class="challenge-status win">🏆 Победа!</div>';
+        } else if (c.winner === null) {
+            statusHtml = '<div class="challenge-status draw">Ничья</div>';
+        } else {
+            statusHtml = `<div class="challenge-status lose">Проигрыш · ${oppName}</div>`;
+        }
+
+html += `
+    <div class="challenge-card completed">
+        <div class="challenge-header">
+            <div class="challenge-title">🎯 ${challengeTitles[c.type] || 'Вызов'}</div>
+            <div class="challenge-days">${formatChallengeEndDate(c)}</div>
+        </div>
+                <div style="font-size:0.75rem; color:var(--slate); margin-bottom:0.3rem;">
+                    Вы: ${myProgress} · ${oppName}: ${oppProgress}
+                </div>
+        ${statusHtml}
+    </div>
+`;
+    });
+
+    container.innerHTML = html;
+},
+};
+
+function formatChallengeEndDate(c) {
+    // Приоритет: completedAt (когда реально завершился) → endDate (когда должен был)
+    const ts = c.completedAt?.seconds
+        ? c.completedAt.seconds * 1000
+        : (c.endDate ? new Date(c.endDate).getTime() : null);
+
+    if (!ts) return '';
+
+    const d = new Date(ts);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+
+    return `${day}.${month}.${year}`;
+}
 
 // ── Глобальные обёртки для HTML ──
 window.openCreateChallengeModal = function() {
-    Challenges.openCreate();
+    if (typeof Challenges !== 'undefined') Challenges.openCreate();
 };
 window.sendChallenge = function() {
-    Challenges.send();
+    if (typeof Challenges !== 'undefined') Challenges.send();
 };
 window.acceptIncomingChallenge = function() {
-    Challenges.acceptIncoming();
+    if (typeof Challenges !== 'undefined') Challenges.acceptIncoming();
 };
 window.declineIncomingChallenge = function() {
-    Challenges.declineIncoming();
+    if (typeof Challenges !== 'undefined') Challenges.declineIncoming();
+};
+window.closeChallengeResult = function() {
+    if (typeof Challenges !== 'undefined') Challenges.closeResult();
 };
 
 // ── Подсказка для типа вызова ──
 window.updateChallengeHint = function() {
     const type = document.getElementById('challengeTypeSelect')?.value;
-    const hint = document.getElementById('challengeHint');
     const input = document.getElementById('challengeTargetInput');
-    if (!hint || !input) return;
+    if (!input) return;
 
-    const hints = {
-        workouts: { text: 'Сколько тренировок минимум?', default: 10 },
-        minutes:  { text: 'Сколько минут минимум?',     default: 100 },
-        xp:       { text: 'Сколько XP минимум?',        default: 500 },
-        streak:   { text: 'Сколько дней подряд?',       default: 7 }
+    const defaults = {
+        workouts: 10,
+        minutes:  100,
+        pushups:  100,
+        pullups:  50,
+        squats:   150
     };
 
-    const h = hints[type] || hints.workouts;
-    hint.textContent = h.text;
-    input.value = h.default;
+    input.value = defaults[type] || 10;
 };
 
 // ── Запуск слушателя ──
-// Вызывай после того, как пользователь авторизовался и открыл профиль → Друзья
 window.startChallengesListener = function() {
     Challenges.subscribe();
 };
@@ -22587,3 +22955,25 @@ window.stopChallengesListener = function() {
 
 // Экспорт объекта для отладки
 window.Challenges = Challenges;
+
+// ★ ОБРАБОТЧИК ФИЛЬТРОВ ВЫЗОВОВ ★
+document.addEventListener('DOMContentLoaded', () => {
+    const filters = document.getElementById('challengesFilters');
+    if (!filters) return;
+
+    filters.addEventListener('click', (e) => {
+        const btn = e.target.closest('.challenge-filter-btn');
+        if (!btn) return;
+
+        // Подсветка активной кнопки
+        filters.querySelectorAll('.challenge-filter-btn').forEach(b => {
+            b.classList.toggle('challenge-filter-active', b === btn);
+        });
+
+        // Меняем фильтр и перерисовываем
+        if (window.Challenges) {
+            window.Challenges._filter = btn.dataset.filter || 'all';
+            window.Challenges.render();
+        }
+    });
+});
