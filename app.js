@@ -6288,6 +6288,8 @@ syncSaveToFirestore('prevLevel', currentLevel.id);
 
     await loadFriendsHistoryVisibilityFromProfile();
 
+    updateNotificationsSettingsItem();
+
     renderAchievements();
     loadAchievementsVisibility();
     document.getElementById('profileLevelBlock')?.addEventListener('click', openLevelInfoModal);
@@ -7655,9 +7657,6 @@ function enterApp() {
     // - туториал не активен и его не было в сессии
     // - нет открытых модалок
     setTimeout(() => CHANGELOG.tryShow(), 2000);
-
-        // ★ ДОБАВЬ ЭТУ СТРОКУ:
-        setTimeout(() => FCM.init(), 3000);
 }
 
 // ===================ПОВТОРНАЯ ОТПРАВКА ПИСЬМА ===================
@@ -21934,63 +21933,182 @@ window.closeChangelogModal = closeChangelogModal;
 const FCM = {
     messaging: null,
     token: null,
+    _inited: false,
 
-    async init() {
-        // 1. Проверяем поддержку
-        if (!('serviceWorker' in navigator) || !('Notification' in window)) {
-            console.warn('FCM: push не поддерживается');
-            return;
-        }
+    /**
+     * Инициализация БЕЗ запроса разрешения.
+     * Только подписываемся на onMessage, если разрешение уже есть.
+     */
+    async autoInit() {
+        if (this._inited) return;
+        if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
 
-        // 2. Ждём пользователя (не запрашиваем разрешение до логина)
         const user = firebase.auth().currentUser;
-        if (!user) {
-            console.log('FCM: пользователь не авторизован, пропускаем');
-            return;
+        if (!user) return;
+
+        this._inited = true;
+
+        // Если разрешение уже дано — просто получаем токен
+        if (Notification.permission === 'granted') {
+            await this._getTokenAndSave();
+            this._subscribeForeground();
+        }
+        // Если default или denied — ничего не делаем. Ждём кнопку.
+    },
+
+    /**
+     * Вызывается ТОЛЬКО по тапу пользователя (из кнопки).
+     * Это критично для iOS.
+     */
+    async requestPermission() {
+        if (!('Notification' in window)) {
+            showToast('⚠️ Уведомления не поддерживаются');
+            return false;
         }
 
-        // 3. Запрашиваем разрешение
+        if (Notification.permission === 'granted') {
+            await this._getTokenAndSave();
+            this._subscribeForeground();
+            return true;
+        }
+
+        if (Notification.permission === 'denied') {
+            showToast('❌ Уведомления заблокированы в настройках браузера');
+            return false;
+        }
+
+        // ★ Главный момент: вызывается из обработчика клика
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') {
-            console.log('FCM: пользователь запретил уведомления');
-            return;
+            showToast('⚠️ Уведомления не включены');
+            return false;
         }
 
-        // 4. Инициализация messaging
-        this.messaging = firebase.messaging();
+        await this._getTokenAndSave();
+        this._subscribeForeground();
+        return true;
+    },
 
-        // 5. Получаем токен с VAPID-ключом
+    async _getTokenAndSave() {
+        const user = firebase.auth().currentUser;
+        if (!user) return;
+
         try {
+            this.messaging = firebase.messaging();
+
             this.token = await this.messaging.getToken({
                 vapidKey: 'BGpP4nhyFFPERRlmdfDi2fTLUB-bb6cGCD4KhwkZQFbJiFWXC10TMEyz4ydhlzEdbJXrc-T-9A37vdG9QHOM8RI'
             });
 
-            if (this.token) {
-                console.log('📬 FCM Token:', this.token);
-
-                // ★ Сохраняем токен в Firestore в профиль пользователя
-                await firebase.firestore()
-                    .collection('users')
-                    .doc(user.uid)
-                    .update({ fcmToken: this.token });
-
-                console.log('✅ FCM токен сохранён в Firestore');
+            if (!this.token) {
+                console.warn('FCM: токен не получен');
+                return;
             }
+
+            console.log('📬 FCM Token:', this.token);
+
+            // ★ Сохраняем в массив (для нескольких устройств)
+            await firebase.firestore()
+                .collection('users')
+                .doc(user.uid)
+                .set({
+                    fcmTokens: firebase.firestore.FieldValue.arrayUnion(this.token)
+                }, { merge: true });
+
+            console.log('✅ FCM токен сохранён в Firestore');
         } catch (err) {
             console.error('FCM: ошибка получения токена', err);
         }
+    },
 
-        // 6. Обработка push, когда вкладка активна (в фореграунде)
+    _subscribeForeground() {
+        if (!this.messaging) this.messaging = firebase.messaging();
+
         this.messaging.onMessage((payload) => {
             console.log('📬 Push в фореграунде:', payload);
-            // Показываем твой внутренний тост
             const title = payload.notification?.title || 'SportApp';
             const body = payload.notification?.body || '';
             showToast(`🔔 ${title}: ${body}`);
         });
+    },
+
+    /**
+     * Проверка: нужно ли показывать кнопку «Включить уведомления»?
+     */
+    needsPermission() {
+        if (!('Notification' in window)) return false;
+        return Notification.permission === 'default';
     }
 };
 
-// ★ Вызываем FCM.init() при входе в приложение
-// Добавь эту строку в конец функции enterApp():
-// setTimeout(() => FCM.init(), 3000);
+// Автоинициализация без запроса разрешения
+window.addEventListener('load', () => {
+    setTimeout(() => FCM.autoInit(), 3000);
+});
+
+// =================== КНОПКА «УВЕДОМЛЕНИЯ» В НАСТРОЙКАХ ===================
+function updateNotificationsSettingsItem() {
+    const item = document.getElementById('notificationsSettingsItem');
+    const statusEl = document.getElementById('notificationsStatus');
+    if (!item) return;
+
+    // Не показываем на iOS Safari в браузере (только в standalone)
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isStandalone = window.navigator.standalone === true;
+    if (isIOS && !isStandalone) {
+        item.style.display = 'none';
+        return;
+    }
+
+    if (!('Notification' in window)) {
+        item.style.display = 'none';
+        return;
+    }
+
+    // Разрешение уже дано — показываем статус «Включены»
+    if (Notification.permission === 'granted') {
+        item.style.display = 'flex';
+        if (statusEl) statusEl.textContent = 'Включены';
+        return;
+    }
+
+    // Заблокировано — показываем статус «Заблокированы»
+    if (Notification.permission === 'denied') {
+        item.style.display = 'flex';
+        if (statusEl) statusEl.textContent = 'Заблокированы в браузере';
+        return;
+    }
+
+    // default — показываем «Включить»
+    item.style.display = 'flex';
+    if (statusEl) statusEl.textContent = 'Включить push-уведомления';
+}
+
+/**
+ * Обработчик клика по пункту «Уведомления».
+ * ★ Это ВАЖНО: Notification.requestPermission() вызывается
+ * внутри обработчика клика → iOS показывает диалог.
+ */
+async function onEnableNotificationsClick() {
+    if (Notification.permission === 'granted') {
+        showToast('✅ Уведомления уже включены');
+        return;
+    }
+
+    if (Notification.permission === 'denied') {
+        showToast('❌ Уведомления заблокированы в настройках браузера');
+        return;
+    }
+
+    // Запрашиваем разрешение
+    const ok = await FCM.requestPermission();
+    if (ok) {
+        showToast('✅ Уведомления включены');
+    }
+
+    // Обновляем пункт в настройках
+    updateNotificationsSettingsItem();
+}
+
+window.onEnableNotificationsClick = onEnableNotificationsClick;
+window.updateNotificationsSettingsItem = updateNotificationsSettingsItem;
