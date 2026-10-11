@@ -2,32 +2,31 @@
 // sw.js — Service Worker для SportApp
 // ============================================================
 
-const CACHE_VERSION = 'sportapp-v1';
+const CACHE_VERSION = 'sportapp-v2';   // ← поменял версию, чтобы старый кэш сбросился
 const CACHE_STATIC = `${CACHE_VERSION}-static`;
 
-// ★★★ Что кэшируем при установке ★★★
 const PRECACHE_URLS = [
-    '/SportApp/',
-    '/SportApp/index.html',
-    '/SportApp/style.css',
-    '/SportApp/app.js',
-    '/SportApp/firebase-config.js',
-    '/SportApp/exercises-catalog.js',
-    '/SportApp/manifest.json'
+    './',
+    './index.html',
+    './style.css',
+    './app.js',
+    './firebase-config.js',
+    './exercises-catalog.js',
+    './manifest.json'
 ];
 
-// ── Установка: кладём в кэш статику ──
+// ── Установка ──
 self.addEventListener('install', (event) => {
     console.log('🔧 SW: установка');
     event.waitUntil(
         caches.open(CACHE_STATIC)
             .then(cache => cache.addAll(PRECACHE_URLS))
-            .then(() => self.skipWaiting())  // активируемся сразу
+            .then(() => self.skipWaiting())
             .catch(err => console.warn('SW precache error:', err))
     );
 });
 
-// ── Активация: чистим старые кэши ──
+// ── Активация ──
 self.addEventListener('activate', (event) => {
     console.log('✅ SW: активация');
     event.waitUntil(
@@ -40,45 +39,63 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// ── Fetch: перехватываем запросы ──
+// ── Безопасное кэширование (не падает на 206 / opaque / partial) ──
+function safePut(request, response) {
+    // ★ Кэшируем ТОЛЬКО полные 200 OK, не range, не opaque
+    if (!response) return;
+    if (response.status !== 200) return;
+    if (response.type === 'opaqueredirect') return;
+
+    try {
+        const clone = response.clone();
+        caches.open(CACHE_STATIC)
+            .then(cache => cache.put(request, clone))
+            .catch(err => {
+                // тихо игнорим — это не критично
+                console.warn('SW: cache.put failed (ignored):', err.message);
+            });
+    } catch (err) {
+        console.warn('SW: clone failed (ignored):', err.message);
+    }
+}
+
+// ── Fetch ──
 self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
 
-    // ★ Firestore / Firebase Auth / VK / внешние API — НЕ трогаем, пусть идут в сеть
+    // ★ Не трогаем range-запросы (видео, аудио, lazy-картинки)
+    if (request.headers.has('range')) return;
+
+    // ★ Только GET
+    if (request.method !== 'GET') return;
+
+    // ★ Пропускаем Firebase, VK, CDN, сторонние API
     const bypass = [
         'firestore.googleapis.com',
         'identitytoolkit.googleapis.com',
         'securetoken.googleapis.com',
         'firebaseinstallations.googleapis.com',
+        'firebaseapp.com',
         'api.vk.com',
         'cdnjs.cloudflare.com',
         'cdn.jsdelivr.net',
         'gstatic.com',
-        'api.qrserver.com'
+        'api.qrserver.com',
+        'googleapis.com'
     ];
-    if (bypass.some(host => url.hostname.includes(host))) {
-        return;
-    }
+    if (bypass.some(host => url.hostname.includes(host))) return;
 
-    // Только GET-запросы кэшируем
-    if (request.method !== 'GET') return;
+    // ★ Не кэшируем chrome-extension и прочее
+    if (!url.protocol.startsWith('http')) return;
 
-    // ★★★ Стратегия: Network-first для HTML, Cache-first для картинок и шрифтов ★★★
-
-    // Картинки, шрифты, CSS, JS — Cache-first
-    if (
-        url.pathname.match(/\.(png|jpg|jpeg|webp|svg|gif|ico|woff2?|ttf|css|js)$/)
-    ) {
+    // ── Cache-first для статики ──
+    if (url.pathname.match(/\.(png|jpg|jpeg|webp|svg|gif|ico|woff2?|ttf|css|js)$/)) {
         event.respondWith(
             caches.match(request).then(cached => {
                 if (cached) return cached;
                 return fetch(request).then(response => {
-                    // Кэшируем свежий ответ
-                    if (response.ok) {
-                        const clone = response.clone();
-                        caches.open(CACHE_STATIC).then(cache => cache.put(request, clone));
-                    }
+                    safePut(request, response);
                     return response;
                 });
             })
@@ -86,21 +103,18 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Всё остальное (HTML-страницы) — Network-first, при офлайне — из кэша
+    // ── Network-first для HTML ──
     event.respondWith(
         fetch(request)
             .then(response => {
-                if (response.ok) {
-                    const clone = response.clone();
-                    caches.open(CACHE_STATIC).then(cache => cache.put(request, clone));
-                }
+                safePut(request, response);
                 return response;
             })
             .catch(() => caches.match(request))
     );
 });
 
-// ── Хук для принудительного обновления ──
+// ── Принудительное обновление ──
 self.addEventListener('message', (event) => {
     if (event.data === 'SKIP_WAITING') {
         self.skipWaiting();

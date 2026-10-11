@@ -6191,9 +6191,10 @@ body.theme-dark-mode .pwa-banner-close:active {
 .pwa-ios-steps {
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
+    gap: 1rem;
     text-align: left;
     background: var(--light);
+    border: 1.5px solid var(--light-grey);
     border-radius: 12px;
     padding: 0.8rem;
     margin-bottom: 0.5rem;
@@ -6227,14 +6228,6 @@ body.theme-dark-mode .pwa-banner-close:active {
 }
 
 .pwa-ios-step-text strong {
-    color: var(--accent);
     font-weight: 700;
-}
-
-body.theme-dark-mode .pwa-ios-steps {
-    background: var(--bg-primary);
-}
-
-body.theme-dark-mode .pwa-ios-step-text {
-    color: var(--text-primary);
+    color: var(--dark) !important;
 }
