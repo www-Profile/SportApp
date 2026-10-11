@@ -7653,6 +7653,10 @@ function enterApp() {
     setTimeout(() => {
         tryOpenPendingInvite();
     }, 800);
+    // ★★★ ВОТ ЭТО ДОБАВЛЯЕМ — пробуем показать PWA-баннер ★★★
+    // Ждём 5 секунд — чтобы бета-модалка (если есть) успела появиться и закрыться
+    // Если туториал активен или бета-модалка показана — canShowBanner() вернёт false
+    setTimeout(() => PWA.tryShowBanner(), 5000);
 }
 
 // ===================ПОВТОРНАЯ ОТПРАВКА ПИСЬМА ===================
@@ -8671,7 +8675,7 @@ function checkRankNotification(currentRank, type) {
 async function loadWorldLeaderboard() {
     const container = document.getElementById('worldLeaderboard');
     if (!container) return;
-    container.innerHTML = '<div style="text-align:center;color:var(--slate);padding:2rem 0;">Загрузка рейтинга...</div>';
+    container.innerHTML = Skeleton.itemCardList(5);
     try {
         const user = await getFirebaseUser();
         if (!user) {
@@ -8754,7 +8758,7 @@ async function loadFriendsLeaderboard() {
         return;
     }
     
-    container.innerHTML = '<div style="text-align:center;color:var(--slate);padding:2rem 0;">Загрузка рейтинга друзей...</div>';
+    container.innerHTML = Skeleton.itemCardList(3);
     
     try {
         const user = await getFirebaseUser();
@@ -8949,7 +8953,6 @@ let _savedEditPagesState = true;
 let _savedEditWorkoutState = true;
 
 function startTutorial() {
-    // ★★★ ПРОВЕРЯЕМ, НЕ ЗАВЕРШЕНО ЛИ ОБУЧЕНИЕ ★★★
     if (isTutorialCompleted()) {
         console.log('✅ Обучение уже завершено, пропускаем');
         return;
@@ -8957,7 +8960,9 @@ function startTutorial() {
     
     if (document.getElementById('tutorialOverlay')) return;
 
-    // ★★★ УСТАНАВЛИВАЕМ ФЛАГ, ЧТОБЫ ЗАДАНИЯ НЕ ВЫПОЛНЯЛИСЬ ★★★
+    // ★★★ ВОТ ЭТА СТРОКА — помечаем, что в сессии был туториал ★★★
+    sessionStorage.setItem('tutorialRanThisSession', 'true');
+
     tutorialActive = true;
 
     _savedEditPagesState = localStorage.getItem(EDIT_PAGES_KEY) !== 'false';
@@ -14174,7 +14179,7 @@ async function openDayWorkoutsModal(year, month, day) {
     document.getElementById('dayWorkoutsDate').textContent = dateStr;
     
     const container = document.getElementById('dayWorkoutsList');
-    container.innerHTML = '<div style="text-align:center;color:var(--slate);padding:1rem;">Загрузка...</div>';
+    container.innerHTML = Skeleton.historyRowList(3);
     
     try {
         const user = await getFirebaseUser();
@@ -15375,7 +15380,7 @@ async function renderFriendsHistory() {
         return;
     }
     
-    container.innerHTML = '<div style="text-align:center;color:var(--slate);padding:1rem;">Загрузка...</div>';
+    container.innerHTML = Skeleton.historyRowList(4);
     
     try {
         // ★★★ ПОЛУЧАЕМ ТРЕНИРОВКИ ДРУЗЕЙ ★★★
@@ -16571,7 +16576,7 @@ async function loadCommunityGoalTop() {
     const container = document.getElementById('communityGoalTop');
     if (!container) return;
 
-    container.innerHTML = '<div style="text-align:center;color:var(--slate);padding:1rem;">Загрузка...</div>';
+    container.innerHTML = Skeleton.itemCardList(5);
 
     try {
         const user = await getFirebaseUser();
@@ -20163,7 +20168,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadFeed() {
     const container = document.getElementById('feedContainer');
     if (!container) return;
-    container.innerHTML = '<div style="text-align:center;color:var(--slate);padding:2rem 0;">Загрузка...</div>';
+    container.innerHTML = `<div class="feed-container">${Skeleton.feedPostList(3)}</div>`;
 
     try {
         const user = await getFirebaseUser();
@@ -21551,3 +21556,342 @@ function openNotAvailableModal() {
     openModal('notAvailableModal');
 }
 window.openNotAvailableModal = openNotAvailableModal;
+
+// =================== SKELETON-ЗАГЛУШКИ ===================
+const Skeleton = {
+    // Карточка как .item-card (для списков тренировок, друзей, рейтингов)
+    itemCard() {
+        return `
+            <div class="skeleton-card">
+                <div class="skeleton skeleton-icon"></div>
+                <div class="skeleton-info">
+                    <div class="skeleton skeleton-line skeleton-line-w-60"></div>
+                    <div class="skeleton skeleton-line skeleton-line-w-40"></div>
+                </div>
+            </div>
+        `;
+    },
+
+    // Пачка карточек
+    itemCardList(count = 3) {
+        return Array.from({ length: count }, () => this.itemCard()).join('');
+    },
+
+    // Карточка поста в ленте (большая, квадратная)
+    feedPost() {
+        return `
+            <div class="feed-post">
+                <div class="feed-post-header">
+                    <div class="skeleton skeleton-avatar"></div>
+                    <div class="skeleton-info" style="flex:1; display:flex; flex-direction:column; gap:0.3rem;">
+                        <div class="skeleton skeleton-line skeleton-line-w-60"></div>
+                        <div class="skeleton skeleton-line skeleton-line-w-40"></div>
+                    </div>
+                </div>
+                <div class="skeleton" style="width:100%; aspect-ratio:1/1; border-radius:16px;"></div>
+            </div>
+        `;
+    },
+
+    feedPostList(count = 3) {
+        return Array.from({ length: count }, () => this.feedPost()).join('');
+    },
+
+    // Строка истории (компактная)
+    historyRow() {
+        return `
+            <div class="skeleton-card" style="padding:0.6rem 1rem;">
+                <div class="skeleton-info">
+                    <div class="skeleton skeleton-line skeleton-line-w-80"></div>
+                    <div class="skeleton skeleton-line skeleton-line-w-40"></div>
+                </div>
+            </div>
+        `;
+    },
+
+    historyRowList(count = 4) {
+        return Array.from({ length: count }, () => this.historyRow()).join('');
+    },
+
+    // Карточки со статистикой (для статистики и рейтингов)
+    statCard() {
+        return `
+            <div class="skeleton-card" style="justify-content:center; flex-direction:column; padding:0.8rem;">
+                <div class="skeleton skeleton-line skeleton-line-w-40"></div>
+                <div class="skeleton skeleton-line-lg skeleton-line-w-60" style="margin-top:0.3rem;"></div>
+            </div>
+        `;
+    }
+};
+
+window.Skeleton = Skeleton;
+
+// =================== PWA: УСТАНОВКА НА ДОМАШНИЙ ЭКРАН ===================
+const PWA = {
+    deferredPrompt: null,
+    STORAGE_KEY: 'pwaBannerState',   // 'installed' | 'dismissed_at_<ts>'
+    SHOW_DELAY_MS: 3000,             // показать баннер через 3 сек
+    DISMISS_COOLDOWN_MS: 7 * 24 * 60 * 60 * 1000, // 7 дней не напоминать
+
+    isStandalone() {
+        return window.matchMedia('(display-mode: standalone)').matches
+            || window.navigator.standalone === true;
+    },
+
+    isIOS() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent)
+            && !window.MSStream;
+    },
+
+    isSafari() {
+        return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    },
+
+    wasDismissedRecently() {
+        const state = localStorage.getItem(this.STORAGE_KEY);
+        if (!state) return false;
+        if (state === 'installed') return true;
+        if (state.startsWith('dismissed_at_')) {
+            const ts = parseInt(state.replace('dismissed_at_', ''), 10);
+            return Date.now() - ts < this.DISMISS_COOLDOWN_MS;
+        }
+        return false;
+    },
+
+    markInstalled() {
+        localStorage.setItem(this.STORAGE_KEY, 'installed');
+    },
+
+    markDismissed() {
+        localStorage.setItem(this.STORAGE_KEY, 'dismissed_at_' + Date.now());
+    },
+
+    // ★★★ ГЛАВНАЯ ФУНКЦИЯ — проверяет ВСЕ условия ★★★
+    canShowBanner() {
+        // 1. Уже установлено — нет
+        if (this.isStandalone()) {
+            console.log('📱 PWA: уже установлено');
+            return false;
+        }
+
+        // 2. Недавно закрывали — нет
+        if (this.wasDismissedRecently()) {
+            console.log('📱 PWA: недавно закрывали баннер');
+            return false;
+        }
+
+        // 3. Только для авторизованных с подтверждённой почтой
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.log('📱 PWA: не авторизован');
+            return false;
+        }
+        if (!user.emailVerified) {
+            console.log('📱 PWA: почта не подтверждена');
+            return false;
+        }
+
+        // 4. Не во время туториала (сейчас)
+        if (typeof tutorialActive !== 'undefined' && tutorialActive) {
+            console.log('📱 PWA: туториал активен');
+            return false;
+        }
+
+        // 5. Если туториал БЫЛ в этой сессии — не показываем вообще
+        if (sessionStorage.getItem('tutorialRanThisSession') === 'true') {
+            console.log('📱 PWA: туториал был в этой сессии');
+            return false;
+        }
+
+        // 6. Только на главных страницах приложения
+        //    (НЕ на hero / loading / login / register / inventory /
+        //     exercise-list / workout-edit / level-select / workout-detail)
+        const ALLOWED_PAGES = ['page-workouts', 'page-stats', 'page-profile', 'page-feed'];
+        const isInside = ALLOWED_PAGES.some(id => {
+            const el = document.getElementById(id);
+            return el && el.classList.contains('page-active');
+        });
+        if (!isInside) {
+            console.log('📱 PWA: мы не на главном экране приложения');
+            return false;
+        }
+
+        // 7. Не во время тренировки (любой) и выполнения заданий
+        const FORBIDDEN_PAGES = [
+            'page-training-session',
+            'page-task-session',
+            'page-finish',
+            'page-coop-finish',
+            'page-coop-waiting',
+            'page-training-waiting'
+        ];
+        const inTraining = FORBIDDEN_PAGES.some(id => {
+            const el = document.getElementById(id);
+            return el && el.classList.contains('page-active');
+        });
+        if (inTraining) {
+            console.log('📱 PWA: идёт тренировка / задание');
+            return false;
+        }
+
+        // 8. Нет открытой модалки прямо сейчас
+        const openModalOverlay = document.querySelector('.modal-overlay.modal-overlay-visible');
+        if (openModalOverlay) {
+            console.log('📱 PWA: открыта модалка');
+            return false;
+        }
+
+        // 9. Нет открытого туториал-оверлея
+        if (document.getElementById('tutorialOverlay')) {
+            console.log('📱 PWA: открыт туториал-оверлей');
+            return false;
+        }
+
+        return true;
+    },
+
+    // ★ Обёртка: проверяет условия и показывает
+    tryShowBanner() {
+        if (!this.canShowBanner()) return;
+        this.showBanner();
+    },
+
+    showBanner() {
+        const banner = document.getElementById('pwaInstallBanner');
+        if (!banner) return;
+        if (banner.classList.contains('pwa-banner-visible')) return; // уже показан
+
+        banner.style.display = 'block';
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                banner.classList.add('pwa-banner-visible');
+            });
+        });
+    },
+
+    hideBanner() {
+        const banner = document.getElementById('pwaInstallBanner');
+        if (!banner) return;
+        banner.classList.remove('pwa-banner-visible');
+        setTimeout(() => { banner.style.display = 'none'; }, 300);
+    },
+
+    // ── Android / Chrome / Edge ──
+    async triggerInstall() {
+        if (!this.deferredPrompt) {
+            console.warn('📱 PWA: deferredPrompt отсутствует');
+            return;
+        }
+        this.deferredPrompt.prompt();
+        const { outcome } = await this.deferredPrompt.userChoice;
+        console.log('📱 PWA: выбор пользователя =', outcome);
+
+        if (outcome === 'accepted') {
+            this.markInstalled();
+            this.hideBanner();
+            showToast('✅ Приложение установлено!');
+        } else {
+            this.markDismissed();
+            this.hideBanner();
+        }
+        this.deferredPrompt = null;
+    },
+
+    // ── iOS Safari: инструкция вручную ──
+    showIosInstructions() {
+        this.hideBanner();
+        openModal('pwaIosModal');
+        this.markDismissed();
+    },
+
+    init() {
+        // Если уже установлено — ставим флаг и выходим
+        if (this.isStandalone()) {
+            this.markInstalled();
+            return;
+        }
+
+        // ── Ловим событие установки (Chrome/Edge/Android) ──
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            this.deferredPrompt = e;
+            console.log('📱 PWA: событие beforeinstallprompt получено');
+
+            // ★ Через 3 сек пробуем показать баннер — но ТОЛЬКО если все условия выполнены
+            setTimeout(() => this.tryShowBanner(), this.SHOW_DELAY_MS);
+        });
+
+        // ── Ловим успешную установку ──
+        window.addEventListener('appinstalled', () => {
+            console.log('📱 PWA: приложение установлено');
+            this.markInstalled();
+            this.hideBanner();
+            showToast('✅ SportApp добавлен на главный экран!');
+        });
+
+        // ── Кнопки ──
+        const installBtn = document.getElementById('pwaBannerInstallBtn');
+        const laterBtn = document.getElementById('pwaBannerLaterBtn');
+        const closeBtn = document.getElementById('pwaBannerCloseBtn');
+
+        if (installBtn) {
+            installBtn.addEventListener('click', () => {
+                if (this.isIOS()) {
+                    this.showIosInstructions();
+                } else if (this.deferredPrompt) {
+                    this.triggerInstall();
+                } else {
+                    showToast('ℹ️ Откройте меню браузера → «Установить приложение»');
+                    this.hideBanner();
+                }
+            });
+        }
+
+        if (laterBtn) {
+            laterBtn.addEventListener('click', () => {
+                this.markDismissed();
+                this.hideBanner();
+            });
+        }
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                this.markDismissed();
+                this.hideBanner();
+            });
+        }
+
+        // ── Пункт в настройках ──
+        const pwaSettingsItem = document.getElementById('pwaSettingsItem');
+        if (pwaSettingsItem && !this.isStandalone()) {
+            pwaSettingsItem.style.display = 'flex';
+        }
+
+        // В PWA.init(), в самом конце перед console.log:
+
+        // ★ Если баннер ещё не показан и не закрыт — периодически пробуем
+        this._pollInterval = setInterval(() => {
+            if (this.isStandalone()) {
+                clearInterval(this._pollInterval);
+                return;
+            }
+            if (this.wasDismissedRecently()) {
+                clearInterval(this._pollInterval);
+                return;
+            }
+            // Пробуем показать (canShowBanner сам проверит всё)
+            if (this.deferredPrompt || this.isIOS()) {
+                this.tryShowBanner();
+            }
+        }, 30000);  // каждые 30 сек
+
+        console.log('📱 PWA: инициализация завершена');
+    }
+};
+
+// Запускаем после DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    PWA.init();
+});
+
+window.PWA = PWA;

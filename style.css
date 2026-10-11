@@ -5961,3 +5961,280 @@ body.theme-dark-mode .history-count {
     color: var(--slate);
     font-weight: 500;
 }
+
+/* =================== SKELETON / SHIMMER ==================== */
+
+/* Базовый «костяк» — серая плашка */
+.skeleton {
+    background: var(--light-grey);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* Светящаяся полоса, которая бежит по плашке */
+.skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.6) 50%,
+        transparent 100%
+    );
+    animation: skeletonShimmer 1.4s infinite;
+}
+
+@keyframes skeletonShimmer {
+    100% { transform: translateX(100%); }
+}
+
+/* ── Формы-примитивы ── */
+.skeleton-line {
+    height: 12px;
+    border-radius: 6px;
+}
+.skeleton-line-lg {
+    height: 16px;
+    border-radius: 8px;
+}
+.skeleton-circle {
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.skeleton-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.skeleton-icon {
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
+    border-radius: 14px;
+    flex-shrink: 0;
+}
+
+/* ── Готовая карточка-заглушка (как .item-card) ── */
+.skeleton-card {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--white);
+    padding: 0.5rem;
+    border-radius: 16px;
+    box-shadow: var(--shadow-card);
+}
+
+.skeleton-card .skeleton-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+/* Разные ширины линий для «естественности» */
+.skeleton-line-w-60 { width: 60%; }
+.skeleton-line-w-40 { width: 40%; }
+.skeleton-line-w-80 { width: 80%; }
+
+/* ── Тёмная тема ── */
+body.theme-dark-mode .skeleton {
+    background: var(--bg-secondary);
+}
+body.theme-dark-mode .skeleton::after {
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.08) 50%,
+        transparent 100%
+    );
+}
+body.theme-dark-mode .skeleton-card {
+    background: var(--bg-secondary);
+    box-shadow: var(--shadow-card-dark);
+}
+
+/* =================== PWA БАННЕР УСТАНОВКИ ==================== */
+.pwa-banner {
+    position: fixed;
+    left: 1rem;
+    right: 1rem;
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    max-width: 500px;
+    margin: 0 auto;
+    background: var(--white);
+    border-radius: 16px;
+    padding: 0.8rem;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18),
+                0 2px 6px rgba(15, 23, 42, 0.1);
+    border: 1px solid var(--light-grey);
+    z-index: 1500;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.pwa-banner.pwa-banner-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.pwa-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.6rem;
+}
+
+.pwa-banner-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: 10px;
+    background: var(--accent-light);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    overflow: hidden;
+}
+
+.pwa-banner-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.pwa-banner-text {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+}
+
+.pwa-banner-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pwa-banner-desc {
+    font-size: 0.75rem;
+    color: var(--slate);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pwa-banner-close {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border: none;
+    background: transparent;
+    color: var(--slate);
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.pwa-banner-close:active {
+    background: var(--light);
+}
+
+.pwa-banner-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.pwa-banner-actions .btn {
+    padding: 0.5rem;
+    font-size: 0.8rem;
+}
+
+/* ★ Тёмная тема ★ */
+body.theme-dark-mode .pwa-banner {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4),
+                0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+body.theme-dark-mode .pwa-banner-icon {
+    background: var(--accent-dark);
+}
+
+body.theme-dark-mode .pwa-banner-title {
+    color: var(--text-primary);
+}
+
+body.theme-dark-mode .pwa-banner-close:active {
+    background: var(--bg-primary);
+}
+
+/* ── iOS-шаги ── */
+.pwa-ios-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    text-align: left;
+    background: var(--light);
+    border-radius: 12px;
+    padding: 0.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.pwa-ios-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+}
+
+.pwa-ios-step-num {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.pwa-ios-step-text {
+    font-size: 0.8rem;
+    color: var(--dark);
+    line-height: 1.4;
+}
+
+.pwa-ios-step-text strong {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+body.theme-dark-mode .pwa-ios-steps {
+    background: var(--bg-primary);
+}
+
+body.theme-dark-mode .pwa-ios-step-text {
+    color: var(--text-primary);
+}

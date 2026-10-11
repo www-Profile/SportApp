@@ -1312,6 +1312,17 @@
                 <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
             </div>
 
+            <div class="settings-item" id="pwaSettingsItem" onclick="PWA.showBanner()" style="display:none;">
+                <div class="settings-icon">
+                    <i class="fa-solid fa-mobile-screen-button"></i>
+                </div>
+                <div class="settings-info">
+                    <div class="settings-title">Установить приложение</div>
+                    <div class="settings-desc">Добавить на главный экран</div>
+                </div>
+                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+
             <div class="settings-item" onclick="openInventoryModal()">
                 <div class="settings-icon"><i class="fa-solid fa-dumbbell"></i></div>
                 <div class="settings-info">
@@ -3148,6 +3159,66 @@
         </div>
     </div>
 
+<!-- ===== PWA: БАННЕР УСТАНОВКИ ===== -->
+<div id="pwaInstallBanner" class="pwa-banner" style="display:none;">
+    <div class="pwa-banner-content">
+        <div class="pwa-banner-icon">
+            <img src="images/icon-192.png" alt="SportApp" onerror="this.style.display='none';this.parentNode.innerHTML='<i class=\'fa-solid fa-dumbbell\'></i>';">
+        </div>
+        <div class="pwa-banner-text">
+            <div class="pwa-banner-title">Установить SportApp</div>
+            <div class="pwa-banner-desc">Быстрый доступ с домашнего экрана</div>
+        </div>
+        <button class="pwa-banner-close" id="pwaBannerCloseBtn" aria-label="Закрыть">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+    <div class="pwa-banner-actions">
+        <button class="btn btn-secondary" id="pwaBannerLaterBtn" style="flex:1;">Позже</button>
+        <button class="btn btn-primary" id="pwaBannerInstallBtn" style="flex:1;">Установить</button>
+    </div>
+</div>
+
+<!-- ===== PWA: МОДАЛКА ДЛЯ iOS (инструкция вручную) ===== -->
+<div id="pwaIosModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-title">Установка на iPhone</div>
+        <p class="modal-text" style="margin-bottom: 1rem;">
+            Safari не позволяет устанавливать приложения в один клик,
+            но это делается за 3 шага:
+        </p>
+
+        <div class="pwa-ios-steps">
+            <div class="pwa-ios-step">
+                <div class="pwa-ios-step-num">1</div>
+                <div class="pwa-ios-step-text">
+                    Нажмите на иконку <strong>«Поделиться»</strong>
+                    <i class="fa-solid fa-arrow-up-from-bracket" style="color:var(--accent);"></i>
+                    внизу экрана
+                </div>
+            </div>
+            <div class="pwa-ios-step">
+                <div class="pwa-ios-step-num">2</div>
+                <div class="pwa-ios-step-text">
+                    Пролистайте вниз и выберите
+                    <strong>«На экран Домой»</strong>
+                    <i class="fa-solid fa-square-plus" style="color:var(--accent);"></i>
+                </div>
+            </div>
+            <div class="pwa-ios-step">
+                <div class="pwa-ios-step-num">3</div>
+                <div class="pwa-ios-step-text">
+                    Нажмите <strong>«Добавить»</strong> в правом верхнем углу
+                </div>
+            </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="closeModal('pwaIosModal')" style="margin-top:1rem;">
+            Понятно
+        </button>
+    </div>
+</div>    
+
     <!-- ===== УВЕДОМЛЕНИЯ ===== -->
     <div id="notificationContainer">
         <div id="notificationCard">
@@ -3170,5 +3241,23 @@
     <script src="firebase-config.js"></script>
     <script src="exercises-catalog.js"></script>
     <script src="app.js"></script>
+
+<script>
+// =================== SERVICE WORKER ===================
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js', { scope: './' })
+            .then(reg => {
+                console.log('✅ SW зарегистрирован:', reg.scope);
+
+                // ★★★ Проверяем обновления при возврате на вкладку ★★★
+                document.addEventListener('visibilitychange', () => {
+                    if (!document.hidden) reg.update();
+                });
+            })
+            .catch(err => console.warn('SW ошибка:', err));
+    });
+}
+</script> 
 </body>
 </html>
