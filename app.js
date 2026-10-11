@@ -21822,12 +21822,17 @@ const PWA = {
         });
 
         // ── Ловим успешную установку ──
-        window.addEventListener('appinstalled', () => {
-            console.log('📱 PWA: приложение установлено');
-            this.markInstalled();
-            this.hideBanner();
-            showToast('✅ SportApp добавлен на главный экран!');
-        });
+window.addEventListener('appinstalled', () => {
+    console.log('📱 PWA: приложение установлено');
+    this.markInstalled();
+    this.hideBanner();
+    
+    // ★ ДОБАВЬ ЭТУ СТРОКУ
+    const pwaSettingsItem = document.getElementById('pwaSettingsItem');
+    if (pwaSettingsItem) pwaSettingsItem.style.display = 'none';
+    
+    showToast('✅ SportApp добавлен на главный экран!');
+});
 
         // ── Кнопки ──
         const installBtn = document.getElementById('pwaBannerInstallBtn');
