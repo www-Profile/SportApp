@@ -7411,7 +7411,6 @@ if (!result.user.emailVerified) {
 // ★★★ ФЛАГ АВТОВХОДА (логин, не регистрация) ★★★
 window._justLoggedIn = true;
 
-sessionStorage.removeItem('betaModalShownThisSession');
 switchToPage('page-loading');
 document.getElementById('bottomNav').style.display = 'none';
 
@@ -7593,7 +7592,6 @@ async function logout() {
             // ★★★ СБРАСЫВАЕМ PREMIUM ★★★
             window._userPremium = false;
 
-            sessionStorage.removeItem('betaModalShownThisSession');
             firebase.auth().signOut();
         },
         'Выйти'
@@ -7637,13 +7635,6 @@ function enterApp() {
         }, 1000);
     }
 
-    // ★★★ БЕТА-МОДАЛКА — ПОКАЗЫВАЕМ ТОЛЬКО ЕСЛИ НЕ НУЖЕН ТУТОРИАЛ ★★★
-    setTimeout(() => {
-        if (!needsTutorial) {
-            showBetaModalOnce();
-        }
-    }, 2000);
-
     // ★★★ ПРОВЕРЯЕМ НАГРАДУ ЗА ОБЩУЮ ЦЕЛЬ ★★★
     setTimeout(() => {
         checkAndGiveCommunityGoalReward();
@@ -7657,6 +7648,13 @@ function enterApp() {
     // Ждём 5 секунд — чтобы бета-модалка (если есть) успела появиться и закрыться
     // Если туториал активен или бета-модалка показана — canShowBanner() вернёт false
     setTimeout(() => PWA.tryShowBanner(), 5000);
+
+    // ★★★ МОДАЛКА ОБНОВЛЕНИЙ ★★★
+// Показываем через 2 секунды после входа, если:
+// - не видели эту версию
+// - туториал не активен и его не было в сессии
+// - нет открытых модалок
+setTimeout(() => CHANGELOG.tryShow(), 2000);
 }
 
 // ===================ПОВТОРНАЯ ОТПРАВКА ПИСЬМА ===================
@@ -10029,8 +10027,6 @@ localStorage.removeItem('blocksState');
 
         console.log('✅ Сохранены: PREMIUM, локальные тренировки');
         console.log('🗑️ Удалены: statsLayout, workoutsLayout, worldStatsLayout, themeColor, appThemeMode, themeColorCustom и все остальные настройки');
-// ★★★ СБРАСЫВАЕМ ФЛАГ БЕТА-МОДАЛКИ ★★★
-sessionStorage.removeItem('betaModalShownThisSession');
 
 // ★★★ 10. Перезагружаем страницу ★★★
 setTimeout(() => {
@@ -10073,7 +10069,6 @@ async function deleteAccount() {
         await user.delete();
 
 localStorage.clear();
-sessionStorage.removeItem('betaModalShownThisSession');
 
 setTimeout(() => {
     window.location.reload();
@@ -18094,108 +18089,6 @@ document.addEventListener('DOMContentLoaded', () => {
     checkWorkoutShareLink();   // ★ добавили
 });
 
-// =================== МОДАЛКА БЕТА-ВЕРСИЯ ===================
-const BETA_SEEN_KEY = 'betaModalSeenAt';
-
-/**
- * Проверяет, можно ли показать бета-модалку прямо сейчас
- */
-function canShowBetaModal() {
-    // 1. Не во время туториала
-    if (typeof tutorialActive !== 'undefined' && tutorialActive) {
-        console.log('⏸️ Бета-модалка: туториал активен');
-        return false;
-    }
-
-    // 2. Не во время тренировки
-    const sessionPage = document.getElementById('page-training-session');
-    const taskSessionPage = document.getElementById('page-task-session');
-    if ((sessionPage && sessionPage.classList.contains('page-active')) ||
-        (taskSessionPage && taskSessionPage.classList.contains('page-active'))) {
-        console.log('⏸️ Бета-модалка: тренировка активна');
-        return false;
-    }
-
-    // 3. Не на экранах hero/loading/login/register/inventory
-    const forbidden = [
-        'page-hero', 'page-loading', 'page-login', 'page-login-password',
-        'page-register', 'page-register-email', 'page-register-password',
-        'page-register-verify', 'page-inventory',
-        'page-training-waiting', 'page-coop-waiting', 'page-coop-finish'
-    ];
-    for (const id of forbidden) {
-        const el = document.getElementById(id);
-        if (el && el.classList.contains('page-active')) {
-            console.log('⏸️ Бета-модалка: экран ' + id);
-            return false;
-        }
-    }
-
-    // 4. Не если уже открыта другая модалка
-    const openModalOverlay = document.querySelector(
-        '.modal-overlay[style*="display: flex"], .modal-overlay[style*="display:flex"]'
-    );
-    if (openModalOverlay) {
-        console.log('⏸️ Бета-модалка: другая модалка открыта');
-        return false;
-    }
-
-    // 5. Не если офлайн-модалка показана
-    const offlineModal = document.getElementById('offlineModal');
-    if (offlineModal && offlineModal.style.display === 'flex') {
-        console.log('⏸️ Бета-модалка: офлайн-модалка открыта');
-        return false;
-    }
-
-    // 6. Не если правила показаны
-    const rulesModal = document.getElementById('rulesModal');
-    if (rulesModal && rulesModal.classList.contains('modal-overlay-visible')) {
-        console.log('⏸️ Бета-модалка: правила открыты');
-        return false;
-    }
-
-    return true;
-}
-
-/**
- * Показать бета-модалку (один раз за сессию входа)
- */
-async function showBetaModalOnce() {
-    // ★★★ ПОКАЗЫВАЕМ ОДИН РАЗ ЗА СЕССИЮ ★★★
-    if (sessionStorage.getItem('betaModalShownThisSession') === 'true') {
-        console.log('ℹ️ Бета-модалка уже показана в этой сессии');
-        return;
-    }
-
-    if (!canShowBetaModal()) {
-        return;
-    }
-
-    // Проверяем, что пользователь авторизован
-    const user = await getFirebaseUser();
-    if (!user) return;
-
-    // Помечаем ДО показа — чтобы не было повторов при гонке
-    sessionStorage.setItem('betaModalShownThisSession', 'true');
-
-    openModal('betaModal');
-    console.log('✅ Бета-модалка показана');
-}
-
-/**
- * Обработчик кнопки "Понятно"
- */
-function closeBetaModal() {
-    localStorage.setItem(BETA_SEEN_KEY, String(Date.now()));
-    closeModal('betaModal');
-}
-
-// Привязка кнопки
-document.getElementById('betaAcceptBtn')?.addEventListener('click', closeBetaModal);
-
-// Экспорт
-window.showBetaModalOnce = showBetaModalOnce;
-
 // =================== ЕЖЕМЕСЯЧНЫЕ ЗНАЧКИ ===================
 const MONTHLY_BADGES_KEY = 'sportapp_monthly_badges';
 const MONTHS_GOAL = 15;
@@ -21900,3 +21793,136 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.PWA = PWA;
+
+
+// =================== МОДАЛКА: ЧТО НОВОГО ===================
+const CHANGELOG = {
+    // ★★★ ТЕКУЩАЯ ВЕРСИЯ — меняй при выпуске обновления ★★★
+    CURRENT_VERSION: '1.0.0',
+
+    STORAGE_KEY: 'changelogSeenVersion',
+
+    // ★★★ ИСТОРИЯ ВЕРСИЙ — добавляй сверху новую версию ★★★
+    // Порядок: от новых к старым
+    // ★★★ ИСТОРИЯ ВЕРСИЙ — от новых к старым ★★★
+     VERSIONS: [
+        {
+            version: '1.0.0',
+            date: '11 октября 2026',
+            title: 'Первый релиз!',
+            changes: [
+                '🏋️ <strong>Что такое SportApp?</strong><br>Это твой личный тренер, дневник тренировок и социальная сеть в одном приложении. Здесь ты можешь тренироваться по готовым программам или создавать свои, следить за прогрессом тела, соревноваться с друзьями и получать опыт (XP) за каждую тренировку.<br>Более 200 упражнений на все группы мышц, 3 уровня сложности, поддержка гантелей, турника и коврика - тренируйся так, как удобно именно тебе. Приложение работает офлайн: если пропал интернет, тренировка сохранится и синхронизируется позже.',
+
+                '📸 <strong>Страница «Лента»</strong><br>Делись своими тренировками с друзьями и смотри, как тренируются другие. Загрузи фото после тренировки - приложение автоматически наложит статистику: время, количество упражнений и заработанный XP.<br>Вкладка «Все» показывает посты всех пользователей, вкладка «Моя» - только твои публикации. Можно скачать готовый постер с тренировкой, а если понравилась чужая - добавить её себе в личные в один клик.',
+
+                '📊 <strong>Страница «Статистика»</strong><br>Здесь собрана вся информация о твоих тренировках в одном месте. Личная статистика: общее количество тренировок, минут и упражнений, нагрузка по группам мышц, календарь активности, нагрузочный индекс по неделям и графики прогресса тела, история тренировок с фильтрами по названию, категории и периоду, выполняй ежедневные задания и получи значок месяца.<br>Мировая статистика: сколько всего минут, тренировок и упражнений сделали пользователи SportApp за всё время, сколько человек зарегистрировано и сколько сейчас онлайн, достижений сообщества где проценты показывают, у скольких пользователей есть каждый из 7 значков, общая цель где все вместе выполняют тренировки, а топ-10 самых активных получают награду и два рейтинга топ-30 пользователей по XP за всё время и рейтинг друзей, где ты соревнуешься только с теми, кого добавил.',
+
+                '💪 <strong>Страница «Тренировки»</strong><br>Выбирай из готовых тренировок в трёх категориях: Силовые, Фитнес и PREMIUM. Силовые: руки, плечи, пресс, грудь, спина, ноги, всё тело, каждая в трёх уровнях сложности. Фитнес: зарядка, кардио, растяжка, пилатес, для тех, кто хочет быть в тонусе. PREMIUM: кроссфит, ГТО, «Мужская сила», «Женское счастье».<br>Или создай свою тренировку: добавь упражнения из каталога, настрой подходы, повторения, вес и время отдыха.<br>Пригласи друга на совместную тренировку - тренируйтесь одновременно и смотрите прогресс друг друга в реальном времени.',
+
+                '👤 <strong>Страница «Профиль»</strong><br>Твой личный кабинет: имя, аватар, уровень и прогресс до следующего. Система XP - 15 уровней от «Новичка» до «Заслуженного мастера спорта». За каждую тренировку получаешь опыт в зависимости от упражнений и веса.<br>Достижения - 7 значков за разные успехи. Серия тренировок - тренируйся каждый день и продлевай серию. Задания: сначала 5 обязательных, потом ежедневные - за каждое +10 XP. Настройки - здесь всё под тебя. В основных: PREMIUM, установка приложения инвентарь, акцентный цвет, тема, обучение и связь с администрацией. В дополнительных: показ достижений, история друзей, редактирование страниц и редактирование тренировок. В невозвратных: сброс прогресса, выход и удаление аккаунта - отменить нельзя.',
+
+                '👥 <strong>Друзья и всё про них</strong><br>Добавляй друзей через поиск по имени или по ссылке из QR-кода. Смотри профили: уровень, достижения, статистику и историю тренировок (если она открыта). Соревнуйся в рейтинге друзей - кто больше тренируется и получает XP, тот выше.<br>История друзей: смотри, кто недавно тренировался, получал новый уровень или достижение. Совместные тренировки: приглашай 1 друга (или до 3 с PREMIUM) на тренировку в реальном времени.',
+
+                '💎 <strong>PREMIUM</strong><br>PREMIUM - расширенная версия приложения для тех, кто хочет большего. Открывает доступ к особым тренировкам: кроссфит, ГТО, «Мужская сила» и «Женское счастье» - программы, которых нет в бесплатной версии. Увеличивает лимит друзей в совместной тренировке с 1 до 3 - можно тренироваться целой компанией. Добавляет расширенную палитру акцентных цветов, чтобы полностью настроить приложение под себя. Оформить можно помесячно или сразу на год со скидкой.'
+            ]
+        }
+    ],
+
+    // Уже видел эту версию?
+    wasSeen() {
+        const seen = localStorage.getItem(this.STORAGE_KEY);
+        return seen === this.CURRENT_VERSION;
+    },
+
+    markSeen() {
+        localStorage.setItem(this.STORAGE_KEY, this.CURRENT_VERSION);
+    },
+
+    // Рендер списка версий
+    render() {
+        const list = document.getElementById('changelogList');
+        const versionEl = document.getElementById('changelogCurrentVersion');
+        if (!list) return;
+
+        if (versionEl) versionEl.textContent = this.CURRENT_VERSION;
+
+        list.innerHTML = this.VERSIONS.map((v, i) => `
+            <div class="changelog-version">
+                <div class="changelog-version-header">
+                    <span class="changelog-version-number">Версия ${v.version}</span>
+                    <span class="changelog-version-date">${v.date}</span>
+                </div>
+                <div class="changelog-version-title">${v.title}</div>
+                <ul class="changelog-version-changes">
+                    ${v.changes.map(c => `<li>${c}</li>`).join('')}
+                </ul>
+            </div>
+        `).join('');
+    },
+
+    // Проверить — надо ли показать модалку
+    canShow() {
+        // Уже видел эту версию — нет
+        if (this.wasSeen()) {
+            console.log('📋 Changelog: уже видел версию', this.CURRENT_VERSION);
+            return false;
+        }
+
+        // Не авторизован — нет
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.log('📋 Changelog: не авторизован');
+            return false;
+        }
+
+        // Туториал активен — нет
+        if (typeof tutorialActive !== 'undefined' && tutorialActive) {
+            console.log('📋 Changelog: туториал активен');
+            return false;
+        }
+
+        // В этой сессии был туториал — нет
+        if (sessionStorage.getItem('tutorialRanThisSession') === 'true') {
+            console.log('📋 Changelog: туториал был в этой сессии');
+            return false;
+        }
+
+        // Не на главных страницах приложения — нет
+        const ALLOWED = ['page-workouts', 'page-stats', 'page-profile', 'page-feed'];
+        const isInside = ALLOWED.some(id => {
+            const el = document.getElementById(id);
+            return el && el.classList.contains('page-active');
+        });
+        if (!isInside) return false;
+
+        return true;
+    },
+
+// Показать с проверками
+tryShow() {
+    if (!this.canShow()) return;
+
+    // ★ ПЕРЕИМЕНОВАЛИ: openModal → openModalEl,
+    // чтобы не перекрывать глобальную функцию openModal
+    const openModalEl = document.querySelector('.modal-overlay.modal-overlay-visible');
+    if (openModalEl) {
+        console.log('📋 Changelog: открыта другая модалка, ждём');
+        setTimeout(() => this.tryShow(), 5000);
+        return;
+    }
+
+    console.log('📋 Changelog: показываем модалку версии', this.CURRENT_VERSION);
+    this.render();
+    openModal('changelogModal');
+}
+};
+
+// Глобальная функция закрытия
+function closeChangelogModal() {
+    CHANGELOG.markSeen();
+    closeModal('changelogModal');
+    console.log('📋 Changelog: версия', CHANGELOG.CURRENT_VERSION, 'отмечена как просмотренная');
+}
+
+window.CHANGELOG = CHANGELOG;
+window.closeChangelogModal = closeChangelogModal;

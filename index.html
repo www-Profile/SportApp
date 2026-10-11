@@ -2309,46 +2309,20 @@
     </div>
 </div>
 
-    <!-- ===== МОДАЛКА: БЕТА-ВЕРСИЯ ===== -->
-<div id="betaModal" class="modal-overlay" style="display:none;">
-    <div class="modal-content" style="max-width: 420px; width: 95%;">
-        <div style="text-align: center;">
-            <div class="modal-title">БЕТА-ВЕРСИЯ</div>
-            <div style="font-size: 3.5rem; color: var(--accent);">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-            </div>
+<!-- ===== МОДАЛКА: ЧТО НОВОГО ===== -->
+<div id="changelogModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width: 480px; width: 95%; max-height: 85vh; display: flex; flex-direction: column;">
+
+        <div style="text-align: center; margin-bottom: 0.8rem;">
+            <div class="modal-title" style="margin-bottom: 0;">Обновление в SportApp</div>
         </div>
 
-        <p class="modal-text">
-            Вы используете бета-версию SportApp. 
-            Приложение активно развивается, поэтому возможны небольшие ошибки и изменения.
-        </p>
-
-        <p class="section-title" style="text-align: left;">Что это значит:</p>
-
-        <div style="text-align: left; margin-bottom: 0.5rem;">
-            <div class="rules-list" style="gap: 0rem;">
-                <div style="display:flex; align-items:center; gap:0.5rem; padding: 0.3rem 0.4rem;">
-                    <i class="fa-solid fa-circle-check" style="color: var(--accent); font-size: 0.9rem;"></i>
-                    <span class="rule-item">Новые функции появляются регулярно</span>
-                </div>
-                <div style="display:flex; align-items:center; gap:0.5rem; padding: 0.3rem 0.4rem;">
-                    <i class="fa-solid fa-circle-check" style="color: var(--accent); font-size: 0.9rem;"></i>
-                    <span class="rule-item">Возможны временные сбои и баги</span>
-                </div>
-                <div style="display:flex; align-items:center; gap:0.5rem; padding: 0.3rem 0.4rem;">
-                    <i class="fa-solid fa-circle-check" style="color: var(--accent); font-size: 0.9rem;"></i>
-                    <span class="rule-item">Ваши данные сохраняются и не теряются</span>
-                </div>
-                <div style="display:flex; align-items:center; gap:0.5rem; padding: 0.3rem 0.4rem;">
-                    <i class="fa-solid fa-circle-check" style="color: var(--accent); font-size: 0.9rem;"></i>
-                    <span class="rule-item">О найденных ошибках пишите в поддержку</span>
-                </div>
-            </div>
+        <div class="scroll-wrapper" style="max-height: 40vh; margin-bottom: 0.5rem; border-radius: 12px;">
+            <div id="changelogList" class="changelog-list"></div>
         </div>
 
-        <button class="btn btn-primary" id="betaAcceptBtn">
-            Понятно
+        <button class="btn btn-primary" onclick="closeChangelogModal()">
+            Отлично!
         </button>
     </div>
 </div>
