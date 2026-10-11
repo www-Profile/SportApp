@@ -1312,17 +1312,6 @@
                 <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
             </div>
 
-            <div class="settings-item" id="pwaSettingsItem" onclick="PWA.showBanner()" style="display:none;">
-                <div class="settings-icon">
-                    <i class="fa-solid fa-house-circle-check"></i>
-                </div>
-                <div class="settings-info">
-                    <div class="settings-title">Установить приложение</div>
-                    <div class="settings-desc">Добавить на главный экран</div>
-                </div>
-                <button class="settings-action"><i class="fa-solid fa-chevron-right"></i></button>
-            </div>
-
             <div class="settings-item" onclick="openInventoryModal()">
                 <div class="settings-icon"><i class="fa-solid fa-dumbbell"></i></div>
                 <div class="settings-info">
@@ -1518,6 +1507,22 @@
     <div class="section-body"> <!-- ★★★ ДОБАВЛЯЕМ section-body ★★★ -->
         <div class="scroll-wrapper" style="border-radius: 16px;">
             <div id="friendsList" class="item-grid"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Блок: Вызовы друзьям -->
+<div class="section-block" id="challenges-block" data-block-id="challenges" style="padding: 0rem 0.2rem;">
+    <div class="section-header">
+        <h2 class="section-title">Вызовы друзьям</h2>
+        <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+    <div class="section-body">
+        <div id="challengesContainer"></div>
+        <div style="padding: 0.5rem 0 0;">
+            <button class="btn btn-primary" onclick="openCreateChallengeModal()" style="width: 100%;">
+                <i class="fa-solid fa-bolt"></i> Бросить вызов
+            </button>
         </div>
     </div>
 </div>
@@ -1989,6 +1994,75 @@
         <button class="nav-item" data-page="profile"><i class="fa-solid fa-user"></i></button>
     </div>
 </nav>
+
+<!-- ===== МОДАЛКА: СОЗДАНИЕ ВЫЗОВА ===== -->
+<div id="createChallengeModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:420px;">
+        <div class="modal-title">Новый вызов</div>
+
+        <div style="text-align:left; margin-bottom: 0.8rem;">
+            <label class="form-label">Кому</label>
+            <select id="challengeFriendSelect" class="form-select">
+                <option value="">Загрузка...</option>
+            </select>
+        </div>
+
+        <div style="text-align:left; margin-bottom: 0.8rem;">
+            <label class="form-label">Тип вызова</label>
+            <select id="challengeTypeSelect" class="form-select" onchange="updateChallengeHint()">
+                <option value="workouts">Тренировки — кто больше сделает</option>
+                <option value="minutes">Минуты — кто больше натренирует</option>
+                <option value="xp">XP — кто больше заработает</option>
+                <option value="streak">Серия — у кого больше дней подряд</option>
+            </select>
+        </div>
+
+        <div style="text-align:left; margin-bottom: 0.8rem;">
+            <label class="form-label">Срок</label>
+            <select id="challengeDurationSelect" class="form-select">
+                <option value="3">3 дня</option>
+                <option value="7" selected>7 дней</option>
+                <option value="14">14 дней</option>
+                <option value="30">30 дней</option>
+            </select>
+        </div>
+
+        <div style="text-align:left; margin-bottom: 0.8rem;">
+            <label class="form-label">Цель (сколько набрать)</label>
+            <input type="number" id="challengeTargetInput" class="form-input"
+                   min="1" max="9999" step="1" value="10">
+            <div id="challengeHint" class="form-label-small" style="margin-top: 0.3rem; display:block;">
+                Например: 10 тренировок за 7 дней
+            </div>
+        </div>
+
+        <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+            <button class="btn btn-secondary" onclick="closeModal('createChallengeModal')" style="flex:1;">Отмена</button>
+            <button class="btn btn-primary" id="challengeSendBtn" onclick="sendChallenge()" style="flex:1;">Отправить</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== МОДАЛКА: ВХОДЯЩИЙ ВЫЗОВ ===== -->
+<div id="incomingChallengeModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:420px;">
+        <div class="modal-title">Вызов!</div>
+
+        <div style="text-align:center; font-size:3rem; margin:0.5rem 0;">🎯</div>
+
+        <p class="modal-text" id="incomingChallengeText" style="text-align:center; margin-bottom:1rem;">
+            Иван бросает вам вызов
+        </p>
+
+        <div id="incomingChallengeDetails" style="text-align:center; background:var(--light); border-radius:10px; padding:0.6rem; margin-bottom:1rem;">
+        </div>
+
+        <div style="display:flex; gap:0.5rem;">
+            <button class="btn btn-secondary" onclick="declineIncomingChallenge()" style="flex:1;">Отклонить</button>
+            <button class="btn btn-primary" onclick="acceptIncomingChallenge()" style="flex:1;">Принять</button>
+        </div>
+    </div>
+</div>
 
 <!-- ===== МОДАЛКА: ФУНКЦИЯ НЕ ДОСТУПНА ===== -->
 <div id="notAvailableModal" class="modal-overlay" style="display:none;">

@@ -1891,13 +1891,19 @@ function switchProfileTab(tab) {
     if (target) {
         target.classList.add('profile-tab-content-active');
     }
-    if (tab === 'friends') {
-        setTimeout(() => {
-            renderFriendsInProfile();
-            // ★★★ ДОБАВЛЯЕМ РЕНДЕР ИСТОРИИ ★★★
-            setTimeout(() => renderFriendsHistory(), 300);
-        }, 100);
-    }
+if (tab === 'friends') {
+    setTimeout(() => {
+        renderFriendsInProfile();
+        setTimeout(() => renderFriendsHistory(), 300);
+    }, 100);
+
+    // ★ ДОБАВЬ ЭТО — запуск слушателя вызовов
+    setTimeout(() => {
+        if (typeof startChallengesListener === 'function') {
+            startChallengesListener();
+        }
+    }, 200);
+}
     
     // ★★★ ОБНОВЛЯЕМ ВИДИМОСТЬ КНОПКИ РЕДАКТИРОВАНИЯ ДРУЗЕЙ ★★★
     updateFriendsEditButtonVisibility();
@@ -7649,7 +7655,8 @@ function enterApp() {
     // ★★★ ВОТ ЭТО ДОБАВЛЯЕМ — пробуем показать PWA-баннер ★★★
     // Ждём 5 секунд — чтобы бета-модалка (если есть) успела появиться и закрыться
     // Если туториал активен или бета-модалка показана — canShowBanner() вернёт false
-    setTimeout(() => PWA.tryShowBanner(), 5000);
+    // Показываем баннер установки при каждом входе (если не установлено)
+setTimeout(() => PWA.tryShowBanner(), 3000);
 
         // ★★★ МОДАЛКА ОБНОВЛЕНИЙ ★★★
     // Показываем через 2 секунды после входа, если:
@@ -21526,7 +21533,7 @@ const PWA = {
     deferredPrompt: null,
     STORAGE_KEY: 'pwaBannerState',   // 'installed' | 'dismissed_at_<ts>'
     SHOW_DELAY_MS: 3000,             // показать баннер через 3 сек
-    DISMISS_COOLDOWN_MS: 7 * 24 * 60 * 60 * 1000, // 7 дней не напоминать
+    DISMISS_COOLDOWN_MS: 60 * 60 * 1000,  // ★ 1 час — не показывать после закрытия
 
     isStandalone() {
         return window.matchMedia('(display-mode: standalone)').matches
@@ -21542,6 +21549,12 @@ const PWA = {
         return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     },
 
+    // ★ Установлено навсегда?
+    wasInstalled() {
+        return localStorage.getItem(this.STORAGE_KEY) === 'installed';
+    },
+
+    // ★ Недавно закрывали баннер (в течение часа)?
     wasDismissedRecently() {
         const state = localStorage.getItem(this.STORAGE_KEY);
         if (!state) return false;
@@ -21561,7 +21574,7 @@ const PWA = {
         localStorage.setItem(this.STORAGE_KEY, 'dismissed_at_' + Date.now());
     },
 
-    // ★★★ ГЛАВНАЯ ФУНКЦИЯ — проверяет ВСЕ условия ★★★
+    // ★ Проверяем ВСЕ условия
     canShowBanner() {
         // 1. Уже установлено — нет
         if (this.isStandalone()) {
@@ -21569,7 +21582,7 @@ const PWA = {
             return false;
         }
 
-        // 2. Недавно закрывали — нет
+        // 2. Недавно закрывали (в течение часа) — нет
         if (this.wasDismissedRecently()) {
             console.log('📱 PWA: недавно закрывали баннер');
             return false;
@@ -21577,75 +21590,49 @@ const PWA = {
 
         // 3. Только для авторизованных с подтверждённой почтой
         const user = firebase.auth().currentUser;
-        if (!user) {
-            console.log('📱 PWA: не авторизован');
-            return false;
-        }
-        if (!user.emailVerified) {
-            console.log('📱 PWA: почта не подтверждена');
-            return false;
-        }
+        if (!user) return false;
+        if (!user.emailVerified) return false;
 
-        // 4. Не во время туториала (сейчас)
+        // 4. Не во время туториала
         if (typeof tutorialActive !== 'undefined' && tutorialActive) {
-            console.log('📱 PWA: туториал активен');
             return false;
         }
 
-        // 5. Если туториал БЫЛ в этой сессии — не показываем вообще
+        // 5. Если туториал БЫЛ в этой сессии — не показываем
         if (sessionStorage.getItem('tutorialRanThisSession') === 'true') {
-            console.log('📱 PWA: туториал был в этой сессии');
             return false;
         }
 
         // 6. Только на главных страницах приложения
-        //    (НЕ на hero / loading / login / register / inventory /
-        //     exercise-list / workout-edit / level-select / workout-detail)
         const ALLOWED_PAGES = ['page-workouts', 'page-stats', 'page-profile', 'page-feed'];
         const isInside = ALLOWED_PAGES.some(id => {
             const el = document.getElementById(id);
             return el && el.classList.contains('page-active');
         });
-        if (!isInside) {
-            console.log('📱 PWA: мы не на главном экране приложения');
-            return false;
-        }
+        if (!isInside) return false;
 
-        // 7. Не во время тренировки (любой) и выполнения заданий
+        // 7. Не во время тренировки
         const FORBIDDEN_PAGES = [
-            'page-training-session',
-            'page-task-session',
-            'page-finish',
-            'page-coop-finish',
-            'page-coop-waiting',
-            'page-training-waiting'
+            'page-training-session', 'page-task-session',
+            'page-finish', 'page-coop-finish',
+            'page-coop-waiting', 'page-training-waiting'
         ];
         const inTraining = FORBIDDEN_PAGES.some(id => {
             const el = document.getElementById(id);
             return el && el.classList.contains('page-active');
         });
-        if (inTraining) {
-            console.log('📱 PWA: идёт тренировка / задание');
-            return false;
-        }
+        if (inTraining) return false;
 
-        // 8. Нет открытой модалки прямо сейчас
-        const openModalOverlay = document.querySelector('.modal-overlay.modal-overlay-visible');
-        if (openModalOverlay) {
-            console.log('📱 PWA: открыта модалка');
-            return false;
-        }
+        // 8. Нет открытой модалки
+        const openModalEl = document.querySelector('.modal-overlay.modal-overlay-visible');
+        if (openModalEl) return false;
 
-        // 9. Нет открытого туториал-оверлея
-        if (document.getElementById('tutorialOverlay')) {
-            console.log('📱 PWA: открыт туториал-оверлей');
-            return false;
-        }
+        // 9. Нет туториал-оверлея
+        if (document.getElementById('tutorialOverlay')) return false;
 
         return true;
     },
 
-    // ★ Обёртка: проверяет условия и показывает
     tryShowBanner() {
         if (!this.canShowBanner()) return;
         this.showBanner();
@@ -21654,7 +21641,7 @@ const PWA = {
     showBanner() {
         const banner = document.getElementById('pwaInstallBanner');
         if (!banner) return;
-        if (banner.classList.contains('pwa-banner-visible')) return; // уже показан
+        if (banner.classList.contains('pwa-banner-visible')) return;
 
         banner.style.display = 'block';
         requestAnimationFrame(() => {
@@ -21671,65 +21658,50 @@ const PWA = {
         setTimeout(() => { banner.style.display = 'none'; }, 300);
     },
 
-    // ── Android / Chrome / Edge ──
     async triggerInstall() {
-        if (!this.deferredPrompt) {
-            console.warn('📱 PWA: deferredPrompt отсутствует');
-            return;
-        }
+        if (!this.deferredPrompt) return;
         this.deferredPrompt.prompt();
         const { outcome } = await this.deferredPrompt.userChoice;
-        console.log('📱 PWA: выбор пользователя =', outcome);
 
         if (outcome === 'accepted') {
             this.markInstalled();
             this.hideBanner();
             showToast('✅ Приложение установлено!');
         } else {
+            // ★ Отказался — ставим cooldown на час
             this.markDismissed();
             this.hideBanner();
         }
         this.deferredPrompt = null;
     },
 
-    // ── iOS Safari: инструкция вручную ──
     showIosInstructions() {
         this.hideBanner();
         openModal('pwaIosModal');
-        this.markDismissed();
     },
 
     init() {
-        // Если уже установлено — ставим флаг и выходим
         if (this.isStandalone()) {
             this.markInstalled();
             return;
         }
 
-        // ── Ловим событие установки (Chrome/Edge/Android) ──
+        // Ловим событие установки (Chrome/Edge/Android)
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             this.deferredPrompt = e;
-            console.log('📱 PWA: событие beforeinstallprompt получено');
-
-            // ★ Через 3 сек пробуем показать баннер — но ТОЛЬКО если все условия выполнены
-            setTimeout(() => this.tryShowBanner(), this.SHOW_DELAY_MS);
+            console.log('📱 PWA: beforeinstallprompt получено');
         });
 
-        // ── Ловим успешную установку ──
-window.addEventListener('appinstalled', () => {
-    console.log('📱 PWA: приложение установлено');
-    this.markInstalled();
-    this.hideBanner();
-    
-    // ★ ДОБАВЬ ЭТУ СТРОКУ
-    const pwaSettingsItem = document.getElementById('pwaSettingsItem');
-    if (pwaSettingsItem) pwaSettingsItem.style.display = 'none';
-    
-    showToast('✅ SportApp добавлен на главный экран!');
-});
+        // Ловим успешную установку
+        window.addEventListener('appinstalled', () => {
+            console.log('📱 PWA: приложение установлено');
+            this.markInstalled();
+            this.hideBanner();
+            showToast('✅ SportApp добавлен на главный экран!');
+        });
 
-        // ── Кнопки ──
+        // Кнопки
         const installBtn = document.getElementById('pwaBannerInstallBtn');
         const laterBtn = document.getElementById('pwaBannerLaterBtn');
         const closeBtn = document.getElementById('pwaBannerCloseBtn');
@@ -21742,6 +21714,7 @@ window.addEventListener('appinstalled', () => {
                     this.triggerInstall();
                 } else {
                     showToast('ℹ️ Откройте меню браузера → «Установить приложение»');
+                    this.markDismissed();
                     this.hideBanner();
                 }
             });
@@ -21749,47 +21722,22 @@ window.addEventListener('appinstalled', () => {
 
         if (laterBtn) {
             laterBtn.addEventListener('click', () => {
-                this.markDismissed();
+                this.markDismissed();  // ★ ставим cooldown
                 this.hideBanner();
             });
         }
 
         if (closeBtn) {
             closeBtn.addEventListener('click', () => {
-                this.markDismissed();
+                this.markDismissed();  // ★ ставим cooldown
                 this.hideBanner();
             });
         }
-
-        // ── Пункт в настройках ──
-        const pwaSettingsItem = document.getElementById('pwaSettingsItem');
-        if (pwaSettingsItem && !this.isStandalone()) {
-            pwaSettingsItem.style.display = 'flex';
-        }
-
-        // В PWA.init(), в самом конце перед console.log:
-
-        // ★ Если баннер ещё не показан и не закрыт — периодически пробуем
-        this._pollInterval = setInterval(() => {
-            if (this.isStandalone()) {
-                clearInterval(this._pollInterval);
-                return;
-            }
-            if (this.wasDismissedRecently()) {
-                clearInterval(this._pollInterval);
-                return;
-            }
-            // Пробуем показать (canShowBanner сам проверит всё)
-            if (this.deferredPrompt || this.isIOS()) {
-                this.tryShowBanner();
-            }
-        }, 30000);  // каждые 30 сек
 
         console.log('📱 PWA: инициализация завершена');
     }
 };
 
-// Запускаем после DOMContentLoaded
 document.addEventListener('DOMContentLoaded', () => {
     PWA.init();
 });
@@ -22052,7 +22000,6 @@ function updateNotificationsSettingsItem() {
     const statusEl = document.getElementById('notificationsStatus');
     if (!item) return;
 
-    // Не показываем на iOS Safari в браузере (только в standalone)
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     const isStandalone = window.navigator.standalone === true;
     if (isIOS && !isStandalone) {
@@ -22065,21 +22012,18 @@ function updateNotificationsSettingsItem() {
         return;
     }
 
-    // Разрешение уже дано — показываем статус «Включены»
+    // ★ Если уже разрешено — скрываем пункт вообще
     if (Notification.permission === 'granted') {
-        item.style.display = 'flex';
-        if (statusEl) statusEl.textContent = 'Включены';
+        item.style.display = 'none';
         return;
     }
 
-    // Заблокировано — показываем статус «Заблокированы»
     if (Notification.permission === 'denied') {
         item.style.display = 'flex';
         if (statusEl) statusEl.textContent = 'Заблокированы в браузере';
         return;
     }
 
-    // default — показываем «Включить»
     item.style.display = 'flex';
     if (statusEl) statusEl.textContent = 'Включить push-уведомления';
 }
@@ -22112,3 +22056,506 @@ async function onEnableNotificationsClick() {
 
 window.onEnableNotificationsClick = onEnableNotificationsClick;
 window.updateNotificationsSettingsItem = updateNotificationsSettingsItem;
+
+// =================== ВЫЗОВЫ ДРУЗЬЯМ ===================
+const Challenges = {
+    list: [],            // все вызовы, где участвует текущий пользователь
+    unsubscribe: null,   // слушатель Firestore
+    _incomingQueue: [],  // очередь входящих, ожидающих модалки
+    _currentIncoming: null,
+
+    // ── Слушатель Firestore ──
+    subscribe() {
+        const user = firebase.auth().currentUser;
+        if (!user) return;
+
+        if (this.unsubscribe) this.unsubscribe();
+
+        this.unsubscribe = firebase.firestore()
+            .collection('challenges')
+            .where('participantIds', 'array-contains', user.uid)
+            .onSnapshot(snapshot => {
+                const list = [];
+                snapshot.forEach(doc => {
+                    list.push({ id: doc.id, ...doc.data() });
+                });
+
+                this.list = list;
+
+                // Проверяем статусы
+                this.checkIncoming();
+                this.refreshStatuses();
+                this.render();
+            }, err => {
+                console.warn('Challenges listener error:', err);
+            });
+    },
+
+    unsubscribeAll() {
+        if (this.unsubscribe) {
+            this.unsubscribe();
+            this.unsubscribe = null;
+        }
+    },
+
+    // ── Открытие модалки создания вызова ──
+    async openCreate() {
+        const select = document.getElementById('challengeFriendSelect');
+        if (!select) return;
+
+        select.innerHTML = '<option value="">Загрузка...</option>';
+
+        const result = await getFriendsList();
+        if (!result.success || result.data.length === 0) {
+            select.innerHTML = '<option value="">Нет друзей</option>';
+            openModal('createChallengeModal');
+            return;
+        }
+
+        select.innerHTML = '<option value="">Выберите друга</option>' +
+            result.data.map(f => `
+                <option value="${f.id}">${f.displayName || 'Пользователь'}</option>
+            `).join('');
+
+        // Сброс формы
+        document.getElementById('challengeTypeSelect').value = 'workouts';
+        document.getElementById('challengeDurationSelect').value = '7';
+        document.getElementById('challengeTargetInput').value = '10';
+        updateChallengeHint();
+
+        openModal('createChallengeModal');
+    },
+
+    // ── Отправка вызова ──
+    async send() {
+        const user = firebase.auth().currentUser;
+        if (!user) { showToast('❌ Не авторизован'); return; }
+
+        const toId = document.getElementById('challengeFriendSelect').value;
+        const type = document.getElementById('challengeTypeSelect').value;
+        const duration = parseInt(document.getElementById('challengeDurationSelect').value);
+        const target = parseInt(document.getElementById('challengeTargetInput').value);
+
+        if (!toId) { showToast('⚠️ Выберите друга'); return; }
+        if (!target || target < 1) { showToast('⚠️ Укажите цель'); return; }
+
+        const btn = document.getElementById('challengeSendBtn');
+        btn.disabled = true;
+        btn.textContent = 'Отправка...';
+
+        try {
+            // Профиль друга
+            const profileResult = await getUserProfile(toId);
+            const toName = profileResult.success
+                ? (profileResult.data.displayName || 'Пользователь')
+                : 'Пользователь';
+
+            const fromName = user.displayName || 'Пользователь';
+
+            // Даты
+            const startDate = new Date();
+            const endDate = new Date(startDate);
+            endDate.setDate(endDate.getDate() + duration);
+
+            // Создаём документ
+            await firebase.firestore().collection('challenges').add({
+                from: user.uid,
+                fromName: fromName,
+                to: toId,
+                toName: toName,
+                participantIds: [user.uid, toId],  // ★ для слушателя
+                type: type,
+                target: target,
+                duration: duration,
+                startDate: startDate.toISOString(),
+                endDate: endDate.toISOString(),
+                status: 'pending',
+                fromProgress: 0,
+                toProgress: 0,
+                winner: null,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Push в Firestore notifications — для дальнейшей интеграции
+            await firebase.firestore().collection('notifications').add({
+                to: toId,
+                from: user.uid,
+                fromName: fromName,
+                type: 'challenge_invite',
+                message: `${fromName} бросает вам вызов!`,
+                read: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            closeModal('createChallengeModal');
+            showToast('✅ Вызов отправлен!');
+        } catch (err) {
+            console.error('Challenge send error:', err);
+            showToast('❌ Не удалось отправить вызов');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Отправить';
+        }
+    },
+
+    // ── Входящие вызовы ──
+    checkIncoming() {
+        const user = firebase.auth().currentUser;
+        if (!user) return;
+
+        // Ищем pending вызовы, где я — to
+        const incoming = this.list.filter(c =>
+            c.status === 'pending' && c.to === user.uid
+        );
+
+        // Если уже показываем — ничего не делаем
+        if (this._currentIncoming) return;
+
+        // Если есть входящий — показываем
+        if (incoming.length > 0) {
+            this._currentIncoming = incoming[0];
+            this.showIncoming(this._currentIncoming);
+        }
+    },
+
+    showIncoming(challenge) {
+        const textEl = document.getElementById('incomingChallengeText');
+        const detailsEl = document.getElementById('incomingChallengeDetails');
+
+        if (textEl) {
+            textEl.textContent = `${challenge.fromName} бросает вам вызов!`;
+        }
+
+        if (detailsEl) {
+            const typeLabels = {
+                workouts: 'тренировок',
+                minutes: 'минут',
+                xp: 'XP',
+                streak: 'дней подряд'
+            };
+            detailsEl.innerHTML = `
+                <div style="font-size:1.1rem; font-weight:700; color:var(--accent); margin-bottom:0.3rem;">
+                    ${challenge.target} ${typeLabels[challenge.type] || ''}
+                </div>
+                <div style="font-size:0.8rem; color:var(--slate);">
+                    за ${challenge.duration} ${declOfNum(challenge.duration, ['день', 'дня', 'дней'])}
+                </div>
+            `;
+        }
+
+        openModal('incomingChallengeModal');
+    },
+
+    async acceptIncoming() {
+        const c = this._currentIncoming;
+        if (!c) return;
+
+        try {
+            const startDate = new Date();
+            const endDate = new Date(startDate);
+            endDate.setDate(endDate.getDate() + c.duration);
+
+            await firebase.firestore().collection('challenges').doc(c.id).update({
+                status: 'active',
+                startDate: startDate.toISOString(),
+                endDate: endDate.toISOString()
+            });
+
+            showToast('✅ Вызов принят!');
+        } catch (err) {
+            console.error('Challenge accept error:', err);
+            showToast('❌ Не удалось принять вызов');
+        }
+
+        this._currentIncoming = null;
+        closeModal('incomingChallengeModal');
+    },
+
+    async declineIncoming() {
+        const c = this._currentIncoming;
+        if (!c) return;
+
+        try {
+            await firebase.firestore().collection('challenges').doc(c.id).update({
+                status: 'declined'
+            });
+            showToast('❌ Вызов отклонён');
+        } catch (err) {
+            console.error('Challenge decline error:', err);
+        }
+
+        this._currentIncoming = null;
+        closeModal('incomingChallengeModal');
+    },
+
+    // ── Обновление прогресса ──
+    async refreshStatuses() {
+        const user = firebase.auth().currentUser;
+        if (!user) return;
+
+        const now = Date.now();
+
+        for (const c of this.list) {
+            if (c.status !== 'active') continue;
+
+            // Проверяем: не истёк ли срок
+            const endMs = new Date(c.endDate).getTime();
+            if (now >= endMs) {
+                // Определяем победителя
+                const winner = c.fromProgress > c.toProgress
+                    ? c.from
+                    : (c.toProgress > c.fromProgress ? c.to : null);
+
+                try {
+                    await firebase.firestore().collection('challenges').doc(c.id).update({
+                        status: 'completed',
+                        winner: winner
+                    });
+                } catch (e) {}
+                continue;
+            }
+
+            // Обновляем прогресс обеих сторон
+            const newFromProgress = await this.calcProgress(c.from, c.type, c.startDate, c.endDate);
+            const newToProgress = await this.calcProgress(c.to, c.type, c.startDate, c.endDate);
+
+            if (newFromProgress !== c.fromProgress || newToProgress !== c.toProgress) {
+                try {
+                    await firebase.firestore().collection('challenges').doc(c.id).update({
+                        fromProgress: newFromProgress,
+                        toProgress: newToProgress
+                    });
+                } catch (e) {}
+            }
+        }
+    },
+
+    async calcProgress(userId, type, startDate, endDate) {
+        try {
+            const result = await getUserWorkoutsFromFirestore(userId);
+            if (!result.success) return 0;
+
+            const start = new Date(startDate).getTime();
+            const end = new Date(endDate).getTime();
+
+            const filtered = result.data.filter(w => {
+                const t = new Date(w.date).getTime();
+                return t >= start && t <= end && !w.isSingle && getWorkoutIcon(w) !== 'charging';
+            });
+
+            if (type === 'workouts') {
+                return filtered.length;
+            }
+            if (type === 'minutes') {
+                const sec = filtered.reduce((sum, w) => sum + (w.durationSeconds || 0), 0);
+                return Math.floor(sec / 60);
+            }
+            if (type === 'xp') {
+                const xp = filtered.reduce((sum, w) => sum + (w.xpEarned || 0), 0);
+                return Math.round(xp);
+            }
+            if (type === 'streak') {
+                return await calculateStreak(userId);
+            }
+            return 0;
+        } catch (e) {
+            return 0;
+        }
+    },
+
+    // ── Рендер списка вызовов ──
+    render() {
+        const container = document.getElementById('challengesContainer');
+        if (!container) return;
+
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            container.innerHTML = '';
+            return;
+        }
+
+        const active = this.list
+            .filter(c => c.status === 'active')
+            .sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
+
+        const pending = this.list
+            .filter(c => c.status === 'pending')
+            .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+        const completed = this.list
+            .filter(c => c.status === 'completed')
+            .sort((a, b) => new Date(b.endDate) - new Date(a.endDate))
+            .slice(0, 5);
+
+        if (active.length === 0 && pending.length === 0 && completed.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state" style="box-shadow:none; padding:1rem;">
+                    <span class="empty-icon">🎯</span>
+                    <h3 class="empty-title">Нет вызовов</h3>
+                    <p class="empty-text">Брось другу вызов — кто больше натренирует за неделю.</p>
+                </div>
+            `;
+            return;
+        }
+
+        const typeLabels = {
+            workouts: 'тренировок',
+            minutes: 'минут',
+            xp: 'XP',
+            streak: 'дней подряд'
+        };
+
+        let html = '';
+
+        // ── PENDING ──
+        if (pending.length > 0) {
+            html += `<div style="margin-bottom:0.5rem; font-size:0.75rem; color:var(--slate); font-weight:600;">Ожидают ответа</div>`;
+            pending.forEach(c => {
+                const isMe = c.from === user.uid;
+                html += `
+                    <div class="challenge-card pending">
+                        <div class="challenge-header">
+                            <div class="challenge-title">🎯 ${isMe ? 'Вы → ' + c.toName : c.fromName + ' → Вам'}</div>
+                            <div class="challenge-days">${c.duration} дн</div>
+                        </div>
+                        <div style="font-size:0.8rem; color:var(--slate);">
+                            ${c.target} ${typeLabels[c.type] || ''}
+                        </div>
+                        <div class="challenge-status wait" style="margin-top:0.4rem;">
+                            ${isMe ? '⏳ Ждём ответа' : '⏳ Ожидает вашего ответа'}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // ── ACTIVE ──
+        if (active.length > 0) {
+            html += `<div style="margin:0.5rem 0 0.4rem; font-size:0.75rem; color:var(--slate); font-weight:600;">Активные вызовы</div>`;
+            active.forEach(c => {
+                const isFrom = c.from === user.uid;
+                const myProgress = isFrom ? c.fromProgress : c.toProgress;
+                const oppProgress = isFrom ? c.toProgress : c.fromProgress;
+                const oppName = isFrom ? c.toName : c.fromName;
+
+                const maxVal = Math.max(myProgress, oppProgress, c.target, 1);
+                const myPct = Math.min(100, Math.round((myProgress / c.target) * 100));
+                const oppPct = Math.min(100, Math.round((oppProgress / c.target) * 100));
+
+                const daysLeft = Math.max(0, Math.ceil(
+                    (new Date(c.endDate).getTime() - Date.now()) / 86400000
+                ));
+
+                const iWin = myProgress > oppProgress;
+                const draw = myProgress === oppProgress;
+
+                html += `
+                    <div class="challenge-card">
+                        <div class="challenge-header">
+                            <div class="challenge-title">🎯 ${isFrom ? 'Вы → ' + c.toName : c.fromName + ' → Вам'}</div>
+                            <div class="challenge-days">${daysLeft} дн</div>
+                        </div>
+
+                        <div class="challenge-progress-row">
+                            <div class="challenge-name">Вы</div>
+                            <div class="challenge-bar">
+                                <div class="challenge-fill ${iWin ? '' : 'loser'}"
+                                     style="width:${myPct}%;"></div>
+                            </div>
+                            <div class="challenge-value">${myProgress}/${c.target}</div>
+                        </div>
+
+                        <div class="challenge-progress-row">
+                            <div class="challenge-name">${oppName}</div>
+                            <div class="challenge-bar">
+                                <div class="challenge-fill ${iWin ? 'loser' : ''}"
+                                     style="width:${oppPct}%;"></div>
+                            </div>
+                            <div class="challenge-value">${oppProgress}/${c.target}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // ── COMPLETED ──
+        if (completed.length > 0) {
+            html += `<div style="margin:0.5rem 0 0.4rem; font-size:0.75rem; color:var(--slate); font-weight:600;">Завершённые</div>`;
+            completed.forEach(c => {
+                const isFrom = c.from === user.uid;
+                const myProgress = isFrom ? c.fromProgress : c.toProgress;
+                const oppProgress = isFrom ? c.toProgress : c.fromProgress;
+                const oppName = isFrom ? c.toName : c.fromName;
+
+                let statusHtml = '';
+                if (c.winner === user.uid) {
+                    statusHtml = '<div class="challenge-status win">🏆 Победа!</div>';
+                } else if (c.winner === null) {
+                    statusHtml = '<div class="challenge-status draw">Ничья</div>';
+                } else {
+                    statusHtml = `<div class="challenge-status lose">Проигрыш · ${oppName}</div>`;
+                }
+
+                html += `
+                    <div class="challenge-card completed">
+                        <div class="challenge-header">
+                            <div class="challenge-title">🎯 ${isFrom ? 'Вы → ' + c.toName : c.fromName + ' → Вам'}</div>
+                            <div class="challenge-days">${c.target} ${typeLabels[c.type] || ''}</div>
+                        </div>
+                        <div style="font-size:0.75rem; color:var(--slate); margin-bottom:0.3rem;">
+                            Вы: ${myProgress} · ${oppName}: ${oppProgress}
+                        </div>
+                        ${statusHtml}
+                    </div>
+                `;
+            });
+        }
+
+        container.innerHTML = html;
+    }
+};
+
+// ── Глобальные обёртки для HTML ──
+window.openCreateChallengeModal = function() {
+    Challenges.openCreate();
+};
+window.sendChallenge = function() {
+    Challenges.send();
+};
+window.acceptIncomingChallenge = function() {
+    Challenges.acceptIncoming();
+};
+window.declineIncomingChallenge = function() {
+    Challenges.declineIncoming();
+};
+
+// ── Подсказка для типа вызова ──
+window.updateChallengeHint = function() {
+    const type = document.getElementById('challengeTypeSelect')?.value;
+    const hint = document.getElementById('challengeHint');
+    const input = document.getElementById('challengeTargetInput');
+    if (!hint || !input) return;
+
+    const hints = {
+        workouts: { text: 'Сколько тренировок минимум?', default: 10 },
+        minutes:  { text: 'Сколько минут минимум?',     default: 100 },
+        xp:       { text: 'Сколько XP минимум?',        default: 500 },
+        streak:   { text: 'Сколько дней подряд?',       default: 7 }
+    };
+
+    const h = hints[type] || hints.workouts;
+    hint.textContent = h.text;
+    input.value = h.default;
+};
+
+// ── Запуск слушателя ──
+// Вызывай после того, как пользователь авторизовался и открыл профиль → Друзья
+window.startChallengesListener = function() {
+    Challenges.subscribe();
+};
+window.stopChallengesListener = function() {
+    Challenges.unsubscribeAll();
+};
+
+// Экспорт объекта для отладки
+window.Challenges = Challenges;
