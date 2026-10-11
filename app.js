@@ -7607,6 +7607,12 @@ async function logout() {
 }
 
 function enterApp() {
+
+        // ★★★ ЗАПУСКАЕМ СЛУШАТЕЛЬ ВЫЗОВОВ ★★★
+    if (typeof startChallengesListener === 'function') {
+        startChallengesListener();
+    }
+
     // ★★★ ПРОВЕРЯЕМ ПРОСРОЧЕННЫЕ АККАУНТЫ ПРИ ВХОДЕ ★★★
     checkAndDeleteExpiredAccounts();
     
@@ -22065,31 +22071,39 @@ const Challenges = {
     _currentIncoming: null,
 
     // ── Слушатель Firestore ──
-    subscribe() {
-        const user = firebase.auth().currentUser;
-        if (!user) return;
+subscribe() {
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        console.warn('Challenges.subscribe: нет пользователя');
+        return;
+    }
 
-        if (this.unsubscribe) this.unsubscribe();
+    if (this.unsubscribe) this.unsubscribe();
 
-        this.unsubscribe = firebase.firestore()
-            .collection('challenges')
-            .where('participantIds', 'array-contains', user.uid)
-            .onSnapshot(snapshot => {
-                const list = [];
-                snapshot.forEach(doc => {
-                    list.push({ id: doc.id, ...doc.data() });
-                });
+    console.log('🎯 Запуск слушателя вызовов для', user.uid);
 
-                this.list = list;
-
-                // Проверяем статусы
-                this.checkIncoming();
-                this.refreshStatuses();
-                this.render();
-            }, err => {
-                console.warn('Challenges listener error:', err);
+    this.unsubscribe = firebase.firestore()
+        .collection('challenges')
+        .where('participantIds', 'array-contains', user.uid)
+        .onSnapshot(snapshot => {
+            console.log(`🎯 Вызовов получено: ${snapshot.size}`);
+            
+            const list = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                list.push({ id: doc.id, ...data });
+                console.log('  →', doc.id, data.status, data.fromName, '→', data.toName);
             });
-    },
+
+            this.list = list;
+
+            this.checkIncoming();
+            this.refreshStatuses();
+            this.render();
+        }, err => {
+            console.error('❌ Challenges listener error:', err);
+        });
+},
 
     unsubscribeAll() {
         if (this.unsubscribe) {
@@ -22199,24 +22213,32 @@ const Challenges = {
     },
 
     // ── Входящие вызовы ──
-    checkIncoming() {
-        const user = firebase.auth().currentUser;
-        if (!user) return;
+checkIncoming() {
+    const user = firebase.auth().currentUser;
+    if (!user) return;
 
-        // Ищем pending вызовы, где я — to
-        const incoming = this.list.filter(c =>
-            c.status === 'pending' && c.to === user.uid
+    // ★ Если уже показываем — проверяем, актуален ли ещё тот вызов
+    if (this._currentIncoming) {
+        const stillPending = this.list.find(c => 
+            c.id === this._currentIncoming.id && c.status === 'pending'
         );
+        if (stillPending) return; // всё ещё актуален, не трогаем
+        
+        // Иначе — сбрасываем и покажем следующий
+        this._currentIncoming = null;
+    }
 
-        // Если уже показываем — ничего не делаем
-        if (this._currentIncoming) return;
+    const incoming = this.list.filter(c =>
+        c.status === 'pending' && c.to === user.uid
+    );
 
-        // Если есть входящий — показываем
-        if (incoming.length > 0) {
-            this._currentIncoming = incoming[0];
-            this.showIncoming(this._currentIncoming);
-        }
-    },
+    console.log(`📬 Входящих вызовов: ${incoming.length}`);
+
+    if (incoming.length > 0) {
+        this._currentIncoming = incoming[0];
+        this.showIncoming(this._currentIncoming);
+    }
+},
 
     showIncoming(challenge) {
         const textEl = document.getElementById('incomingChallengeText');
@@ -22246,47 +22268,53 @@ const Challenges = {
         openModal('incomingChallengeModal');
     },
 
-    async acceptIncoming() {
-        const c = this._currentIncoming;
-        if (!c) return;
+async acceptIncoming() {
+    const c = this._currentIncoming;
+    if (!c) return;
 
-        try {
-            const startDate = new Date();
-            const endDate = new Date(startDate);
-            endDate.setDate(endDate.getDate() + c.duration);
+    try {
+        const startDate = new Date();
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + c.duration);
 
-            await firebase.firestore().collection('challenges').doc(c.id).update({
-                status: 'active',
-                startDate: startDate.toISOString(),
-                endDate: endDate.toISOString()
-            });
+        await firebase.firestore().collection('challenges').doc(c.id).update({
+            status: 'active',
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString()
+        });
 
-            showToast('✅ Вызов принят!');
-        } catch (err) {
-            console.error('Challenge accept error:', err);
-            showToast('❌ Не удалось принять вызов');
-        }
+        showToast('✅ Вызов принят!');
+    } catch (err) {
+        console.error('Challenge accept error:', err);
+        showToast('❌ Не удалось принять вызов');
+    }
 
-        this._currentIncoming = null;
-        closeModal('incomingChallengeModal');
-    },
+    this._currentIncoming = null;
+    closeModal('incomingChallengeModal');
+    
+    // ★ Проверяем следующий входящий
+    setTimeout(() => this.checkIncoming(), 500);
+},
 
-    async declineIncoming() {
-        const c = this._currentIncoming;
-        if (!c) return;
+async declineIncoming() {
+    const c = this._currentIncoming;
+    if (!c) return;
 
-        try {
-            await firebase.firestore().collection('challenges').doc(c.id).update({
-                status: 'declined'
-            });
-            showToast('❌ Вызов отклонён');
-        } catch (err) {
-            console.error('Challenge decline error:', err);
-        }
+    try {
+        await firebase.firestore().collection('challenges').doc(c.id).update({
+            status: 'declined'
+        });
+        showToast('❌ Вызов отклонён');
+    } catch (err) {
+        console.error('Challenge decline error:', err);
+    }
 
-        this._currentIncoming = null;
-        closeModal('incomingChallengeModal');
-    },
+    this._currentIncoming = null;
+    closeModal('incomingChallengeModal');
+    
+    // ★ Проверяем следующий входящий
+    setTimeout(() => this.checkIncoming(), 500);
+},
 
     // ── Обновление прогресса ──
     async refreshStatuses() {
