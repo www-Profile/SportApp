@@ -4027,7 +4027,6 @@ if (shareLinkBtn) {
 
     const actionButton = document.getElementById('actionButton');
     if (actionButton) {
-        actionButton.textContent = 'СТАРТ';
         actionButton.onclick = function() {
             if (!preventDoubleClick('startWorkoutBtn', 3000)) {
                 showToast('⏳ Подождите, тренировка уже запускается...');
