@@ -1300,6 +1300,7 @@ body.theme-dark-mode .level-block {
     box-shadow: none;
     background-color: var(--white);
     width: 100%;
+    box-shadow: var(--shadow-card);
 }
 
 .friend-item {
@@ -3248,7 +3249,10 @@ body.theme-dark-mode .form-input::placeholder,
 body.theme-dark-mode .search-input::placeholder { color: var(--border-color); }
 
 body.theme-dark-mode .item-card.current-user { border-color: var(--accent); }
-body.theme-dark-mode .empty-state { background: var(--bg-secondary); }
+body.theme-dark-mode .empty-state { 
+    background: var(--bg-secondary); 
+    box-shadow: var(--shadow-card-dark);
+}
 body.theme-dark-mode .empty-title { color: var(--text-primary); }
 body.theme-dark-mode .empty-text { color: var(--text-secondary); }
 
@@ -3357,7 +3361,10 @@ body.theme-dark-mode .settings-icon-danger {
     color: #EF4444 !important;
 }
 
-body.theme-dark-mode .friends-list-block { background: var(--bg-secondary); }
+body.theme-dark-mode .friends-list-block { 
+    background: var(--bg-secondary); 
+    box-shadow: var(--shadow-card-dark);
+}
 
 body.theme-dark-mode #notificationCard {
     background: var(--bg-secondary);
@@ -3685,7 +3692,7 @@ body.theme-dark-mode .achievement-modal-progress-text.unlocked { color: var(--te
 }
 
 .rest-time-active {
-    border-color: var(--accent);
+    border-color: var(--accent-light);
     color: var(--accent);
 }
 
@@ -3696,7 +3703,7 @@ body.theme-dark-mode .rest-time-btn {
 }
 
 body.theme-dark-mode .rest-time-active {
-    border-color: var(--accent);
+    border-color: var(--accent-dark);
     color: var(--accent);
 }
 
@@ -4026,7 +4033,7 @@ body.theme-dark-mode .weekly-load-value { color: var(--accent); }
     color: var(--dark);
 }
 
-.inventory-btn.selected { border-color: var(--accent); }
+.inventory-btn.selected { border-color: var(--accent-light); }
 .inventory-btn.selected .inventory-name { color: var(--accent); }
 
 body.theme-dark-mode .inventory-btn {
@@ -4035,7 +4042,7 @@ body.theme-dark-mode .inventory-btn {
 }
 
 body.theme-dark-mode .inventory-btn .inventory-name { color: var(--text-primary); }
-body.theme-dark-mode .inventory-btn.selected { border-color: var(--accent); }
+body.theme-dark-mode .inventory-btn.selected { border-color: var(--accent-dark); }
 body.theme-dark-mode .inventory-btn.selected .inventory-name { color: var(--accent); }
 
 .language-icon {
@@ -6325,12 +6332,22 @@ body.theme-dark-mode .changelog-version-changes li {
     font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
     white-space: nowrap;
 }
 
 .challenge-filter-btn.challenge-filter-active {
-    border: 2px solid var(--accent);
+    border: 2px solid var(--accent-light);
+    color: var(--accent);
+}
+
+body.theme-dark-mode .challenge-filter-btn {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    color: var(--slate);
+}
+
+body.theme-dark-mode .challenge-filter-btn.challenge-filter-active {
+    border: 2px solid var(--accent-dark);
     color: var(--accent);
 }
 
@@ -6340,8 +6357,15 @@ body.theme-dark-mode .changelog-version-changes li {
     border: 1.5px solid var(--light-grey);
     box-shadow: var(--shadow-card);
     border-radius: 12px;
-    padding: 0.7rem 0.9rem;
+    padding: 0.7rem;
     margin-bottom: 0.5rem;
+    cursor: pointer;
+}
+
+body.theme-dark-mode .challenge-card {
+    background: var(--bg-secondary);
+    border: 1.5px solid var(--border-color);
+    box-shadow: var(--shadow-card-dark);
 }
 
 /* ★ ФОН ОДИНАКОВЫЙ ДЛЯ ВСЕХ СТАТУСОВ ★ */
@@ -6462,10 +6486,7 @@ body.theme-dark-mode .changelog-version-changes li {
 }
 
 /* ★ ТЁМНАЯ ТЕМА ★ */
-body.theme-dark-mode .challenge-card {
-    background: var(--accent-light);
-    box-shadow: none;
-}
+
 body.theme-dark-mode .challenge-card.pending,
 body.theme-dark-mode .challenge-card.active,
 body.theme-dark-mode .challenge-card.completed,
@@ -6500,10 +6521,6 @@ body.theme-dark-mode .challenge-status.wait {
 
 
 /* =================== ВЫЗОВЫ: КАРТОЧКА В СПИСКЕ ==================== */
-.challenge-card {
-    cursor: pointer;
-}
-
 /* Строка со списком имён в pending-карточке */
 .challenge-participants-line {
     font-size: 0.75rem;
@@ -6540,18 +6557,39 @@ body.theme-dark-mode .challenge-status.wait {
     font-weight: 500;
 }
 
+/* ★ Бар без overflow — иначе подпись сверху обрежется */
 .challenge-mini-bar {
-    height: 6px;
+    position: relative;
+    height: 8px;
     background: var(--light-grey);
-    border-radius: 3px;
-    overflow: hidden;
+    border-radius: 4px;
 }
 
 .challenge-mini-fill {
     height: 100%;
     background: var(--accent);
-    border-radius: 3px;
+    border-radius: 4px;
     transition: width 0.4s ease;
+}
+
+/* ★ Подпись «сдался» — НАД баром, по центру */
+.challenge-mini-bar-label {
+    position: absolute;
+    bottom: 0%;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    font-style: italic;
+    color: var(--slate);
+    pointer-events: none;
+    white-space: nowrap;
+    line-height: 1;
+}
+
+body.theme-dark-mode .challenge-mini-bar-label {
+    color: var(--text-secondary);
 }
 
 .challenge-mini-value {
@@ -6559,6 +6597,21 @@ body.theme-dark-mode .challenge-status.wait {
     color: var(--accent);
     white-space: nowrap;
     text-align: right;
+}
+
+.challenge-result-text {
+    text-align: center;
+    margin-top: 0.4rem;
+    padding: 0.2rem;
+    font-weight: 700;
+    border-radius: 6px;
+    color: var(--accent);
+    background: var(--accent-light);
+    font-size: 0.8rem;
+}
+
+body.theme-dark-mode .challenge-result-text {
+    background: var(--bg-primary);
 }
 
 /* Тёмная тема */
@@ -6753,6 +6806,7 @@ body.theme-dark-mode .challenge-mini-bar {
 }
 
 body.theme-dark-mode .challenge-detail-info {
+    border: 1.5px solid var(--border-color);
     background: var(--bg-primary);
 }
 

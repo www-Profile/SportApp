@@ -21788,14 +21788,23 @@ window.PWA = PWA;
 // =================== МОДАЛКА: ЧТО НОВОГО ===================
 const CHANGELOG = {
     // ★★★ ТЕКУЩАЯ ВЕРСИЯ — меняй при выпуске обновления ★★★
-    CURRENT_VERSION: '1.0.0',
+    CURRENT_VERSION: '1.1.0',
 
     STORAGE_KEY: 'changelogSeenVersion',
 
     // ★★★ ИСТОРИЯ ВЕРСИЙ — добавляй сверху новую версию ★★★
     // Порядок: от новых к старым
     // ★★★ ИСТОРИЯ ВЕРСИЙ — от новых к старым ★★★
-     VERSIONS: [
+    VERSIONS: [
+        {
+            version: '1.1.0',
+            date: '12 октября 2026',
+            title: 'Вызовы друзьям',
+            changes: [
+                '⚡ <strong>Вызовы друзьям</strong> - бросай вызов другу: кто больше тренировок, минут, отжиманий, подтягиваний или приседаний за выбранный срок - 3, 7, 14 или 30 дней. Принимай входящие вызовы прямо в приложении, следи за прогрессом в реальном времени и смотри результаты - победа, проигрыш или ничья. Без PREMIUM доступно до 3 активных вызовов и 1 друг в каждом, с PREMIUM - до 5 активных вызовов и до 3 друзей одновременно.',
+                '🎨 <strong>Мелкие улучшения</strong> - немного доработали интерфейс.'
+            ]
+        },
         {
             version: '1.0.0',
             date: '11 октября 2026',
@@ -22168,6 +22177,18 @@ const Challenges = {
     },
 
     // ─────────────────────────────────────────
+// АЛИАСЫ ДЛЯ СОВМЕСТИМОСТИ
+// (используются в closeModal и др. местах)
+// ─────────────────────────────────────────
+checkIncoming() {
+    this._checkIncomingQueue();
+},
+
+_tryShowNextResult() {
+    this._tryShowNextIncoming();
+},
+
+    // ─────────────────────────────────────────
     // СЛУШАТЕЛЬ FIRESTORE
     // ─────────────────────────────────────────
     subscribe() {
@@ -22249,6 +22270,23 @@ const Challenges = {
 
         return null;
     },
+
+    /**
+ * Возвращает статус вызова С ТОЧКИ ЗРЕНИЯ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ.
+ * Если я сдался в активном вызове — для меня он «completed».
+ */
+_getEffectiveStatus(c) {
+    const myId = this._getMyId();
+    if (!myId) return c.status;
+
+    // Я сдался, а вызов всё ещё active для остальных —
+    // для меня он завершён
+    if (c.status === 'active' && c.surrenderedAt && c.surrenderedAt[myId]) {
+        return 'completed';
+    }
+
+    return c.status;
+},
 
     _isMyChallenge(challenge) {
         return !!this._getMe(challenge);
@@ -22964,53 +23002,67 @@ _getSubtitle(c) {
         );
     },
 
-    async _surrender(c) {
-        const myId = this._getMyId();
-        if (!myId) return;
+async _surrender(c) {
+    const myId = this._getMyId();
+    if (!myId) return;
 
-        try {
-            const updatedParticipants = (c.participants || []).map(p =>
-                p.id === myId ? { ...p, surrendered: true } : p
-            );
+    try {
+        const updatedParticipants = (c.participants || []).map(p =>
+            p.id === myId ? { ...p, surrendered: true } : p
+        );
 
-            const updateData = { participants: updatedParticipants };
+        const updateData = { participants: updatedParticipants };
 
-            // Пересчитываем состояние
-            const activeList = updatedParticipants.filter(p =>
-                p.accepted === true && !p.surrendered
-            );
+        // Активные после моей сдачи (приняли и не сдались)
+        const activeList = updatedParticipants.filter(p =>
+            p.accepted === true && !p.surrendered
+        );
 
-            if (c.status === 'pending') {
-                // Пробуем переход
-                const transition = this._computePendingTransition({
-                    ...c,
-                    participants: updatedParticipants
-                });
-                Object.assign(updateData, transition || {});
-            } else if (c.status === 'active') {
-                if (activeList.length === 1) {
-                    // Последний остался — победа
-                    const winner = activeList[0];
-                    updateData.status = 'completed';
-                    updateData.winners = [winner.id];
-                    updateData.completedReason = 'lastStanding';
-                    updateData.completedAt = firebase.firestore.FieldValue.serverTimestamp();
-                } else if (activeList.length === 0) {
-                    // Все сдались — отмена
-                    updateData.status = 'cancelled';
-                }
+        // Активные с прогрессом > 0 — кандидаты в победители
+        const withProgress = activeList.filter(p => (p.progress || 0) > 0);
+
+        if (activeList.length >= 2) {
+            // ★ Есть 2+ активных — соревнование продолжается.
+            // Статус НЕ меняем. Я просто выхожу.
+            // Помечаем, что вызов для меня «завершён» — через поле.
+            updateData[`surrenderedAt.${myId}`] =
+                firebase.firestore.FieldValue.serverTimestamp();
+        } else {
+            // 0 или 1 активных — соревнование не может продолжаться.
+            if (withProgress.length > 0) {
+                // ★ Есть кто-то с прогрессом → он побеждает
+                const maxProg = Math.max(...withProgress.map(p => p.progress || 0));
+                const winners = withProgress
+                    .filter(p => (p.progress || 0) === maxProg)
+                    .map(p => p.id);
+
+                updateData.status = 'completed';
+                updateData.winners = winners;
+                updateData.completedReason = 'surrender';
+                updateData.completedAt = firebase.firestore.FieldValue.serverTimestamp();
+            } else {
+                // ★ Никто не имеет прогресса → удаляем вызов
+                await firebase.firestore()
+                    .collection('challenges').doc(c.id).delete();
+                showToast('🏳️ Вызов отменён');
+                this._detailId = null;
+                closeModal('challengeDetailModal');
+                return;
             }
-
-            await firebase.firestore().collection('challenges').doc(c.id).update(updateData);
-            showToast('🏳️ Вы сдались');
-        } catch (err) {
-            console.error('Surrender error:', err);
-            showToast('❌ Не удалось сдаться');
         }
 
-        this._detailId = null;
-        closeModal('challengeDetailModal');
-    },
+        await firebase.firestore()
+            .collection('challenges').doc(c.id).update(updateData);
+
+        showToast('🏳️ Вы сдались');
+    } catch (err) {
+        console.error('Surrender error:', err);
+        showToast('❌ Не удалось сдаться');
+    }
+
+    this._detailId = null;
+    closeModal('challengeDetailModal');
+},
 
     async _hideFromHistory(c) {
         const myId = this._getMyId();
@@ -23281,70 +23333,72 @@ _getSubtitle(c) {
     // ─────────────────────────────────────────
     // РЕНДЕР СПИСКА
     // ─────────────────────────────────────────
-    render() {
-        const container = document.getElementById('challengesContainer');
-        if (!container) return;
+render() {
+    const container = document.getElementById('challengesContainer');
+    if (!container) return;
 
-        const user = firebase.auth().currentUser;
-        if (!user) { container.innerHTML = ''; return; }
+    const user = firebase.auth().currentUser;
+    if (!user) { container.innerHTML = ''; return; }
 
-        // Skeleton
-        if (this._loading && !this._loaded) {
-            container.innerHTML = Skeleton.itemCardList(3);
-            return;
-        }
+    if (this._loading && !this._loaded) {
+        container.innerHTML = Skeleton.itemCardList(3);
+        return;
+    }
 
-        // Фильтрация
-        const visible = this.list.filter(c => {
-            if (this._isChallengeHidden(c)) return false;
-            if (c.status === 'cancelled') return false;
-            return this._filter.has(c.status);
-        });
+    // Фильтрация — по эффективному статусу
+    const visible = this.list.filter(c => {
+        if (this._isChallengeHidden(c)) return false;
+        if (c.status === 'cancelled') return false;
+        const eff = this._getEffectiveStatus(c);
+        return this._filter.has(eff);
+    });
 
-        // Сортировка: pending → active → completed
-        const order = { pending: 0, active: 1, completed: 2 };
-        visible.sort((a, b) => {
-            const oa = order[a.status] ?? 3;
-            const ob = order[b.status] ?? 3;
-            if (oa !== ob) return oa - ob;
-            // Внутри группы — по свежести
-            if (a.status === 'completed') {
-                const at = a.completedAt?.seconds || 0;
-                const bt = b.completedAt?.seconds || 0;
-                return bt - at;
-            }
-            const at = a.createdAt?.seconds || 0;
-            const bt = b.createdAt?.seconds || 0;
+    // Сортировка — по эффективному статусу
+    const order = { pending: 0, active: 1, completed: 2 };
+    visible.sort((a, b) => {
+        const oa = order[this._getEffectiveStatus(a)] ?? 3;
+        const ob = order[this._getEffectiveStatus(b)] ?? 3;
+        if (oa !== ob) return oa - ob;
+
+        if (this._getEffectiveStatus(a) === 'completed') {
+            const at = a.completedAt?.seconds || a.createdAt?.seconds || 0;
+            const bt = b.completedAt?.seconds || b.createdAt?.seconds || 0;
             return bt - at;
-        });
-
-        if (visible.length === 0) {
-            const text = this.list.length === 0
-                ? 'Брось другу вызов — кто больше натренирует за неделю.'
-                : 'По выбранным фильтрам ничего нет.';
-            container.innerHTML = `
-                <div class="empty-state" style="box-shadow:none; padding:1rem;margin-bottom: 0.5rem">
-                    <span class="empty-icon">🎯</span>
-                    <h3 class="empty-title">Вызовов нет</h3>
-                    <p class="empty-text">${text}</p>
-                </div>
-            `;
-            return;
         }
 
-        container.innerHTML = visible.map(c => this._renderCard(c, user.uid)).join('');
-    },
+        const at = a.createdAt?.seconds || 0;
+        const bt = b.createdAt?.seconds || 0;
+        return bt - at;
+    });
+
+    if (visible.length === 0) {
+        const text = this.list.length === 0
+            ? 'Брось другу вызов — кто больше натренирует за неделю.'
+            : 'По выбранным фильтрам ничего нет.';
+        container.innerHTML = `
+            <div class="empty-state" style="box-shadow:none; padding:1rem; margin-bottom:0.5rem">
+                <span class="empty-icon">🎯</span>
+                <h3 class="empty-title">Вызовов нет</h3>
+                <p class="empty-text">${text}</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = visible.map(c => this._renderCard(c, user.uid)).join('');
+},
 
 _renderCard(c, myId) {
     const title = this._TITLES[c.type] || 'Вызов';
     const participants = c.participants || [];
     const me = participants.find(p => p.id === myId);
+    const eff = this._getEffectiveStatus(c);
 
     let statusHtml = '';
     let bodyHtml = '';
 
     // ── PENDING ──
-    if (c.status === 'pending') {
+    if (eff === 'pending') {
         const answered = participants.filter(p => p.accepted !== null).length;
         const total = participants.length;
 
@@ -23362,95 +23416,59 @@ _renderCard(c, myId) {
     }
 
     // ── ACTIVE ──
-    else if (c.status === 'active') {
+    else if (eff === 'active') {
         const days = Math.max(0, Math.ceil(
             (new Date(c.endDate).getTime() - Date.now()) / 86400000
         ));
         statusHtml = `<span class="challenge-lb-badge">${days} ${declOfNum(days, ['день', 'дня', 'дней'])}</span>`;
 
-        // Мини-лидерборд
         const sorted = [...participants]
             .filter(p => p.accepted === true)
             .sort((a, b) => (b.progress || 0) - (a.progress || 0));
 
         const top = sorted.slice(0, 3);
-bodyHtml = `
-    <div class="challenge-mini-board">
-        ${top.map((p, i) => {
-            const isMe = p.id === myId;
-            const cls = (i === 0 && !p.surrendered) ? 'leader' : '';
-            const pct = c.target > 0
-                ? Math.min(100, Math.round((p.progress || 0) / c.target * 100))
-                : 0;
-            return `
-                <div class="challenge-mini-row ${cls}">
-                    <span class="challenge-mini-name">
-                        ${isMe ? 'Вы' : p.name}
-                        ${p.surrendered ? ' · сдался' : ''}
-                    </span>
-                    <div class="challenge-mini-bar">
-                        <div class="challenge-mini-fill" style="width:${pct}%;"></div>
-                    </div>
-                    <span class="challenge-mini-value">${p.progress || 0}/${c.target}</span>
-                </div>
-            `;
-        }).join('')}
-        ${sorted.length > 3 ? `
-            <div style="color:var(--slate);font-style:italic;font-size:0.7rem;margin-top:0.2rem;">
-                … и ещё ${sorted.length - 3}
-            </div>
-        ` : ''}
-    </div>
-`;
+        bodyHtml = this._renderMiniBoard(top, c, myId, false)
+            + (sorted.length > 3
+                ? `<div style="color:var(--slate);font-style:italic;font-size:0.7rem;margin-top:0.2rem;">
+                       … и ещё ${sorted.length - 3}
+                   </div>`
+                : '');
     }
 
-    // ── COMPLETED ──
-    else if (c.status === 'completed') {
-        const iWon = (c.winners || []).includes(myId);
+    // ── COMPLETED (включая случай, когда я сдался, а вызов ещё active) ──
+    else if (eff === 'completed') {
+        const iSurrendered = c.status === 'active'
+            && c.surrenderedAt
+            && c.surrenderedAt[myId];
+
         let resultText = '';
-        if (c.completedReason === 'lastStanding') {
-            resultText = iWon ? 'Победа (соперники сдались)' : 'Проигрыш';
-        } else if (c.completedReason === 'surrender') {
-            resultText = iWon ? 'Победа' : 'Проигрыш';
-        } else if ((c.winners || []).length === 0) {
-            resultText = 'Ничья';
-        } else if (iWon && (c.winners || []).length > 1) {
-            resultText = 'Ничья (лидеры)';
-        } else if (iWon) {
-            resultText = 'Победа!';
+        if (iSurrendered) {
+            resultText = 'Вы сдались';
         } else {
-            resultText = 'Проигрыш';
+            const iWon = (c.winners || []).includes(myId);
+            if (c.completedReason === 'lastStanding') {
+                resultText = iWon ? 'Победа (соперники сдались)' : 'Проигрыш';
+            } else if (c.completedReason === 'surrender') {
+                resultText = iWon ? 'Победа' : 'Проигрыш';
+            } else if ((c.winners || []).length === 0) {
+                resultText = 'Ничья';
+            } else if (iWon && (c.winners || []).length > 1) {
+                resultText = 'Ничья';
+            } else if (iWon) {
+                resultText = 'Победа!';
+            } else {
+                resultText = 'Проигрыш';
+            }
         }
 
-        statusHtml = `<span class="challenge-lb-badge">${this._formatTs(c.completedAt)}</span>`;
+        statusHtml = iSurrendered
+            ? `<span class="challenge-lb-badge">Сдался</span>`
+            : `<span class="challenge-lb-badge">${this._formatTs(c.completedAt)}</span>`;
 
         const sorted = [...participants].sort((a, b) => (b.progress || 0) - (a.progress || 0));
-bodyHtml = `
-    <div class="challenge-mini-board">
-        ${sorted.map(p => {
-            const isMe = p.id === myId;
-            const isWinner = (c.winners || []).includes(p.id);
-            const pct = c.target > 0
-                ? Math.min(100, Math.round((p.progress || 0) / c.target * 100))
-                : 0;
-            return `
-                <div class="challenge-mini-row ${isWinner ? 'leader' : ''}">
-                    <span class="challenge-mini-name">
-                        ${isMe ? 'Вы' : p.name}
-                        ${p.surrendered ? ' · сдался' : ''}
-                    </span>
-                    <div class="challenge-mini-bar">
-                        <div class="challenge-mini-fill" style="width:${pct}%;"></div>
-                    </div>
-                    <span class="challenge-mini-value">${p.progress || 0}/${c.target}</span>
-                </div>
-            `;
-        }).join('')}
-    </div>
-    <div style="text-align:center; margin-top:0.4rem; font-weight:700; color:var(--accent); font-size:0.8rem;">
-        ${resultText}
-    </div>
-`;
+
+        bodyHtml = this._renderMiniBoard(sorted, c, myId, true)
+            + `<div class="challenge-result-text">${resultText}</div>`;
     }
 
     return `
@@ -23462,7 +23480,47 @@ bodyHtml = `
             ${bodyHtml}
         </div>
     `;
-}
+},
+
+/**
+ * Универсальный рендер мини-лидерборда.
+ * @param {Array} rows — список участников
+ * @param {Object} c — сам вызов
+ * @param {string} myId — мой uid
+ * @param {boolean} showWinner — рисовать ли «👑» у победителей (по умолчанию выключено)
+ */
+_renderMiniBoard(rows, c, myId, showWinner) {
+    const winners = c.winners || [];
+
+    return `<div class="challenge-mini-board">
+        ${rows.map((p, i) => {
+            const isMe = p.id === myId;
+            const isWinner = showWinner && winners.includes(p.id);
+            const cls = (i === 0 && !p.surrendered) ? 'leader' : '';
+            const pct = c.target > 0
+                ? Math.min(100, Math.round((p.progress || 0) / c.target * 100))
+                : 0;
+
+            // ★ Сдался — пишем «сдался» по центру бара, из имени убираем
+            const barLabel = p.surrendered
+                ? `<span class="challenge-mini-bar-label">сдался</span>`
+                : '';
+
+            return `
+                <div class="challenge-mini-row ${cls}">
+                    <span class="challenge-mini-name">
+                        ${isMe ? 'Вы' : p.name}
+                    </span>
+                    <div class="challenge-mini-bar">
+                        <div class="challenge-mini-fill" style="width:${pct}%;"></div>
+                        ${barLabel}
+                    </div>
+                    <span class="challenge-mini-value">${p.progress || 0}/${c.target}</span>
+                </div>
+            `;
+        }).join('')}
+    </div>`;
+},
 };
 
 // ═══════════════════════════════════════════════════════════
