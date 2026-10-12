@@ -145,6 +145,27 @@ body {
 
 .section-block.open .section-toggle { transform: rotate(90deg); }
 
+.section-drag {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--slate);
+    font-size: 1rem;
+    cursor: grab;
+    display: none;              /* ← по умолчанию скрыта */
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.section-drag:active { cursor: grabbing; }
+
+/* В режиме редактирования — показываем (правило уже есть) */
+.editing .section-drag { display: flex !important; }
+
 .section-body {
     overflow: hidden;
     max-height: 0;

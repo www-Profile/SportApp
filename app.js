@@ -182,23 +182,28 @@ workouts(tab) {
 profile(tab) {
     this.state.profile = tab;
     activeProfileTab = tab;
-        // Обновляем UI
-        const profileTabs = document.querySelectorAll('.profile-tab-btn');
-        profileTabs.forEach(btn => {
-            btn.classList.toggle('tab-btn-active', btn.dataset.tab === tab);
-        });
-        const contents = document.querySelectorAll('.profile-tab-content');
-        contents.forEach(content => {
-            content.classList.remove('profile-tab-content-active');
-        });
-        const target = document.getElementById('profileTab-' + tab);
-        if (target) {
-            target.classList.add('profile-tab-content-active');
+
+    const profileTabs = document.querySelectorAll('.profile-tab-btn');
+    profileTabs.forEach(btn => {
+        btn.classList.toggle('tab-btn-active', btn.dataset.tab === tab);
+    });
+    const contents = document.querySelectorAll('.profile-tab-content');
+    contents.forEach(content => {
+        content.classList.remove('profile-tab-content-active');
+    });
+    const target = document.getElementById('profileTab-' + tab);
+    if (target) {
+        target.classList.add('profile-tab-content-active');
+    }
+    if (tab === 'friends') {
+        setTimeout(() => renderFriendsInProfile(), 100);
+
+        // ★★★ ДОБАВЬ ЭТИ 3 СТРОКИ ★★★
+        if (typeof startChallengesListener === 'function') {
+            startChallengesListener();
         }
-        if (tab === 'friends') {
-            setTimeout(() => renderFriendsInProfile(), 100);
-        }
-        this.save();
+    }
+    this.save();
     },
     
     // Применить все сохранённые вкладки
@@ -1906,13 +1911,6 @@ if (tab === 'friends') {
         renderFriendsInProfile();
         setTimeout(() => renderFriendsHistory(), 300);
     }, 100);
-
-    // ★ ДОБАВЬ ЭТО — запуск слушателя вызовов
-    setTimeout(() => {
-        if (typeof startChallengesListener === 'function') {
-            startChallengesListener();
-        }
-    }, 200);
 }
     
     // ★★★ ОБНОВЛЯЕМ ВИДИМОСТЬ КНОПКИ РЕДАКТИРОВАНИЯ ДРУЗЕЙ ★★★
@@ -7624,9 +7622,12 @@ async function logout() {
             }
             if (sessionListener) { sessionListener(); sessionListener = null; }
 
-            // ★★★ СБРАСЫВАЕМ PREMIUM ★★★
-            window._userPremium = false;
+            // ★ ДОБАВИТЬ:
+            if (typeof Challenges !== 'undefined') {
+                Challenges.unsubscribeAll();
+            }
 
+            window._userPremium = false;
             firebase.auth().signOut();
         },
         'Выйти'
@@ -22191,40 +22192,77 @@ _tryShowNextResult() {
     // ─────────────────────────────────────────
     // СЛУШАТЕЛЬ FIRESTORE
     // ─────────────────────────────────────────
-    subscribe() {
-        const user = firebase.auth().currentUser;
-        if (!user) return;
+subscribe() {
+    const user = firebase.auth().currentUser;
+    if (!user) return;
 
-        if (this.unsubscribe) {
-            this.unsubscribe();
-            this.unsubscribe = null;
+    // Отписываемся от старого слушателя
+    if (this.unsubscribe) {
+        this.unsubscribe();
+        this.unsubscribe = null;
+    }
+
+    // Сброс защёлки рендера (из правки №2)
+    if (this._renderScheduleTimer) {
+        clearTimeout(this._renderScheduleTimer);
+        this._renderScheduleTimer = null;
+    }
+    this._renderScheduled = false;
+
+    // ★ Сбрасываем старый таймер-страховку, если он висел с прошлого раза
+    if (this._loadingTimeout) {
+        clearTimeout(this._loadingTimeout);
+        this._loadingTimeout = null;
+    }
+
+    this._loading = true;
+    this._loaded = false;
+    this.render();
+
+    // Заводим новый таймер-страховку
+    this._loadingTimeout = setTimeout(() => {
+        this._loadingTimeout = null;          // ★ не забываем обнулить ссылку
+        if (this._loading && !this._loaded) {
+            this._loading = false;
+            this._loaded = true;
+            this.render();
         }
+    }, 3000);
 
-        this._loading = true;
-        this._loaded = false;
-        this.render();
+    this.unsubscribe = firebase.firestore()
+        .collection('challenges')
+        .where('participantIds', 'array-contains', user.uid)
+        .onSnapshot(
+            snapshot => {
+                // ★★★ УСПЕХ — отменяем страховочный таймер ★★★
+                if (this._loadingTimeout) {
+                    clearTimeout(this._loadingTimeout);
+                    this._loadingTimeout = null;
+                }
 
-        this.unsubscribe = firebase.firestore()
-            .collection('challenges')
-            .where('participantIds', 'array-contains', user.uid)
-            .onSnapshot(snapshot => {
                 const list = [];
                 snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
-
                 this.list = list;
                 this._loading = false;
                 this._loaded = true;
-
                 this._scheduleRender();
                 this._checkIncomingQueue();
                 this._maybeRefreshStatuses();
-            }, err => {
+            },
+            err => {
+                // ★★★ ОШИБКА — тоже отменяем ★★★
+                if (this._loadingTimeout) {
+                    clearTimeout(this._loadingTimeout);
+                    this._loadingTimeout = null;
+                }
+
                 console.error('❌ Challenges listener error:', err);
                 this._loading = false;
                 this._loaded = true;
-                this.render();
-            });
-    },
+                this._scheduleRender();
+            }
+        );
+},
 
     unsubscribeAll() {
         if (this.unsubscribe) {
@@ -22236,16 +22274,31 @@ _tryShowNextResult() {
         this._incomingModalOpen = false;
     },
 
-    _scheduleRender() {
-        if (this._renderScheduled) return;
-        this._renderScheduled = true;
-        requestAnimationFrame(() => {
-            this._renderScheduled = false;
+_renderScheduled: false,
+_renderScheduleTimer: null,
+
+_scheduleRender() {
+    // Если уже запланировано — не дублируем
+    if (this._renderScheduled) return;
+    this._renderScheduled = true;
+
+    // Чистим предыдущий таймер, если висел
+    if (this._renderScheduleTimer) {
+        clearTimeout(this._renderScheduleTimer);
+    }
+
+    // setTimeout работает и в фоне, и при скрытой вкладке
+    this._renderScheduleTimer = setTimeout(() => {
+        this._renderScheduleTimer = null;
+        this._renderScheduled = false;
+        try {
             this.render();
-            // Обновим модалку деталей, если она открыта
             if (this._detailId) this._renderDetail();
-        });
-    },
+        } catch (err) {
+            console.error('Challenges.render error:', err);
+        }
+    }, 16);
+},
 
     // ─────────────────────────────────────────
     // ХЕЛПЕРЫ
