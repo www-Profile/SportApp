@@ -1528,7 +1528,7 @@
         <div  class="scroll-wrapper">
             <div id="challengesContainer"></div>
         </div>
-            <button class="btn btn-primary" onclick="openCreateChallengeModal()" style="width: 100%;margin-top: 0.5rem;">
+            <button class="btn btn-primary" onclick="openCreateChallengeModal()" style="width: 100%;">
                 <i class="fa-solid fa-bolt"></i> Бросить вызов
             </button>
     </div>
@@ -2007,15 +2007,19 @@
     <div class="modal-content" style="max-width:420px;">
         <div class="modal-title">Новый вызов</div>
 
-        <div style="text-align:left; margin-bottom: 0.5rem;">
-            <label class="form-label">Кому</label>
-            <div id="challengeFriendSelect" class="challenge-friends-picker">
-                <div class="challenge-friends-loading">Загрузка...</div>
-            </div>
-            <div id="challengeFriendsCounter" class="challenge-friends-counter">
-                Выбрано: 0
-            </div>
+<div style="text-align:left; margin-bottom: 0.5rem;">
+    <div style="display:flex; justify-content:space-between; align-items:baseline; gap:0.5rem;">
+        <label class="form-label" style="margin:0;">Кому</label>
+        <div id="challengeFriendsCounter" class="challenge-friends-counter" style="margin:0;">
+            Выбрано: 0
         </div>
+    </div>
+    <div class="scroll-wrapper-modal" style=" margin-bottom: 0.5rem;">
+        <div id="challengeFriendSelect" class="challenge-friends-picker">
+            <div class="challenge-friends-loading">Загрузка...</div>
+        </div>
+    </div>
+</div>
 
         <div style="text-align:left; margin-bottom: 0.8rem;">
             <label class="form-label">Тип вызова</label>
@@ -2059,26 +2063,26 @@
         <div class="modal-title" id="challengeDetailTitle">Кто больше тренировок</div>
         <div class="challenge-detail-subtitle" id="challengeDetailSubtitle">Активный · 3 дня осталось</div>
 
-        <div class="challenge-detail-info">
-            <div class="challenge-detail-info-row">
-                <span>Цель</span>
-                <strong id="challengeDetailTarget">10 тренировок</strong>
-            </div>
-            <div class="challenge-detail-info-row">
-                <span>Начало</span>
-                <strong id="challengeDetailStart">—</strong>
-            </div>
-            <div class="challenge-detail-info-row">
-                <span>Конец</span>
-                <strong id="challengeDetailEnd">—</strong>
-            </div>
-            <div class="challenge-detail-info-row">
-                <span>Участников</span>
-                <strong id="challengeDetailParticipants">0</strong>
-            </div>
-        </div>
+<div class="challenge-detail-info">
+    <div class="challenge-detail-info-row">
+        <strong>Цель:</strong>
+        <span id="challengeDetailTarget">10 тренировок</span>
+    </div>
+    <div class="challenge-detail-info-row">
+        <strong>Начало:</strong>
+        <span id="challengeDetailStart">—</span>
+    </div>
+    <div class="challenge-detail-info-row">
+        <strong>Конец:</strong>
+        <span id="challengeDetailEnd">—</span>
+    </div>
+    <div class="challenge-detail-info-row">
+        <strong>Участников:</strong>
+        <span id="challengeDetailParticipants">0</span>
+    </div>
+</div>
 
-        <div class="section-title" style="text-align:left; margin-top:0.5rem; margin-bottom:0.3rem;">Лидерборд</div>
+        <div class="form-label" style="text-align:left; margin-top:0.5rem; margin-bottom:0.3rem;">Лидерборд</div>
         <div class="scroll-wrapper-modal" style="max-height: 40vh; margin-bottom: 0.5rem;">
             <div class="challenge-leaderboard" id="challengeLeaderboard">
                 <!-- JS заполнит -->
@@ -2086,7 +2090,7 @@
         </div>
 
         <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
-            <button class="btn btn-secondary" id="challengeDetailFinishBtn" style="flex:1;">Завершить</button>
+            <button class="btn btn-danger" id="challengeDetailFinishBtn" style="flex:1;">Завершить</button>
             <button class="btn btn-primary" onclick="closeModal('challengeDetailModal')" style="flex:1;">Понятно</button>
         </div>
     </div>
@@ -2877,40 +2881,54 @@
         
         <!-- Таблица сравнения -->
         <div class="premium-table">
-            <!-- Заголовки -->
-            <div class="premium-table-header">
-                <div class="premium-table-cell premium-table-cell-left">КРИТЕРИИ</div>
-                <div class="premium-table-cell premium-table-cell-center">FREE</div>
-                <div class="premium-table-cell premium-table-cell-center premium-table-cell-premium">PREMIUM</div>
-            </div>
-            
-            <!-- Строка 1: Тренировки -->
-            <div class="premium-table-row">
-                <div class="premium-table-cell premium-table-cell-left">Тренировки</div>
-                <div class="premium-table-cell premium-table-cell-center">Базовые</div>
-                <div class="premium-table-cell premium-table-cell-center premium-table-cell-highlight">Расширенные</div>
-            </div>
-            
-            <!-- Строка 2: Упражнения -->
-            <div class="premium-table-row">
-                <div class="premium-table-cell premium-table-cell-left">Упражнения</div>
-                <div class="premium-table-cell premium-table-cell-center">Базовые</div>
-                <div class="premium-table-cell premium-table-cell-center premium-table-cell-highlight">Расширенные</div>
-            </div>
-            
-            <!-- Строка 4: Совместные тренировки -->
-            <div class="premium-table-row">
-                <div class="premium-table-cell premium-table-cell-left">Совместные тренировки</div>
-                <div class="premium-table-cell premium-table-cell-center">Я + 1 Друг</div>
-                <div class="premium-table-cell premium-table-cell-center premium-table-cell-highlight">Я + 3 Друга</div>
-            </div>
-            
-            <!-- Строка 6: Акцентные цвета -->
-            <div class="premium-table-row premium-table-row-last">
-                <div class="premium-table-cell premium-table-cell-left">Акцентные цвета</div>
-                <div class="premium-table-cell premium-table-cell-center">Базовые</div>
-                <div class="premium-table-cell premium-table-cell-center premium-table-cell-highlight">Расширенные</div>
-            </div>
+<!-- Заголовки (не трогаем, оставляем как есть) -->
+<div class="premium-table-header">
+    <div class="premium-table-cell premium-table-cell-left">КРИТЕРИИ</div>
+    <div class="premium-table-cell premium-table-cell-center">FREE</div>
+    <div class="premium-table-cell premium-table-cell-center premium-table-cell-premium">PREMIUM</div>
+</div>
+
+<!-- Тренировки -->
+<div class="premium-table-row">
+    <div class="premium-table-cell premium-table-cell-left">Тренировки</div>
+    <div class="premium-table-cell premium-table-cell-center">Базовые</div>
+    <div class="premium-table-cell premium-table-cell-center premium-table-cell-highlight">Расширенные</div>
+</div>
+
+<!-- Упражнения -->
+<div class="premium-table-row">
+    <div class="premium-table-cell premium-table-cell-left">Упражнения</div>
+    <div class="premium-table-cell premium-table-cell-center">Базовые</div>
+    <div class="premium-table-cell premium-table-cell-center premium-table-cell-highlight">Расширенные</div>
+</div>
+
+<!-- Совместные тренировки -->
+<div class="premium-table-row">
+    <div class="premium-table-cell premium-table-cell-left">Совместные тренировки</div>
+    <div class="premium-table-cell premium-table-cell-center">Я + 1 друг</div>
+    <div class="premium-table-cell premium-table-cell-center premium-table-cell-highlight">Я + 3 друга</div>
+</div>
+
+<!-- ★ НОВОЕ: Вызовы друзьям -->
+<div class="premium-table-row">
+    <div class="premium-table-cell premium-table-cell-left">Всего вызовов</div>
+    <div class="premium-table-cell premium-table-cell-center">3</div>
+    <div class="premium-table-cell premium-table-cell-center premium-table-cell-highlight">5</div>
+</div>
+
+<!-- ★ НОВОЕ: Друзей в вызове -->
+<div class="premium-table-row">
+    <div class="premium-table-cell premium-table-cell-left">Друзей в вызове</div>
+    <div class="premium-table-cell premium-table-cell-center">Я + 1 друг</div>
+    <div class="premium-table-cell premium-table-cell-center premium-table-cell-highlight">Я + 3 друга</div>
+</div>
+
+<!-- Акцентные цвета -->
+<div class="premium-table-row premium-table-row-last">
+    <div class="premium-table-cell premium-table-cell-left">Акцентные цвета</div>
+    <div class="premium-table-cell premium-table-cell-center">Базовые</div>
+    <div class="premium-table-cell premium-table-cell-center premium-table-cell-highlight">Расширенные</div>
+</div>
         </div>
         
 <!-- Цены -->
