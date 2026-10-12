@@ -6483,3 +6483,351 @@ body.theme-dark-mode .challenge-status.wait {
     background: transparent;
     color: var(--accent);
 }
+
+/* =================== ВЫЗОВЫ: СПИСОК ДРУЗЕЙ С ЧЕКБОКСАМИ ==================== */
+.challenge-friends-picker {
+    max-height: 200px;
+    overflow-y: auto;
+    background: var(--light);
+    border: 1.5px solid var(--light-grey);
+    border-radius: 10px;
+    padding: 0.3rem;
+    scrollbar-width: thin;
+}
+
+.challenge-friends-picker::-webkit-scrollbar {
+    width: 4px;
+}
+.challenge-friends-picker::-webkit-scrollbar-thumb {
+    background: var(--light-grey);
+    border-radius: 4px;
+}
+
+.challenge-friends-loading {
+    text-align: center;
+    color: var(--slate);
+    padding: 1rem;
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+.challenge-friend-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease;
+}
+
+.challenge-friend-checkbox:active {
+    background: var(--accent-light);
+}
+
+.challenge-friend-checkbox.selected {
+    background: var(--accent-light);
+}
+
+.challenge-friend-checkbox-avatar {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+.challenge-friend-checkbox-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.85rem;
+    color: var(--dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.challenge-friend-checkbox-mark {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--light-grey);
+    background: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    color: transparent;
+    transition: all 0.15s ease;
+}
+
+.challenge-friend-checkbox.selected .challenge-friend-checkbox-mark {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--white);
+}
+
+.challenge-friends-counter {
+    font-size: 0.75rem;
+    color: var(--slate);
+    margin-top: 0.3rem;
+    text-align: right;
+    font-weight: 500;
+}
+
+/* =================== ВЫЗОВЫ: КЛИКАБЕЛЬНАЯ КАРТОЧКА ==================== */
+.challenge-card {
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.challenge-card:active {
+    transform: scale(0.98);
+}
+
+.challenge-card-muted {
+    opacity: 0.6;
+}
+
+.challenge-participants-line {
+    font-size: 0.75rem;
+    color: var(--slate);
+    margin-bottom: 0.3rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.challenge-mini-board {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    margin-top: 0.4rem;
+}
+
+.challenge-mini-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+}
+
+.challenge-mini-name {
+    flex: 1;
+    min-width: 0;
+    color: var(--dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.challenge-mini-value {
+    font-weight: 700;
+    color: var(--accent);
+    white-space: nowrap;
+}
+
+.challenge-mini-row.leader .challenge-mini-name {
+    font-weight: 700;
+}
+
+/* =================== ВЫЗОВЫ: МОДАЛКА ДЕТАЛЕЙ ==================== */
+.challenge-detail-subtitle {
+    font-size: 0.8rem;
+    color: var(--slate);
+    text-align: center;
+    margin-bottom: 0.5rem;
+    font-style: italic;
+}
+
+.challenge-detail-info {
+    background: var(--light);
+    border-radius: 10px;
+    padding: 0.5rem 0.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.challenge-detail-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 0.8rem;
+    padding: 0.25rem 0;
+    gap: 0.5rem;
+}
+
+.challenge-detail-info-row span {
+    color: var(--slate);
+    flex-shrink: 0;
+}
+
+.challenge-detail-info-row strong {
+    color: var(--dark);
+    font-weight: 700;
+    text-align: right;
+}
+
+/* =================== ВЫЗОВЫ: ЛИДЕРБОРД ==================== */
+.challenge-leaderboard {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.challenge-lb-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--white);
+    padding: 0.5rem 0.6rem;
+    border-radius: 10px;
+    border: 1.5px solid var(--light-grey);
+}
+
+.challenge-lb-row.me {
+    border-color: var(--accent);
+    background: var(--accent-light);
+}
+
+.challenge-lb-row.surrendered {
+    opacity: 0.55;
+}
+
+.challenge-lb-place {
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--accent-light);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+
+.challenge-lb-row.me .challenge-lb-place {
+    background: var(--accent);
+    color: var(--white);
+}
+
+.challenge-lb-body {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.challenge-lb-name-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+}
+
+.challenge-lb-name {
+    color: var(--dark);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.challenge-lb-value {
+    color: var(--accent);
+    font-weight: 700;
+    white-space: nowrap;
+    font-size: 0.75rem;
+}
+
+.challenge-lb-bar {
+    height: 6px;
+    background: var(--light-grey);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.challenge-lb-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+}
+
+.challenge-lb-row.surrendered .challenge-lb-fill {
+    background: var(--slate);
+}
+
+.challenge-lb-status {
+    font-size: 0.7rem;
+    color: var(--slate);
+    font-style: italic;
+}
+
+.challenge-lb-badge {
+    font-size: 0.65rem;
+    color: var(--slate);
+    padding: 0.15rem 0.4rem;
+    background: var(--light);
+    border-radius: 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* =================== ТЁМНАЯ ТЕМА ==================== */
+body.theme-dark-mode .challenge-friends-picker {
+    background: var(--bg-primary);
+    border-color: var(--border-color);
+}
+
+body.theme-dark-mode .challenge-friend-checkbox-name { color: var(--text-primary); }
+body.theme-dark-mode .challenge-friend-checkbox-mark {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+body.theme-dark-mode .challenge-friend-checkbox:active,
+body.theme-dark-mode .challenge-friend-checkbox.selected {
+    background: var(--accent-dark);
+}
+
+body.theme-dark-mode .challenge-detail-info { background: var(--bg-primary); }
+body.theme-dark-mode .challenge-detail-info-row strong { color: var(--text-primary); }
+body.theme-dark-mode .challenge-detail-info-row span { color: var(--text-secondary); }
+
+body.theme-dark-mode .challenge-lb-row {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+body.theme-dark-mode .challenge-lb-row.me {
+    background: var(--accent-dark);
+    border-color: var(--accent);
+}
+body.theme-dark-mode .challenge-lb-name { color: var(--text-primary); }
+body.theme-dark-mode .challenge-lb-badge {
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+}
+body.theme-dark-mode .challenge-lb-bar { background: var(--border-color); }
+body.theme-dark-mode .challenge-lb-place {
+    background: var(--accent-dark);
+    color: var(--accent);
+}
+body.theme-dark-mode .challenge-lb-row.me .challenge-lb-place {
+    background: var(--accent);
+    color: var(--white);
+}
+body.theme-dark-mode .challenge-mini-name { color: var(--text-primary); }

@@ -2,7 +2,7 @@
 // sw.js — Service Worker для SportApp
 // ============================================================
 
-const CACHE_VERSION = 'sportapp-v2';   // ← поменял версию, чтобы старый кэш сбросился
+const CACHE_VERSION = 'sportapp-v3';   // ← поменял версию, чтобы старый кэш сбросился
 const CACHE_STATIC = `${CACHE_VERSION}-static`;
 
 const PRECACHE_URLS = [
@@ -89,19 +89,32 @@ self.addEventListener('fetch', (event) => {
     // ★ Не кэшируем chrome-extension и прочее
     if (!url.protocol.startsWith('http')) return;
 
-    // ── Cache-first для статики ──
-    if (url.pathname.match(/\.(png|jpg|jpeg|webp|svg|gif|ico|woff2?|ttf|css|js)$/)) {
-        event.respondWith(
-            caches.match(request).then(cached => {
-                if (cached) return cached;
-                return fetch(request).then(response => {
-                    safePut(request, response);
-                    return response;
-                });
+// ── Cache-first ТОЛЬКО для картинок и шрифтов ──
+if (url.pathname.match(/\.(png|jpg|jpeg|webp|svg|gif|ico|woff2?|ttf)$/)) {
+    event.respondWith(
+        caches.match(request).then(cached => {
+            if (cached) return cached;
+            return fetch(request).then(response => {
+                safePut(request, response);
+                return response;
+            });
+        })
+    );
+    return;
+}
+
+// ── Network-first для JS/CSS/HTML — чтобы правки подхватывались сразу ──
+if (url.pathname.match(/\.(js|css|html)$/) || request.mode === 'navigate') {
+    event.respondWith(
+        fetch(request)
+            .then(response => {
+                safePut(request, response);
+                return response;
             })
-        );
-        return;
-    }
+            .catch(() => caches.match(request))
+    );
+    return;
+}
 
     // ── Network-first для HTML ──
     event.respondWith(
