@@ -19766,15 +19766,15 @@ function renderFeed() {
 
                 <!-- ★★★ СКАЧИВАНИЯ + ЛАЙКИ ★★★ -->
                 <div class="feed-post-footer">
-                    ${post.shareLink ? `
-                        <span class="feed-download-stat"
-                              data-post-id="${post.id}"
-                              title="Скачали тренировку ${post.downloads || 0} раз"
-                              onclick="openPostDownloadModal('${post.id}', event)">
-                            <i class="fa-solid fa-download"></i>
-                            <span>${post.downloads || 0}</span>
-                        </span>
-                    ` : ''}
+${post.shareLink ? `
+    <span class="feed-download-stat ${(post.downloadedBy || []).includes(currentUserId) ? 'downloaded' : ''}"
+          data-post-id="${post.id}"
+          title="Скачали тренировку ${post.downloads || 0} раз"
+          onclick="openPostDownloadModal('${post.id}', event)">
+        <i class="fa-solid fa-download"></i>
+        <span>${post.downloads || 0}</span>
+    </span>
+` : ''}
                     <button class="feed-like-btn ${isLiked ? 'liked' : ''}"
                             data-post-id="${post.id}"
                             onclick="toggleFeedLike('${post.id}', event)">
@@ -19791,41 +19791,70 @@ function renderFeed() {
 async function incrementPostDownloads(postId) {
     if (!postId) return;
 
+    const user = await getFirebaseUser();
+    if (!user) return;
+
+    // ★ Уже скачивал на этом устройстве — не увеличиваем повторно
+    if (isPostDownloaded(postId)) return;
+
     try {
-        const ref = firebase.firestore().collection('posts').doc(postId);
+        // ★ Пишем ТОЛЬКО downloads — это правило пропустит.
+        // increment(1) гарантирует условие «старое + 1».
+        await firebase.firestore()
+            .collection('posts')
+            .doc(postId)
+            .update({
+                downloads: firebase.firestore.FieldValue.increment(1)
+            });
 
-        await firebase.firestore().runTransaction(async (tx) => {
-            const doc = await tx.get(ref);
-            if (!doc.exists) {
-                throw new Error('POST_NOT_FOUND');
-            }
-            const current = doc.data().downloads || 0;
-            tx.update(ref, { downloads: current + 1 });
-        });
+        markPostDownloaded(postId);
 
-        // Локальный апдейт после успешной транзакции
         const post = _feedPosts.find(p => p.id === postId);
         if (post) {
             post.downloads = (post.downloads || 0) + 1;
             updateFeedDownloadCount(postId, post.downloads);
         }
-        console.log('✅ Счётчик скачиваний увеличен для поста', postId);
-    } catch (error) {
-        console.error('❌ Не удалось увеличить счётчик скачиваний:', error);
+        console.log('✅ Счётчик скачиваний увеличен:', postId);
 
+    } catch (error) {
+        console.error('❌ Не удалось увеличить счётчик:', error);
         if (error.code === 'permission-denied') {
-            showToast('⚠️ Нет прав на обновление счётчика (проверьте Firestore Rules)');
-        } else if (error.message === 'POST_NOT_FOUND') {
-            // Пост удалили — молчим
+            showToast('⚠️ Нет прав на обновление счётчика');
         } else {
             showToast('⚠️ Не удалось обновить счётчик скачиваний');
         }
     }
 }
 
+const DOWNLOADED_POSTS_KEY = 'downloadedPostIds';
+
+function getDownloadedPosts() {
+    try {
+        const raw = JSON.parse(localStorage.getItem(DOWNLOADED_POSTS_KEY) || '[]');
+        return Array.isArray(raw) ? raw : [];
+    } catch { return []; }
+}
+function isPostDownloaded(postId) {
+    return getDownloadedPosts().includes(postId);
+}
+function markPostDownloaded(postId) {
+    const list = getDownloadedPosts();
+    if (!list.includes(postId)) {
+        list.push(postId);
+        localStorage.setItem(DOWNLOADED_POSTS_KEY, JSON.stringify(list));
+    }
+}
+
 function updateFeedDownloadCount(postId, count) {
-    const el = document.querySelector(`.feed-download-stat[data-post-id="${postId}"] span`);
-    if (el) el.textContent = count;
+    const el = document.querySelector(`.feed-download-stat[data-post-id="${postId}"]`);
+    if (!el) return;
+
+    const span = el.querySelector('span');
+    if (span) span.textContent = count;
+
+    if (isPostDownloaded(postId)) {
+        el.classList.add('downloaded');
+    }
 }
 
 // =================== ЛАЙКИ В ЛЕНТЕ ===================

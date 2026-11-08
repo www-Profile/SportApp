@@ -5288,25 +5288,84 @@ body.theme-dark-mode .feed-post-avatar {
     white-space: nowrap;
 }
 
-/* =================== ПОИСК ПО ЛЕНТЕ ==================== */
+/* =================== ПОИСК ПО ЛЕНТЕ — «DYNAMIC ISLAND» ==================== */
 .feed-search-panel {
     position: sticky;
-    top: 0;
+    top: 0.5rem;
     z-index: 10;
-    background: var(--light);
-    padding: 0.2rem;
-        border-radius: 8px;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin: 0.5rem 0 0.75rem 0;
+    padding: 0.35rem;
+    background: rgba(15, 23, 42, 0.92);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-radius: 999px;
+    box-shadow:
+        0 8px 24px rgba(15, 23, 42, 0.25),
+        0 2px 6px rgba(15, 23, 42, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transition:
+        transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.25s ease;
     will-change: transform;
-    margin-bottom: 0.5rem;
 }
 
 .feed-search-panel.search-hidden {
-    transform: translateY(-100%);
+    transform: translateY(-140%);
+    opacity: 0;
+    pointer-events: none;
 }
 
+/* Внутри пилюли — только прозрачный input и круглая кнопка */
+.feed-search-panel .search-container {
+    margin-bottom: 0;
+    gap: 0.3rem;
+}
+
+.feed-search-panel .search-input {
+    background: transparent;
+    border: none;
+    color: #FFFFFF;
+    padding: 0.5rem;
+    max-height: none;
+    font-size: 0.9rem;
+    box-shadow: none;
+        border-radius: 999px;
+
+}
+
+.feed-search-panel .search-input:focus {
+    border: none;
+    box-shadow: none;
+}
+
+.feed-search-panel .search-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+        font-style: italic;              /* ★ курсив для плейсхолдера */
+}
+
+.feed-search-panel .search-btn {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    max-width: 34px;
+    max-height: 34px;
+    padding: 0;
+    border-radius: 50%;
+    border-bottom: none;
+    
+    flex-shrink: 0;
+    background: var(--accent);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* ★ Тёмная тема — пилюля чуть светлее фона + тонкая обводка */
 body.theme-dark-mode .feed-search-panel {
-    background: var(--bg-primary);
+    background: rgba(30, 41, 59, 0.92);
+    box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.5),
+        0 2px 6px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 /* =================== ЛАЙКИ В ЛЕНТЕ ==================== */
@@ -5380,6 +5439,10 @@ body.theme-dark-mode .feed-like-btn.liked {
     user-select: none;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+}
+
+.feed-download-stat.downloaded {
+    color: var(--accent);
 }
 
 .feed-download-stat:active {
