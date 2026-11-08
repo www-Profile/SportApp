@@ -5291,18 +5291,19 @@ body.theme-dark-mode .feed-post-avatar {
 /* =================== ПОИСК ПО ЛЕНТЕ — «DYNAMIC ISLAND» ==================== */
 .feed-search-panel {
     position: sticky;
-    top: 0.5rem;
+    top: calc(0.5rem + env(safe-area-inset-top, 0px));
     z-index: 10;
     margin: 0.5rem 0 0.75rem 0;
     padding: 0.35rem;
-    background: rgba(15, 23, 42, 0.92);
+    background: rgba(255, 255, 255, 0.85) !important;   /* ★ СВЕТЛЫЙ в светлой теме */
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     border-radius: 999px;
     box-shadow:
-        0 8px 24px rgba(15, 23, 42, 0.25),
-        0 2px 6px rgba(15, 23, 42, 0.15),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        0 8px 24px rgba(15, 23, 42, 0.12),
+        0 2px 6px rgba(15, 23, 42, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        0 0 0 1px rgba(255, 255, 255, 0.6);
     transition:
         transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
         opacity 0.25s ease;
@@ -5315,32 +5316,30 @@ body.theme-dark-mode .feed-post-avatar {
     pointer-events: none;
 }
 
-/* Внутри пилюли — только прозрачный input и круглая кнопка */
 .feed-search-panel .search-container {
     margin-bottom: 0;
     gap: 0.3rem;
 }
 
 .feed-search-panel .search-input {
-    background: transparent;
-    border: none;
-    color: #FFFFFF;
+    background: var(--white);
+    border: none !important;
+    color: var(--dark) !important;      /* ★ ТЁМНЫЙ текст на светлом */
     padding: 0.5rem;
     max-height: none;
     font-size: 0.9rem;
-    box-shadow: none;
-        border-radius: 999px;
-
+    box-shadow: none !important;
+    border-radius: 999px;
 }
 
 .feed-search-panel .search-input:focus {
-    border: none;
-    box-shadow: none;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 .feed-search-panel .search-input::placeholder {
-    color: rgba(255, 255, 255, 0.5);
-        font-style: italic;              /* ★ курсив для плейсхолдера */
+    color: var(--slate) !important;     /* ★ серый плейсхолдер */
+    font-style: italic;
 }
 
 .feed-search-panel .search-btn {
@@ -5352,20 +5351,27 @@ body.theme-dark-mode .feed-post-avatar {
     padding: 0;
     border-radius: 50%;
     border-bottom: none;
-    
     flex-shrink: 0;
     background: var(--accent);
     box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
-/* ★ Тёмная тема — пилюля чуть светлее фона + тонкая обводка */
+/* ★ Тёмная тема — снова тёмная пилюля */
 body.theme-dark-mode .feed-search-panel {
-    background: rgba(30, 41, 59, 0.92);
+    background: rgba(30, 41, 59, 0.92) !important;
     box-shadow:
         0 8px 24px rgba(0, 0, 0, 0.5),
         0 2px 6px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.08),
         inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+body.theme-dark-mode .feed-search-panel .search-input {
+    color: #FFFFFF !important;
+}
+
+body.theme-dark-mode .feed-search-panel .search-input::placeholder {
+    color: rgba(255, 255, 255, 0.5) !important;
 }
 
 /* =================== ЛАЙКИ В ЛЕНТЕ ==================== */
@@ -5439,6 +5445,7 @@ body.theme-dark-mode .feed-like-btn.liked {
     user-select: none;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    transition: color 0.2s ease;
 }
 
 .feed-download-stat.downloaded {
@@ -5459,6 +5466,11 @@ body.theme-dark-mode .feed-download-stat {
 
 body.theme-dark-mode .feed-download-stat:active {
     background: var(--bg-secondary);
+}
+
+/* ★ Явное правило — иначе специфичность выше у body.theme-dark-mode */
+body.theme-dark-mode .feed-download-stat.downloaded {
+    color: var(--accent);
 }
 
 /* =================== ИКОНКА «+» В НИЖНЕЙ НАВИГАЦИИ НА ЛЕНТЕ ==================== */

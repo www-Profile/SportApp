@@ -19767,13 +19767,13 @@ function renderFeed() {
                 <!-- ★★★ СКАЧИВАНИЯ + ЛАЙКИ ★★★ -->
                 <div class="feed-post-footer">
 ${post.shareLink ? `
-    <span class="feed-download-stat ${(post.downloadedBy || []).includes(currentUserId) ? 'downloaded' : ''}"
-          data-post-id="${post.id}"
-          title="Скачали тренировку ${post.downloads || 0} раз"
-          onclick="openPostDownloadModal('${post.id}', event)">
-        <i class="fa-solid fa-download"></i>
-        <span>${post.downloads || 0}</span>
-    </span>
+<span class="feed-download-stat ${isPostDownloaded(post.id) ? 'downloaded' : ''}"
+      data-post-id="${post.id}"
+      title="Скачали тренировку ${post.downloads || 0} раз"
+      onclick="openPostDownloadModal('${post.id}', event)">
+    <i class="fa-solid fa-download"></i>
+    <span>${post.downloads || 0}</span>
+</span>
 ` : ''}
                     <button class="feed-like-btn ${isLiked ? 'liked' : ''}"
                             data-post-id="${post.id}"
