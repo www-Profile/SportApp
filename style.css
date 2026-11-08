@@ -202,7 +202,6 @@ body {
     border: 2px solid transparent;
 }
 
-#communityGoalTop,
 #worldLeaderboard,
 #friendsLeaderboard,
 .section-block[data-block-id="world-leaderboard"] .section-body,
@@ -779,7 +778,6 @@ body.theme-dark-mode .item-card-light {
 
 #statsSummary,
 #globalStatsContainer,
-#communityGoalTop,
 .section-block .section-body {
     overflow: visible !important;
 }
@@ -4312,86 +4310,6 @@ body.theme-dark-mode .community-achievement-tile:not(:last-child)::after {
 body.theme-dark-mode .community-achievement-icon.locked { color: var(--border-color); }
 body.theme-dark-mode .community-achievement-percent      { color: var(--text-primary); }
 
-/* =================== ОБЩАЯ ЦЕЛЬ СООБЩЕСТВА =================== */
-.community-goal {
-    background: var(--white);
-    border-radius: 12px;
-    padding: 0.5rem 0.8rem 0.5rem 0.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-    box-shadow: var(--shadow-card); /* ← ДОБАВИТЬ */
-}
-
-.community-goal-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.8rem;
-}
-
-.community-goal-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
-    background: var(--accent-light);
-    color: var(--accent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.3rem;
-    flex-shrink: 0;
-}
-
-body.theme-dark-mode .community-goal-icon { background: var(--accent-dark); }
-
-.community-goal-content { flex: 1; min-width: 0; }
-
-.community-goal-text {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.5rem;
-    gap: 0.5rem;
-}
-
-.community-goal-title {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--dark);
-}
-
-.community-goal-progress {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--accent);
-    white-space: nowrap;
-}
-
-.community-goal-bar {
-    width: 100%;
-    height: 10px;
-    background: var(--light-grey);
-    border-radius: 5px;
-    overflow: hidden;
-}
-
-.community-goal-fill {
-    height: 100%;
-    background: var(--accent);
-    border-radius: 5px;
-    animation: fillBar 3s ease;
-}
-
-body.theme-dark-mode .community-goal {
-    background: var(--bg-secondary);
-    box-shadow: var(--shadow-card-dark);
-}
-
-body.theme-dark-mode .community-goal-title { color: var(--text-primary); }
-body.theme-dark-mode .community-goal-progress { color: var(--accent); }
-body.theme-dark-mode .community-goal-bar { background: var(--bg-primary); }
-
-#communityGoalTop .item-info { text-align: left; }
 
 /* =================== СЕРИЯ ТРЕНИРОВОК =================== */
 .profile-streak {
@@ -5370,37 +5288,127 @@ body.theme-dark-mode .feed-post-avatar {
     white-space: nowrap;
 }
 
-/* =================== FAB (кнопка «+») ==================== */
-.feed-fab {
-    position: fixed;
-    right: 1rem;
-    bottom: calc(80px + 1rem);
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: none;
-    color: var(--accent);
-    border: 2px dashed var(--accent);
-    font-size: 1.1rem;
-    cursor: pointer;
-    z-index: 999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    -webkit-tap-highlight-color: transparent;
-
-    /* ★ ЭТА СТРОКА ДАЁТ АНИМАЦИЮ */
-    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-                opacity 0.3s ease;
+/* =================== ПОИСК ПО ЛЕНТЕ ==================== */
+.feed-search-panel {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--light);
+    padding: 0.2rem;
+        border-radius: 8px;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+    margin-bottom: 0.5rem;
 }
 
-/* Прячем вместе с навигацией при скролле */
-.bottom-nav-hidden ~ .feed-fab,
-.feed-fab.nav-hidden {
-    transform: translateY(calc(100% + 20px));
-    opacity: 0;
-    pointer-events: none;
+.feed-search-panel.search-hidden {
+    transform: translateY(-100%);
+}
+
+body.theme-dark-mode .feed-search-panel {
+    background: var(--bg-primary);
+}
+
+/* =================== ЛАЙКИ В ЛЕНТЕ ==================== */
+.feed-post-footer {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.3rem;
+}
+
+.feed-like-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: transparent;
+    border: none;
+    color: var(--slate);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.3rem 0.5rem;
+    border-radius: 8px;
+    transition: color 0.2s ease, background 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.feed-like-btn:active {
+    background: var(--light);
+}
+
+.feed-like-btn i {
+    font-size: 1rem;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.feed-like-btn.liked {
+    color: var(--accent);
+}
+
+.feed-like-btn.liked i {
+    animation: likePulse 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes likePulse {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.3); }
+    100% { transform: scale(1); }
+}
+
+body.theme-dark-mode .feed-like-btn {
+    color: var(--text-secondary);
+}
+
+body.theme-dark-mode .feed-like-btn:active {
+    background: var(--bg-secondary);
+}
+
+body.theme-dark-mode .feed-like-btn.liked {
+    color: var(--accent);
+}
+
+/* =================== СКАЧИВАНИЯ ТРЕНИРОВКИ В ЛЕНТЕ ==================== */
+.feed-download-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--slate);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.3rem 0.5rem;
+    border-radius: 8px;
+    user-select: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.2s ease, background 0.2s ease;
+}
+
+.feed-download-stat:active {
+    background: var(--light);
+}
+
+.feed-download-stat i {
+    font-size: 0.9rem;
+}
+
+body.theme-dark-mode .feed-download-stat {
+    color: var(--text-secondary);
+}
+
+body.theme-dark-mode .feed-download-stat:active {
+    background: var(--bg-secondary);
+}
+
+/* =================== ИКОНКА «+» В НИЖНЕЙ НАВИГАЦИИ НА ЛЕНТЕ ==================== */
+.nav-item[data-is-create-post="true"] i {
+    font-size: 20px;
+    color: var(--accent);
+    transform: scale(1.05);
+    filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--accent) 40%, transparent));
+}
+
+body.theme-dark-mode .nav-item[data-is-create-post="true"] i {
+    color: var(--accent);
 }
 
 /* =================== ЗОНА ЗАГРУЗКИ ФОТО ==================== */

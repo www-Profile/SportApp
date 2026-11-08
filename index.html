@@ -823,32 +823,7 @@
     </div>
 </div>
 
-<!-- Блок: Общая цель сообщества -->
-<div class="section-block" data-block-id="community-goal" style="cursor: pointer;">
-    <div class="section-header">
-        <h2 class="section-title">Общая цель сообщества</h2>
-        <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
-        <button class="section-drag" touch-action="none"><i class="fa-solid fa-grip-lines"></i></button>
-    </div>
-    <div class="section-body" onclick="openCommunityGoalModal()">
-        <div class="community-goal">
-            <div class="community-goal-row">
-                <div class="community-goal-icon">
-                    <i class="fa-solid fa-crosshairs"></i>
-                </div>
-<div class="community-goal-content">
-    <div class="community-goal-text">
-        <span class="community-goal-title" id="communityGoalTitle">Выполнить 100 тренировок</span>
-        <span class="community-goal-progress" id="communityGoalProgress">0 / 100</span>
-    </div>
-    <div class="community-goal-bar">
-        <div class="community-goal-fill" id="communityGoalFill" style="width:0%;"></div>
-    </div>
-</div>
-            </div>
-        </div>
-    </div>
-</div>
+ 
 
                     <div class="section-block" data-block-id="world-leaderboard">
                         <div class="section-header">
@@ -1566,31 +1541,33 @@
             <h1 class="dashboard-title">ЛЕНТА</h1>
         </header>
 
-        <div class="tabs" style="margin-bottom: 1rem;">
+        <div class="tabs" style="margin-bottom: 0.5rem;">
             <button class="tab-btn tab-btn-active" data-feed-filter="all">Все</button>
             <button class="tab-btn" data-feed-filter="my">Моя</button>
+        </div>
+
+        <!-- ★★★ УМНЫЙ ПОИСК ПО ЛЕНТЕ ★★★ -->
+        <div class="feed-search-panel" id="feedSearchPanel">
+            <div class="search-container" style="margin-bottom: 0;">
+                <input type="text" id="feedSearchInput" class="search-input"
+                       placeholder="Поиск по ленте..." />
+                <button class="btn btn-primary search-btn" id="feedSearchBtn">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </button>
+            </div>
         </div>
 
         <div id="feedContainer" class="feed-container">
             <!-- Посты рендерятся через JS -->
         </div>
 
-        <!-- ★★★ КНОПКА ВНИЗУ СПИСКА (зависит от вкладки) ★★★ -->
+        <!-- ★ Оставляем только «Подняться наверх» — кнопки «+» и «Выложить пост» убраны -->
         <div class="feed-bottom-actions">
             <button class="btn btn-primary" id="feedScrollTopBtn"
                     onclick="scrollFeedToTop()" style="display:none;">
                 <i class="fa-solid fa-arrow-up"></i> Подняться наверх
             </button>
-            <button class="btn btn-primary" id="feedCreatePostBtn"
-                    onclick="tryOpenCreatePostModal()" style="display:none;">
-                <i class="fa-solid fa-plus"></i> Выложить пост
-            </button>
         </div>
-
-        <!-- ★★★ ПЕРЕМЕЩЕННАЯ КНОПКА FAB ★★★ -->
-        <button class="feed-fab" onclick="tryOpenCreatePostModal()" aria-label="Новый пост">
-            <i class="fa-solid fa-plus"></i>
-        </button>
     </main>
 </div>
 
@@ -2266,12 +2243,11 @@
     </select>
 </div>
 
-        <!-- Опция: прикрепить ссылку на тренировку -->
-<div id="postShareLinkBlock" class="post-toggle-row" style="display:none;"
-     onclick="togglePostShareLink()">
+<!-- Опция: прикрепить ссылку на тренировку -->
+<div id="postShareLinkBlock" class="post-toggle-row" style="display:none;">
     <label class="post-checkbox-row">
         <input type="checkbox" id="postShareLinkCheckbox" checked
-               onclick="event.stopPropagation(); togglePostShareLink();">
+               onchange="_postShareLink = this.checked;">
         <span>Добавить ссылку на тренировку?</span>
     </label>
 </div>
@@ -2576,60 +2552,6 @@
 
         <button class="btn btn-primary" onclick="closeModal('streakModal')">
             Понятно
-        </button>
-    </div>
-</div>
-
-<!-- ===== МОДАЛКА: ОБЩАЯ ЦЕЛЬ СООБЩЕСТВА ===== -->
-<div id="communityGoalModal" class="modal-overlay" style="display:none;">
-    <div class="modal-content" style="max-width: 480px; width: 95%; max-height: 85vh; display: flex; flex-direction: column;">
-        <div class="modal-title">Общая цель сообщества</div>
-
-        <!-- ★★★ ЕДИНЫЙ ТЕКСТ (меняется динамически) ★★★ -->
-        <p class="modal-text" id="communityGoalStatusText" style="margin-bottom: 0.5rem;">
-            Как только сообщество достигнет цели, все получат свою награду.
-        </p>
-
-        <!-- ★★★ РЕЙТИНГ ТОП-10 ★★★ -->
-        <div class="section-title" style="text-align:left; margin-bottom:0.3rem;">Топ-10 вкладчиков:</div>
-        <div class="scroll-wrapper" style="max-height: 40vh; margin-bottom: 1rem; border-radius: 16px;">
-            <div id="communityGoalTop" class="item-grid"></div>
-        </div>
-
-<!-- ★★★ МОЁ МЕСТО И НАГРАДА ★★★ -->
-<div id="communityGoalMyPlace" style="margin-bottom: 0.5rem;">
-    <span class="modal-text">
-        <span id="communityGoalMyPlaceText">Вы на ... месте</span>, ваша награда: <span id="communityGoalMyReward" style="color: var(--accent);">+...XP</span>
-    </span>
-</div>
-
-        <button class="btn btn-primary" onclick="closeModal('communityGoalModal')">
-            Понятно
-        </button>
-    </div>
-</div>
-
-<!-- ===== МОДАЛКА: НАГРАДА ЗА ОБЩУЮ ЦЕЛЬ ===== -->
-<div id="communityGoalRewardModal" class="modal-overlay" style="display:none;">
-    <div class="modal-content" style="max-width: 420px; width: 95%;">
-        <div class="modal-title">Общая цель сообщества</div>
-
-        <div style="text-align: center; margin: 0.5rem 0 0.8rem 0;">
-            <div style="font-size: 3.5rem; color: var(--gold); margin-bottom: 0.3rem;">
-                <i class="fa-solid fa-trophy"></i>
-            </div>
-        </div>
-
-        <p class="modal-text" id="communityGoalRewardTitle" style="margin-bottom: 0.5rem; font-weight: 600; color: var(--dark);">
-            Задание "Выполнить 100 тренировок" выполнено!
-        </p>
-
-        <p class="modal-text" id="communityGoalRewardText" style="margin-bottom: 1rem;">
-            Вы заняли 1 место и получаете награду: +100XP.
-        </p>
-
-        <button class="btn btn-primary" id="communityGoalRewardAcceptBtn">
-            Принять
         </button>
     </div>
 </div>

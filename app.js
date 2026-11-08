@@ -1764,8 +1764,6 @@ document.getElementById('coopFinishDoneBtn')?.addEventListener('click', async fu
                 showToast('💾 Тренировка сохранена');
                 // После сохранения или добавления в офлайн-очередь
                 await updateAchievementsAfterWorkout();
-                    // ★★★ ПРОВЕРЯЕМ ОБЩУЮ ЦЕЛЬ ★★★
-                    await checkAndGiveCommunityGoalReward();
             } else {
                 addPendingWorkout(workoutData);
                 showToast('⚠️ Тренировка сохранена локально, синхронизация позже');
@@ -1863,11 +1861,6 @@ document.getElementById('coopFinishDoneBtn')?.addEventListener('click', async fu
             enqueueModal({ type: 'premium' });
         }, 800);
     }
-
-    // ★★★ ДОБАВЛЯЕМ ПРОВЕРКУ НАГРАДЫ ★★★
-    setTimeout(() => {
-        checkAndGiveCommunityGoalReward();
-    }, 1000);
 
         } catch (error) {
             console.error('❌ [coopFinishDoneBtn] ОШИБКА:', error);
@@ -2324,7 +2317,7 @@ function getDefaultStatsLayout() {
 statsBlocksContainer: ['muscles', 'categories', 'calendar', 'weekly-load', 'body-progress', 'history', 'monthly-badges', 'world-leaderboard', 'friends-leaderboard'],        exerciseMuscleStats: ['Руки', 'Плечи', 'Пресс', 'Грудь', 'Спина', 'Ноги', 'Ягодицы'],
         categoriesStats: ['Руки', 'Плечи', 'Пресс', 'Грудь', 'Спина', 'Ноги', 'Ягодицы', 'Кардио', 'Гибкость', 'Всё тело'],
         globalStatsContainer: ['minutes', 'workouts', 'exercises'],  // ★ ДОБАВИЛИ
-        worldStatsBlocksContainer: ['community-achievements', 'community-goal', 'world-leaderboard', 'friends-leaderboard']
+        worldStatsBlocksContainer: ['community-achievements', 'world-leaderboard', 'friends-leaderboard']
     };
 }
 
@@ -3307,9 +3300,27 @@ document.querySelectorAll('.nav-item').forEach(btn => {
     btn.classList.toggle('nav-item-active', btn.dataset.page === activeSection);
 });
 
+    // ★★★ FEED NAV ITEM: иконка → «+», когда мы на ленте ★★★
+    const feedNavItem = document.querySelector('.nav-item[data-page="feed"]');
+    if (feedNavItem) {
+        const icon = feedNavItem.querySelector('i');
+        if (icon) {
+            if (page === 'feed') {
+                icon.className = 'fa-solid fa-plus';
+                feedNavItem.dataset.isCreatePost = 'true';
+            } else {
+                icon.className = 'fa-regular fa-images';
+                delete feedNavItem.dataset.isCreatePost;
+            }
+        }
+    }
+
     // ===== ВЫЗОВЫ СТРАНИЦ =====
     if (page === 'feed') {
-    loadFeed();
+        if (typeof window._resetFeedSearchScroll === 'function') {
+            window._resetFeedSearchScroll();
+        }
+        loadFeed();
     }
 
     if (page === 'profile') {
@@ -3368,7 +3379,17 @@ if (page === 'workouts') {
 document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', function() {
         const page = this.dataset.page;
-        if (page) window.navigateTo(page);
+        if (!page) return;
+
+        // ★★★ На ленте «feed»-иконка стала «+» — открываем модалку поста ★★★
+        if (page === 'feed' && this.dataset.isCreatePost === 'true') {
+            if (typeof tryOpenCreatePostModal === 'function') {
+                tryOpenCreatePostModal();
+            }
+            return;
+        }
+
+        window.navigateTo(page);
     });
 });
 
@@ -3549,7 +3570,6 @@ if (currentTab === 'world') {
         // ★ Волна 2: остальное — после того, как первый рендер устоялся
         loadOnlineUsersCount();
         loadCommunityAchievements();
-        loadCommunityGoal();
         loadFriendsLeaderboard();
     };
 
@@ -7675,11 +7695,6 @@ function enterApp() {
         }, 1000);
     }
 
-    // ★★★ ПРОВЕРЯЕМ НАГРАДУ ЗА ОБЩУЮ ЦЕЛЬ ★★★
-    setTimeout(() => {
-        checkAndGiveCommunityGoalReward();
-    }, 1000);
-
     // ★★★ ПРОВЕРЯЕМ ОТЛОЖЕННОЕ ПРИГЛАШЕНИЕ ★★★
     setTimeout(() => {
         tryOpenPendingInvite();
@@ -9762,6 +9777,8 @@ function toggleEditWorkout() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('SportApp загружен!');
 
+        initFeedSearch();          // ★ добавили
+
         // ★★★ ПРИ СТАРТЕ — КНОПКИ СКРЫТЫ ★★★
     hideHeroButtons();
     
@@ -10467,7 +10484,7 @@ statsBlocksContainer: ['muscles', 'categories', 'calendar', 'weekly-load', 'body
         exerciseMuscleStats: ['Руки', 'Плечи', 'Пресс', 'Грудь', 'Спина', 'Ноги', 'Ягодицы'],
         categoriesStats: ['Руки', 'Плечи', 'Пресс', 'Грудь', 'Спина', 'Ноги', 'Ягодицы', 'Кардио', 'Гибкость', 'Всё тело'],
         globalStatsContainer: ['minutes', 'workouts', 'exercises'],  // ★ ДОБАВИЛИ
-        worldStatsBlocksContainer: ['community-achievements', 'community-goal', 'world-leaderboard', 'friends-leaderboard']
+        worldStatsBlocksContainer: ['community-achievements', 'world-leaderboard', 'friends-leaderboard']
     }
 });
 // ===================ЕДИНЫЙ РЕДАКТОР тренировок ===================
@@ -10737,11 +10754,6 @@ if (shareBtn) {
                         }, 800);
                     }
 
-                    // ★★★ ПРОВЕРЯЕМ НАГРАДУ ★★★
-                    setTimeout(() => {
-                        checkAndGiveCommunityGoalReward(true);
-                    }, 1000);
-
                 } catch (error) {
                     console.error('❌ Ошибка сохранения тренировки:', error);
                     showToast('❌ Ошибка сохранения тренировки');
@@ -11010,10 +11022,6 @@ document.addEventListener('click', function(e) {
 const navItem = e.target.closest('.nav-item');
 if (navItem) {
     setTimeout(refreshNotificationData, 300);
-    // ★★★ ПРОВЕРЯЕМ НАГРАДУ ПРИ ПЕРЕХОДАХ ПО МЕНЮ ★★★
-    setTimeout(() => {
-        checkAndGiveCommunityGoalReward();
-    }, 500);
     return;
 }
     
@@ -16405,427 +16413,6 @@ async function loadCommunityAchievements() {
     }
 }
 
-// =================== ОБЩАЯ ЦЕЛЬ СООБЩЕСТВА ===================
-const COMMUNITY_GOAL = {
-    target: 1000,
-    topCount: 10,
-    title: 'Выполнить 1000 тренировок',
-
-    getRewardByPosition(position) {
-        if (position === 1) return 100;
-        if (position === 2) return 80;
-        if (position === 3) return 60;
-        if (position === 4 || position === 5) return 40;
-        return 20;
-    }
-};
-
-const COMMUNITY_GOAL_DOC = 'communityGoals/current';
-
-/**
- * Получить текущую цель из Firestore.
- * Если документа нет — создаём с дефолтными значениями.
- */
-async function getCommunityGoalState() {
-    try {
-        const docRef = firebase.firestore().doc(COMMUNITY_GOAL_DOC);
-        const doc = await docRef.get();
-
-        if (!doc.exists) {
-            const defaultState = {
-                target: COMMUNITY_GOAL.target,
-                title: COMMUNITY_GOAL.title,
-                status: 'active',
-                completedAt: null,
-                top10: [],
-                startedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            await docRef.set(defaultState);
-            return defaultState;
-        }
-
-        return doc.data();
-    } catch (error) {
-        console.error('❌ Ошибка получения состояния цели:', error);
-        return null;
-    }
-}
-
-async function countAllWorkouts(force = false) {
-    const CACHE_KEY = 'goalWorkoutsAggregate';
-
-    if (!force) {
-        const cached = Cache.getAggregate(CACHE_KEY);
-        if (cached) {
-            console.log('📦 countAllWorkouts из кэша');
-            return cached;
-        }
-    }
-
-    const state = await getCommunityGoalState();
-    const startedAt = state?.startedAt;
-
-    let startMs = 0;
-    if (startedAt) {
-        if (typeof startedAt.toMillis === 'function') startMs = startedAt.toMillis();
-        else if (startedAt.seconds) startMs = startedAt.seconds * 1000;
-        else startMs = new Date(startedAt).getTime();
-    }
-
-    const snapshot = await firebase.firestore()
-        .collection('workouts')
-        .get();
-
-    const counts = {};
-    let totalWorkouts = 0;
-
-    snapshot.forEach(doc => {
-        const data = doc.data();
-        const icon = data.icon || null;
-        if (!icon || icon === 'charging' || data.isSingle === true) return;
-
-        const workoutDate = data.date ? new Date(data.date).getTime() : 0;
-        if (workoutDate < startMs) return;
-
-        totalWorkouts++;
-        const userId = data.userId;
-        if (!userId) return;
-        counts[userId] = (counts[userId] || 0) + 1;
-    });
-
-    const result = { counts, totalWorkouts };
-    Cache.setAggregate(CACHE_KEY, result);
-    return result;
-}
-
-/**
- * Фиксирует завершение цели: сохраняет топ-10 и ставит status = 'completed'.
- */
-async function completeCommunityGoal(totalWorkouts, counts) {
-    try {
-        const sorted = Object.entries(counts)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, COMMUNITY_GOAL.topCount);
-
-        const top10 = [];
-        for (let i = 0; i < sorted.length; i++) {
-            const [userId, count] = sorted[i];
-            const position = i + 1;
-
-            let name = 'Пользователь';
-            let xp = 0;
-            let achievements = {};
-            try {
-                const profileResult = await getUserProfile(userId);
-                if (profileResult.success) {
-                    name = profileResult.data.displayName || 'Пользователь';
-                    xp = profileResult.data.totalXp || 0;
-                    achievements = profileResult.data.achievements || {};
-                }
-            } catch (e) {}
-
-            top10.push({
-                userId,
-                name,
-                count,
-                position,
-                xp,
-                achievements,
-                reward: COMMUNITY_GOAL.getRewardByPosition(position)
-            });
-        }
-
-        await firebase.firestore().doc(COMMUNITY_GOAL_DOC).update({
-            status: 'completed',
-            completedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            top10: top10,
-            totalWorkouts: totalWorkouts
-        });
-
-        // ★ Сбрасываем кэш агрегата — цель зафиксирована, данные устарели
-        Cache.aggregates.delete('goalWorkoutsAggregate');
-
-        console.log('🏆 Цель зафиксирована! Топ-10 сохранён.');
-        return top10;
-    } catch (error) {
-        console.error('❌ Ошибка фиксации цели:', error);
-        return null;
-    }
-}
-
-// =================== ПРОГРЕСС ОБЩЕЙ ЦЕЛИ ===================
-async function loadCommunityGoal() {
-    const progressEl = document.getElementById('communityGoalProgress');
-    const fillEl = document.getElementById('communityGoalFill');
-    const titleEl = document.getElementById('communityGoalTitle');
-    if (!progressEl || !fillEl) return;
-
-    progressEl.textContent = '... / ...';
-    fillEl.style.width = '0%';
-
-    try {
-        const user = await getFirebaseUser();
-        if (!user) {
-            progressEl.textContent = '—';
-            return;
-        }
-
-        let state = await getCommunityGoalState();
-        if (!state) return;
-
-        let totalWorkouts = 0;
-
-        if (state.status === 'completed') {
-            // Не пересчитываем — показываем финальное значение
-            totalWorkouts = state.totalWorkouts || 0;
-            progressEl.textContent = `${totalWorkouts} / ${state.target}`;
-            fillEl.style.width = '100%';
-            if (titleEl) titleEl.textContent = state.title || `Выполнить ${state.target} тренировок`;
-            console.log(`🎯 Цель завершена: ${totalWorkouts}/${state.target}`);
-            return;
-        }
-
-        // Цель активна — считаем
-        const { counts, totalWorkouts: total } = await countAllWorkouts();
-        totalWorkouts = total;
-
-        // Если цель только что достигнута — фиксируем
-        if (totalWorkouts >= state.target) {
-            console.log('🎉 Цель достигнута! Фиксируем топ-10...');
-            await completeCommunityGoal(totalWorkouts, counts);
-            state = await getCommunityGoalState();
-            progressEl.textContent = `${totalWorkouts} / ${state.target}`;
-            fillEl.style.width = '100%';
-        } else {
-            const percent = Math.min(100, Math.round((totalWorkouts / state.target) * 100));
-            progressEl.textContent = `${totalWorkouts} / ${state.target}`;
-            fillEl.style.width = percent + '%';
-        }
-        if (titleEl) titleEl.textContent = state.title || `Выполнить ${state.target} тренировок`;
-
-        console.log(`🎯 Общая цель: статус=${state.status}, прогресс=${totalWorkouts}/${state.target}`);
-
-    } catch (error) {
-        console.error('❌ Ошибка загрузки общей цели:', error);
-        progressEl.textContent = '—';
-    }
-}
-
-// =================== ТОП-10 ВКЛАДЧИКОВ ===================
-async function loadCommunityGoalTop() {
-    const container = document.getElementById('communityGoalTop');
-    if (!container) return;
-
-    container.innerHTML = Skeleton.itemCardList(5);
-
-    try {
-        const user = await getFirebaseUser();
-        if (!user) {
-            container.innerHTML = '<div style="text-align:center;color:var(--slate);padding:1rem;">Авторизуйтесь</div>';
-            return;
-        }
-
-        const state = await getCommunityGoalState();
-        if (!state) return;
-
-        let topUsers = [];
-
-        if (state.status === 'completed' && state.top10 && state.top10.length > 0) {
-            // ★★★ ИСПОЛЬЗУЕМ ЗАФИКСИРОВАННЫЙ ТОП ★★★
-            console.log('📌 Используем зафиксированный топ-10');
-            topUsers = state.top10.map(u => ({
-                id: u.userId,
-                name: u.name,
-                count: u.count,
-                xp: u.xp,
-                achievements: u.achievements || {},
-                position: u.position,
-                reward: u.reward
-            }));
-        } else {
-            // ★★★ СЧИТАЕМ АКТУАЛЬНЫЙ ТОП ★★★
-            const { counts } = await countAllWorkouts();
-
-            const sorted = Object.entries(counts)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, COMMUNITY_GOAL.topCount);
-
-// СТАЛО:
-const userIds = sorted.map(([id]) => id);
-const profilesMap = await getProfilesBatch(userIds);
-
-for (let i = 0; i < sorted.length; i++) {
-    const [userId, count] = sorted[i];
-    const position = i + 1;
-    const p = profilesMap[userId] || {};
-    topUsers.push({
-        id: userId,
-        name: p.displayName || 'Пользователь',
-        count,
-        xp: p.totalXp || 0,
-        achievements: p.achievements || {},
-        position,
-        reward: COMMUNITY_GOAL.getRewardByPosition(position)
-    });
-}
-        }
-
-        if (topUsers.length === 0) {
-            container.innerHTML = '<div style="text-align:center;color:var(--slate);padding:1rem;">Пока нет тренировок</div>';
-            return;
-        }
-
-        const visible = getAchievementsVisibility();
-        container.innerHTML = topUsers.map(u => {
-            const isCurrentUser = u.id === user.uid;
-
-            let infoHtml = '';
-            if (visible) {
-const achievementIcons = [
-    { id: 'friendly', icon: 'fa-solid fa-user-group' },
-    { id: 'marathoner', icon: 'fa-solid fa-dumbbell' },
-    { id: 'fitnessMaster', icon: 'fa-solid fa-heart-pulse' },
-    { id: 'unstoppable', icon: 'fa-solid fa-fire' },
-    { id: 'ironEndurance', icon: 'fa-solid fa-stopwatch' },
-    { id: 'masterOfStyles', icon: 'fa-solid fa-award' },
-    { id: 'vip', icon: 'fa-solid fa-crown' }
-];
-                infoHtml = achievementIcons.map(a => {
-                    const unlocked = u.achievements[a.id] === true;
-                    return `<span class="achievement-icon-top ${unlocked ? 'unlocked' : 'locked'}"><i class="${a.icon}"></i></span>`;
-                }).join('');
-            } else {
-                const level = getCurrentLevel(u.xp).id;
-                infoHtml = `<span style="font-size:0.6rem; color:var(--slate);">Уровень ${level}</span>`;
-            }
-
-            const statsText = `${u.count} ${declOfNum(u.count, ['тренировка', 'тренировки', 'тренировок'])} · +${u.reward} XP`;
-
-            return `
-                <div class="item-card-light ${isCurrentUser ? 'current-user' : ''}">
-                    <div class="item-icon" style="width:44px;height:44px;min-width:44px;background:var(--accent-light);border-radius:10px;display:flex;align-items:center;justify-content:center;">
-                        <span style="font-size:1rem;font-weight:700;color:var(--accent);">${u.position}</span>
-                    </div>
-                    <div class="item-info" style="text-align:left;">
-                        <h3 class="item-title">${u.name}</h3>
-                        <p class="item-desc" style="font-weight:600; color:var(--accent);">${statsText}</p>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-    } catch (error) {
-        console.error('❌ Ошибка загрузки топ-10:', error);
-        container.innerHTML = '<div style="text-align:center;color:#EF4444;padding:1rem;">Ошибка загрузки</div>';
-    }
-}
-
-// =================== МОДАЛКА «ОБЩАЯ ЦЕЛЬ» ===================
-async function openCommunityGoalModal() {
-    // ★★★ СНАЧАЛА ЗАГРУЖАЕМ ДАННЫЕ, ПОТОМ ОТКРЫВАЕМ МОДАЛКУ ★★★
-    const placeTextEl = document.getElementById('communityGoalMyPlaceText');
-    const rewardEl = document.getElementById('communityGoalMyReward');
-    if (placeTextEl) placeTextEl.textContent = 'Вы на ... месте';
-    if (rewardEl) {
-        rewardEl.textContent = '+...XP';
-        rewardEl.style.color = 'var(--slate)';
-    }
-
-    openModal('communityGoalModal');
-
-    // Обновляем текст статуса
-    const statusTextEl = document.getElementById('communityGoalStatusText');
-    if (statusTextEl) {
-        try {
-            const state = await getCommunityGoalState();
-            if (state && state.status === 'completed') {
-                statusTextEl.textContent = '✅ Задание выполнено! Все награды разданы!';
-            } else {
-                statusTextEl.textContent = 'Как только сообщество достигнет цели, все получат свою награду.';
-            }
-        } catch (e) {
-            statusTextEl.textContent = 'Как только сообщество достигнет цели, все получат свою награду.';
-        }
-    }
-
-    // Загружаем топ-10 и моё место параллельно
-    await Promise.all([
-        loadCommunityGoalTop(),
-        loadCommunityGoalMyPlace()
-    ]);
-}
-
-window.openCommunityGoalModal = openCommunityGoalModal;
-
-// ★★★ МОЁ МЕСТО И НАГРАДА ★★★
-async function loadCommunityGoalMyPlace() {
-    const placeTextEl = document.getElementById('communityGoalMyPlaceText');
-    const rewardEl = document.getElementById('communityGoalMyReward');
-    if (!placeTextEl || !rewardEl) return;
-
-    // ★ Показываем индикатор загрузки
-    placeTextEl.textContent = 'Вы на ... месте';
-    rewardEl.textContent = '+...XP';
-    rewardEl.style.color = 'var(--slate)';
-
-    try {
-        const user = await getFirebaseUser();
-        if (!user) {
-            placeTextEl.textContent = 'Авторизуйтесь';
-            rewardEl.textContent = '';
-            return;
-        }
-
-        const state = await getCommunityGoalState();
-        if (!state) {
-            placeTextEl.textContent = 'Вы на ... месте';
-            rewardEl.textContent = '+...XP';
-            return;
-        }
-
-        let myPosition = 0;
-        let myReward = 0;
-
-        // ★★★ ЕСЛИ ЦЕЛЬ ЗАВЕРШЕНА — БЕРЁМ ИЗ ЗАФИКСИРОВАННОГО ТОПА ★★★
-        if (state.status === 'completed' && state.top10 && state.top10.length > 0) {
-            const topUser = state.top10.find(u => u.userId === user.uid);
-            if (topUser) {
-                myPosition = topUser.position;
-                myReward = topUser.reward;
-            } else {
-                // Не в топ-10 — считаем место по общей статистике
-                const { counts } = await countAllWorkouts();
-                const myCount = counts[user.uid] || 0;
-                myPosition = Object.values(counts).filter(c => c > myCount).length + 1;
-                myReward = 0;
-            }
-        } else {
-            // ★★★ ЦЕЛЬ АКТИВНА — СЧИТАЕМ АКТУАЛЬНОЕ МЕСТО ★★★
-            const { counts } = await countAllWorkouts();
-            const myCount = counts[user.uid] || 0;
-            myPosition = Object.values(counts).filter(c => c > myCount).length + 1;
-
-            if (myPosition === 1) myReward = 100;
-            else if (myPosition === 2) myReward = 80;
-            else if (myPosition === 3) myReward = 60;
-            else if (myPosition === 4 || myPosition === 5) myReward = 40;
-            else if (myPosition <= 10) myReward = 20;
-            else myReward = 0;
-        }
-
-        // ★★★ ОБНОВЛЯЕМ UI — ГАРАНТИРОВАННО ★★★
-        placeTextEl.textContent = `Вы на ${myPosition}-м месте`;
-        rewardEl.textContent = myReward > 0 ? `+${myReward}XP` : 'без награды';
-        rewardEl.style.color = myReward > 0 ? 'var(--accent)' : 'var(--slate)';
-
-        console.log(`🎯 Ваше место: ${myPosition}, награда: ${myReward}XP`);
-
-    } catch (error) {
-        console.error('❌ Ошибка загрузки места:', error);
-        placeTextEl.textContent = 'Вы на ... месте';
-        rewardEl.textContent = '+...XP';
-    }
-}
 
 // =================== ОЧЕРЕДЬ МОДАЛОК ===================
 const modalQueue = [];
@@ -16868,11 +16455,10 @@ function processModalQueue() {
         }
     }
 
-    // Не показываем, если уже открыта какая-то модалка
     const openModalOverlay = document.querySelector(
         '.modal-overlay[style*="display: flex"], .modal-overlay[style*="display:flex"]'
     );
-    if (openModalOverlay && openModalOverlay.id !== 'communityGoalRewardModal') {
+    if (openModalOverlay) {
         console.log('⏸️ Другая модалка открыта — очередь ждёт');
         return;
     }
@@ -16902,14 +16488,6 @@ function processModalQueue() {
             processModalQueue();
         });
 
-    } else if (item.type === 'goalReward') {
-        try {
-            showCommunityGoalRewardModal(item.topUser, item.goalState);
-        } catch (error) {
-            console.error('❌ Ошибка показа reward-модалки:', error);
-            isModalQueueProcessing = false;
-            processModalQueue();
-        }
     } else {
         console.warn('⚠️ Неизвестный тип модалки в очереди:', item.type);
         isModalQueueProcessing = false;
@@ -16942,149 +16520,6 @@ function watchModalClose(modalId, callback) {
     observer.observe(modal, { attributes: true, attributeFilter: ['style'] });
 }
 
-// =================== МОДАЛКА НАГРАДЫ ЗА ЦЕЛЬ ===================
-async function showCommunityGoalRewardModal(topUser, goalState) {
-    const modal = document.getElementById('communityGoalRewardModal');
-
-    // ★★★ ЕСЛИ МОДАЛКИ НЕТ — ПРОДОЛЖАЕМ ОЧЕРЕДЬ ★★★
-    if (!modal) {
-        console.warn('⚠️ Модалка communityGoalRewardModal не найдена в HTML');
-        isModalQueueProcessing = false;
-        processModalQueue();
-        return;
-    }
-
-    // ★★★ ЕСЛИ НЕТ ДАННЫХ — ПРОПУСКАЕМ ★★★
-    if (!topUser || !goalState) {
-        console.warn('⚠️ showCommunityGoalRewardModal: нет topUser или goalState');
-        isModalQueueProcessing = false;
-        processModalQueue();
-        return;
-    }
-
-    const titleEl = document.getElementById('communityGoalRewardTitle');
-    const textEl = document.getElementById('communityGoalRewardText');
-    const acceptBtn = document.getElementById('communityGoalRewardAcceptBtn');
-
-    // Заполняем тексты
-    if (titleEl) {
-        titleEl.textContent = `Задание "${goalState.title || 'Общая цель'}" выполнено!`;
-    }
-    if (textEl) {
-        textEl.textContent = `Вы заняли ${topUser.position} место и получаете награду: +${topUser.reward}XP.`;
-    }
-
-    // Обработчик кнопки «Принять»
-    if (acceptBtn) {
-        // Убираем старые обработчики
-        const newBtn = acceptBtn.cloneNode(true);
-        acceptBtn.parentNode.replaceChild(newBtn, acceptBtn);
-
-        newBtn.disabled = false;
-        newBtn.addEventListener('click', async function() {
-            newBtn.disabled = true;
-
-            try {
-                const user = await getFirebaseUser();
-                if (!user) {
-                    closeModal('communityGoalRewardModal');
-                    isModalQueueProcessing = false;
-                    processModalQueue();
-                    return;
-                }
-
-                const profileResult = await getUserProfile(user.uid);
-                const profile = profileResult.success ? profileResult.data : {};
-                const currentXp = profile.totalXp || 0;
-
-                await updateUserProfile(user.uid, {
-                    totalXp: currentXp + topUser.reward,
-                    communityGoalReward: goalState.target
-                });
-
-                console.log(`🏆 Награда принята: +${topUser.reward} XP`);
-
-                closeModal('communityGoalRewardModal');
-
-                // Обновляем профиль, чтобы XP отобразился
-                if (typeof loadProfile === 'function') loadProfile();
-
-                // ★★★ ПРОДОЛЖАЕМ ОЧЕРЕДЬ ★★★
-                isModalQueueProcessing = false;
-                processModalQueue();
-
-            } catch (error) {
-                console.error('❌ Ошибка принятия награды:', error);
-                closeModal('communityGoalRewardModal');
-                isModalQueueProcessing = false;
-                processModalQueue();
-            }
-        });
-    }
-
-    openModal('communityGoalRewardModal');
-}
-
-// =================== ПРОВЕРКА НАГРАДЫ ЗА ЦЕЛЬ ===================
-let _lastGoalRewardCheck = 0;
-
-/**
- * Проверяет, должен ли пользователь получить награду.
- * Если да — добавляет модалку в очередь.
- * @param {boolean} force — игнорировать throttle
- */
-async function checkAndGiveCommunityGoalReward(force = false) {
-    // ★★★ THROTTLE: не чаще раза в 10 секунд (если не force) ★★★
-    const now = Date.now();
-    if (!force && now - _lastGoalRewardCheck < 10000) {
-        return;
-    }
-    _lastGoalRewardCheck = now;
-
-    try {
-        const user = await getFirebaseUser();
-        if (!user) return;
-
-        const profileResult = await getUserProfile(user.uid);
-        if (!profileResult.success) return;
-        const profile = profileResult.data;
-
-        const state = await getCommunityGoalState();
-        if (!state) return;
-
-        // Если цель не завершена — выходим
-        if (state.status !== 'completed') return;
-
-        // Если уже получал награду за эту цель — выходим
-        if (profile.communityGoalReward === state.target) {
-            console.log('ℹ️ Награда за эту цель уже получена');
-            return;
-        }
-
-        // Ищем пользователя в зафиксированном топе
-        const topUser = (state.top10 || []).find(u => u.userId === user.uid);
-
-        if (!topUser) {
-            // Не в топ-10 — ставим флаг, чтобы не проверять каждый раз
-            console.log('ℹ️ Вы не в топ-10 зафиксированной цели');
-            await updateUserProfile(user.uid, {
-                communityGoalReward: state.target
-            });
-            return;
-        }
-
-        // ★★★ ДОБАВЛЯЕМ В ОЧЕРЕДЬ ★★★
-        console.log(`📥 Добавляем награду в очередь: место ${topUser.position}, +${topUser.reward} XP`);
-        enqueueModal({
-            type: 'goalReward',
-            topUser: topUser,
-            goalState: state
-        });
-
-    } catch (error) {
-        console.error('❌ Ошибка проверки награды:', error);
-    }
-}
 
 // =================== ГТО: ВОЗРАСТНЫЕ КАТЕГОРИИ (15 СТУПЕНЕЙ) ===================
 const GTO_AGE_MAP = {
@@ -18799,6 +18234,65 @@ function updateNav() {
     console.log('📜 Авто-скрытие нижнего меню активно');
 })();
 
+// =================== АВТО-СКРЫТИЕ ПОИСКА В ЛЕНТЕ ===================
+(function initFeedSearchAutoHide() {
+    const search = document.getElementById('feedSearchPanel');
+    if (!search) return;
+
+    const HIDE_THRESHOLD = 8;
+    const TOP_ZONE = 60;
+    let lastScrollY = 0;
+    let ticking = false;
+    let isHidden = false;
+
+    function update() {
+        const feedPage = document.getElementById('page-feed');
+        if (!feedPage || !feedPage.classList.contains('page-active')) {
+            ticking = false;
+            return;
+        }
+
+        const currentY = window.scrollY || window.pageYOffset;
+        const delta = currentY - lastScrollY;
+
+        if (currentY < TOP_ZONE) {
+            if (isHidden) {
+                search.classList.remove('search-hidden');
+                isHidden = false;
+            }
+        } else if (delta > HIDE_THRESHOLD) {
+            if (!isHidden) {
+                search.classList.add('search-hidden');
+                isHidden = true;
+            }
+        } else if (delta < -HIDE_THRESHOLD) {
+            if (isHidden) {
+                search.classList.remove('search-hidden');
+                isHidden = false;
+            }
+        }
+
+        lastScrollY = currentY;
+        ticking = false;
+    }
+
+    window.addEventListener('scroll', () => {
+        if (!ticking) {
+            requestAnimationFrame(update);
+            ticking = true;
+        }
+    }, { passive: true });
+
+    // ★ Сброс при входе на ленту
+    window._resetFeedSearchScroll = function() {
+        lastScrollY = window.scrollY || window.pageYOffset;
+        if (isHidden) {
+            search.classList.remove('search-hidden');
+            isHidden = false;
+        }
+    };
+})();
+
 // =================== HAPTIC FEEDBACK ===================
 (function initHaptics() {
     // Проверяем поддержку вибрации один раз
@@ -19893,10 +19387,9 @@ function showShareWorkoutLinkManual(url) {
 async function applySharedWorkout(payload) {
     if (!payload || !Array.isArray(payload.e) || payload.e.length === 0) {
         showToast('❌ Тренировка пустая');
-        return;
+        return false;
     }
 
-    // Восстанавливаем упражнения из компактного формата
     const exercises = payload.e.map(arr => ({
         name: String(arr[0] || 'Упражнение'),
         sets: parseInt(arr[1]) || 3,
@@ -19909,7 +19402,6 @@ async function applySharedWorkout(payload) {
     const icon = payload.i || null;
     const restTime = parseInt(payload.r) || 30;
 
-    // ★ Проверяем дубликаты
     const existing = getMyWorkouts();
     const duplicate = existing.find(w =>
         w.title === title &&
@@ -19920,10 +19412,9 @@ async function applySharedWorkout(payload) {
     if (duplicate) {
         console.log('ℹ️ Такая тренировка уже есть:', duplicate._id);
         showSharedWorkoutAddedModal(duplicate, exercises.length, true);
-        return;
+        return false;                       // ★ дубликат — не считаем
     }
 
-    // ★ Добавляем
     const newWorkout = {
         _id: Date.now().toString(),
         title: title,
@@ -19937,6 +19428,7 @@ async function applySharedWorkout(payload) {
 
     console.log('✅ Тренировка добавлена в личные:', newWorkout._id);
     showSharedWorkoutAddedModal(newWorkout, exercises.length, false);
+    return true;                            // ★ реально добавили
 }
 
 /**
@@ -20043,7 +19535,13 @@ function getLocalDateKey() {
 }
 
 /** Проверка: может ли пользователь публиковать сегодня */
+/** Проверка: может ли пользователь публиковать сегодня */
 async function canPostToday() {
+    // ★★★ ВРЕМЕННО: лимит «1 пост в день» отключён для теста ★★★
+    // Чтобы вернуть — раскомментируйте блок ниже и удалите `return { allowed: true };`
+    return { allowed: true };
+
+    /*
     const user = await getFirebaseUser();
     if (!user) return { allowed: false, reason: 'no-auth' };
 
@@ -20066,6 +19564,7 @@ async function canPostToday() {
         console.warn('canPostToday: ошибка проверки, разрешаем пост', e);
         return { allowed: true };
     }
+    */
 }
 
 /** Секунд до полуночи локального времени */
@@ -20078,6 +19577,7 @@ function secondsUntilMidnight() {
 
 let _feedFilter = 'all';
 let _feedPosts = [];
+let _feedSearchQuery = '';
 let _postImageBlob = null;
 let _postShareLink = true;   // по умолчанию «Да»
 
@@ -20158,40 +19658,48 @@ if (_feedFilter === 'my') {
 window.loadFeed = loadFeed;
 
 /**
- * Рендер постов
+ * Рендер постов (с поиском и лайками)
  */
 function renderFeed() {
     const container = document.getElementById('feedContainer');
     if (!container) return;
 
-    // ★★★ УПРАВЛЕНИЕ КНОПКАМИ ВНИЗУ СПИСКА ★★★
     const scrollTopBtn = document.getElementById('feedScrollTopBtn');
-    const createPostBtn = document.getElementById('feedCreatePostBtn');
+
+    // ★ Поиск поверх уже отфильтрованного _feedPosts
+    const displayPosts = _feedPosts.filter(post => {
+        if (!_feedSearchQuery) return true;
+        const title = (post.workoutTitle || '').toLowerCase();
+        const author = (post.userName || '').toLowerCase();
+        return title.includes(_feedSearchQuery) || author.includes(_feedSearchQuery);
+    });
 
     if (scrollTopBtn) {
-        scrollTopBtn.style.display = (_feedFilter === 'all' && _feedPosts.length > 0) ? 'flex' : 'none';
-    }
-    if (createPostBtn) {
-        createPostBtn.style.display = (_feedFilter === 'my') ? 'flex' : 'none';
+        scrollTopBtn.style.display = (_feedFilter === 'all' && displayPosts.length > 0)
+            ? 'flex' : 'none';
     }
 
-if (_feedPosts.length === 0) {
-    const text = _feedFilter === 'my'
-        ? 'Вы ещё не публиковали посты. Поделитесь своей тренировкой!'
-        : 'Станьте первым, кто поделится тренировкой!';
-    container.innerHTML = `
-        <div class="empty-state">
-            <span class="empty-icon">📷</span>
-            <h3 class="empty-title">Пока нет постов</h3>
-            <p class="empty-text">${text}</p>
-        </div>`;
-    return;
-}
+    if (displayPosts.length === 0) {
+        const noPosts = _feedPosts.length === 0;
+        const text = noPosts
+            ? (_feedFilter === 'my'
+                ? 'Вы ещё не публиковали посты. Поделитесь своей тренировкой!'
+                : 'Станьте первым, кто поделится тренировкой!')
+            : 'По вашему запросу ничего не найдено';
+
+        container.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-icon">${noPosts ? '📷' : '🔍'}</span>
+                <h3 class="empty-title">${noPosts ? 'Пока нет постов' : 'Ничего не найдено'}</h3>
+                <p class="empty-text">${text}</p>
+            </div>`;
+        return;
+    }
 
     const currentUser = firebase.auth().currentUser;
     const currentUserId = currentUser ? currentUser.uid : null;
 
-    container.innerHTML = _feedPosts.map(post => {
+    container.innerHTML = displayPosts.map(post => {
         const isMe = post.userId === currentUserId;
         const avatarSrc = post.userGender === 'female'
             ? 'images/avatar-woman.png'
@@ -20199,62 +19707,193 @@ if (_feedPosts.length === 0) {
         const timeStr = formatRelativeTime(post.createdAt);
         const s = post.stats || {};
 
-return `
-    <div class="feed-post" data-post-id="${post.id}">
-        <!-- ★ Шапка — отдельный блок, кликабельный для открытия профиля -->
-        <div class="feed-post-header"
-             style="cursor:pointer;"
-             onclick="openPostAuthorProfile('${post.userId}', event)">
-            <div class="feed-post-avatar">
-                <img src="${avatarSrc}" alt="">
-            </div>
-            <div class="feed-post-info">
-                <div class="feed-post-name">${post.userName || 'Пользователь'}</div>
-                <div class="feed-post-time">${timeStr}</div>
-            </div>
-            ${isMe ? `
-                <button class="feed-post-action-btn" title="Скачать фото"
-                        onclick="openPostDownloadModal('${post.id}', event)">
-                    <i class="fa-solid fa-download"></i>
-                </button>
-                <button class="feed-post-action-btn" title="Удалить"
-                        onclick="deletePost('${post.id}', event)">
-                    <i class="fa-regular fa-trash-can"></i>
-                </button>
-            ` : `
-                <button class="feed-post-action-btn" title="Действия"
-                        onclick="openPostDownloadModal('${post.id}', event)">
-                    <i class="fa-solid fa-download"></i>
-                </button>
-            `}
-        </div>
+        // ★ Лайки
+        const likes = post.likes || [];
+        const isLiked = currentUserId && likes.includes(currentUserId);
+        const likeCount = likes.length;
 
-        <!-- ★ Контент — отдельный блок (фото + статистика) -->
-        <div class="feed-post-content">
-            <div class="feed-post-image">
-                <img src="${post.imageData}" alt="" loading="lazy">
+        return `
+            <div class="feed-post" data-post-id="${post.id}">
+                <div class="feed-post-header"
+                     style="cursor:pointer;"
+                     onclick="openPostAuthorProfile('${post.userId}', event)">
+                    <div class="feed-post-avatar">
+                        <img src="${avatarSrc}" alt="">
+                    </div>
+                    <div class="feed-post-info">
+                        <div class="feed-post-name">${post.userName || 'Пользователь'}</div>
+                        <div class="feed-post-time">${timeStr}</div>
+                    </div>
+                    ${isMe ? `
+                        <button class="feed-post-action-btn" title="Скачать фото"
+                                onclick="openPostDownloadModal('${post.id}', event)">
+                            <i class="fa-solid fa-download"></i>
+                        </button>
+                        <button class="feed-post-action-btn" title="Удалить"
+                                onclick="deletePost('${post.id}', event)">
+                            <i class="fa-regular fa-trash-can"></i>
+                        </button>
+                    ` : `
+                        <button class="feed-post-action-btn" title="Действия"
+                                onclick="openPostDownloadModal('${post.id}', event)">
+                            <i class="fa-solid fa-download"></i>
+                        </button>
+                    `}
+                </div>
+
+                <div class="feed-post-content">
+                    <div class="feed-post-image">
+                        <img src="${post.imageData}" alt="" loading="lazy">
+                    </div>
+                    <div class="feed-post-body">
+                        <div class="feed-post-title">${post.workoutTitle || 'Тренировка'}</div>
+                        <div class="feed-post-stats">
+                            <div class="feed-post-stat">
+                                <span class="feed-post-stat-label">Время</span>
+                                <span class="feed-post-stat-value">${s.minutes || 0}</span>
+                            </div>
+                            <div class="feed-post-stat">
+                                <span class="feed-post-stat-label">Упражнений</span>
+                                <span class="feed-post-stat-value">${s.completed || 0}/${s.total || 0}</span>
+                            </div>
+                            <div class="feed-post-stat">
+                                <span class="feed-post-stat-label">Прогресс</span>
+                                <span class="feed-post-stat-value">+${s.xp || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ★★★ СКАЧИВАНИЯ + ЛАЙКИ ★★★ -->
+                <div class="feed-post-footer">
+                    ${post.shareLink ? `
+                        <span class="feed-download-stat"
+                              data-post-id="${post.id}"
+                              title="Скачали тренировку ${post.downloads || 0} раз"
+                              onclick="openPostDownloadModal('${post.id}', event)">
+                            <i class="fa-solid fa-download"></i>
+                            <span>${post.downloads || 0}</span>
+                        </span>
+                    ` : ''}
+                    <button class="feed-like-btn ${isLiked ? 'liked' : ''}"
+                            data-post-id="${post.id}"
+                            onclick="toggleFeedLike('${post.id}', event)">
+                        <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i>
+                        <span>${likeCount}</span>
+                    </button>
+                </div>
             </div>
-        <div class="feed-post-body">
-            <div class="feed-post-title">${post.workoutTitle || 'Тренировка'}</div>
-            <div class="feed-post-stats">
-                <div class="feed-post-stat">
-                    <span class="feed-post-stat-label">Время</span>
-                    <span class="feed-post-stat-value">${s.minutes || 0}</span>
-                </div>
-                <div class="feed-post-stat">
-                    <span class="feed-post-stat-label">Упражнений</span>
-                    <span class="feed-post-stat-value">${s.completed || 0}/${s.total || 0}</span>
-                </div>
-                <div class="feed-post-stat">
-                    <span class="feed-post-stat-label">Прогресс</span>
-                    <span class="feed-post-stat-value">+${s.xp || 0}</span>
-                </div>
-            </div>
-        </div>
-        </div>
-    </div>
-`;
+        `;
     }).join('');
+}
+
+// =================== СЧЁТЧИК СКАЧИВАНИЙ ТРЕНИРОВКИ ===================
+async function incrementPostDownloads(postId) {
+    if (!postId) return;
+
+    try {
+        const ref = firebase.firestore().collection('posts').doc(postId);
+
+        // ★ Транзакция — надёжный инкремент +1
+        await firebase.firestore().runTransaction(async (tx) => {
+            const doc = await tx.get(ref);
+            if (!doc.exists) return;
+            const current = doc.data().downloads || 0;
+            tx.update(ref, { downloads: current + 1 });
+        });
+
+        // ★ Локальный апдейт (без повторного чтения)
+        const post = _feedPosts.find(p => p.id === postId);
+        if (post) {
+            post.downloads = (post.downloads || 0) + 1;
+            updateFeedDownloadCount(postId, post.downloads);
+        }
+    } catch (error) {
+        console.warn('⚠️ Не удалось увеличить счётчик скачиваний:', error);
+    }
+}
+
+function updateFeedDownloadCount(postId, count) {
+    const el = document.querySelector(`.feed-download-stat[data-post-id="${postId}"] span`);
+    if (el) el.textContent = count;
+}
+
+// =================== ЛАЙКИ В ЛЕНТЕ ===================
+window.toggleFeedLike = async function(postId, event) {
+    if (event) event.stopPropagation();
+
+    const user = await getFirebaseUser();
+    if (!user) {
+        showToast('❌ Войдите, чтобы ставить лайки');
+        return;
+    }
+
+    const post = _feedPosts.find(p => p.id === postId);
+    if (!post) return;
+
+    const likes = post.likes || [];
+    const isLiked = likes.includes(user.uid);
+
+    // ★ Оптимистичное обновление
+    if (isLiked) {
+        post.likes = likes.filter(id => id !== user.uid);
+    } else {
+        post.likes = [...likes, user.uid];
+    }
+    updateFeedLikeButton(postId, post.likes, user.uid);
+
+    try {
+        await firebase.firestore().collection('posts').doc(postId).update({
+            likes: isLiked
+                ? firebase.firestore.FieldValue.arrayRemove(user.uid)
+                : firebase.firestore.FieldValue.arrayUnion(user.uid)
+        });
+    } catch (error) {
+        console.error('❌ Ошибка лайка:', error);
+        // ★ Откат
+        post.likes = likes;
+        updateFeedLikeButton(postId, likes, user.uid);
+        showToast('❌ Не удалось поставить лайк');
+    }
+};
+
+function updateFeedLikeButton(postId, likes, userId) {
+    const btn = document.querySelector(`.feed-like-btn[data-post-id="${postId}"]`);
+    if (!btn) return;
+    const isLiked = likes.includes(userId);
+    btn.classList.toggle('liked', isLiked);
+    const icon = btn.querySelector('i');
+    if (icon) icon.className = isLiked ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+    const span = btn.querySelector('span');
+    if (span) span.textContent = likes.length;
+}
+
+// =================== УМНЫЙ ПОИСК ПО ЛЕНТЕ ===================
+function initFeedSearch() {
+    const input = document.getElementById('feedSearchInput');
+    const btn = document.getElementById('feedSearchBtn');
+    if (!input || !btn) return;
+
+    let timer = null;
+    input.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            _feedSearchQuery = input.value.trim().toLowerCase();
+            renderFeed();
+        }, 200);
+    });
+
+    btn.addEventListener('click', () => {
+        _feedSearchQuery = input.value.trim().toLowerCase();
+        renderFeed();
+    });
+
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            _feedSearchQuery = input.value.trim().toLowerCase();
+            renderFeed();
+        }
+    });
 }
 
 async function openPostAuthorProfile(userId, event) {
@@ -20448,8 +20087,7 @@ overlay.innerHTML = `
     if (workoutBtn) {
         workoutBtn.addEventListener('click', () => {
             closeModal('postDownloadModal');
-            // Переиспользуем существующую логику добавления тренировки
-            addSharedWorkoutFromPost(post.shareLink, null);
+            addSharedWorkoutFromPost(post.shareLink, null, postId);
         });
     }
 }
@@ -20712,7 +20350,7 @@ async function deletePost(postId, event) {
 }
 window.deletePost = deletePost;
 
-async function addSharedWorkoutFromPost(encoded, event) {
+async function addSharedWorkoutFromPost(encoded, event, postId = null) {
     if (event) event.stopPropagation();
 
     if (!encoded) {
@@ -20729,7 +20367,6 @@ async function addSharedWorkoutFromPost(encoded, event) {
         return;
     }
 
-    // Проверка дубликата
     const existing = getMyWorkouts();
     const duplicate = existing.find(w =>
         w.title === payload.t &&
@@ -20742,12 +20379,14 @@ async function addSharedWorkoutFromPost(encoded, event) {
         return;
     }
 
-    // Диалог подтверждения
     showConfirmModal(
         'Добавить тренировку?',
         `Тренировка «${payload.t || 'Без названия'}» будет добавлена в ваши личные.`,
-        function() {
-            applySharedWorkout(payload);
+        async function() {
+            const ok = await applySharedWorkout(payload);
+            if (ok && postId) {
+                incrementPostDownloads(postId);
+            }
         },
         'Добавить'
     );
@@ -21048,6 +20687,8 @@ async function publishPost() {
                 minutes: minutes,
                 xp: xp
             },
+            likes: [],                              // ★
+            downloads: 0,                           // ★ новое
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
@@ -21287,11 +20928,6 @@ function finishWorkoutAndShare(completedCount, xpEarned, exercisesCount, seconds
                 setFeedFilter('my');
                 openCreatePostModal({ autoSelectLatest: true });
             }, 500);
-
-            // Проверяем награду
-            setTimeout(() => {
-                checkAndGiveCommunityGoalReward(true);
-            }, 1000);
 
             // Счётчик тренировок и PREMIUM
             incrementWorkoutsCount();
@@ -21814,7 +21450,7 @@ const CHANGELOG = {
 
                 '📸 <strong>Страница «Лента»</strong><br>Делись своими тренировками с друзьями и смотри, как тренируются другие. Загрузи фото после тренировки - приложение автоматически наложит статистику: время, количество упражнений и заработанный XP.<br>Вкладка «Все» показывает посты всех пользователей, вкладка «Моя» - только твои публикации. Можно скачать готовый постер с тренировкой, а если понравилась чужая - добавить её себе в личные в один клик.',
 
-                '📊 <strong>Страница «Статистика»</strong><br>Здесь собрана вся информация о твоих тренировках в одном месте. Личная статистика: общее количество тренировок, минут и упражнений, нагрузка по группам мышц, календарь активности, нагрузочный индекс по неделям и графики прогресса тела, история тренировок с фильтрами по названию, категории и периоду, выполняй ежедневные задания и получи значок месяца.<br>Мировая статистика: сколько всего минут, тренировок и упражнений сделали пользователи SportApp за всё время, сколько человек зарегистрировано и сколько сейчас онлайн, достижений сообщества где проценты показывают, у скольких пользователей есть каждый из 7 значков, общая цель где все вместе выполняют тренировки, а топ-10 самых активных получают награду и два рейтинга топ-30 пользователей по XP за всё время и рейтинг друзей, где ты соревнуешься только с теми, кого добавил.',
+                '📊 <strong>Страница «Статистика»</strong><br>Здесь собрана вся информация о твоих тренировках в одном месте. Личная статистика: общее количество тренировок, минут и упражнений, нагрузка по группам мышц, календарь активности, нагрузочный индекс по неделям и графики прогресса тела, история тренировок с фильтрами по названию, категории и периоду, выполняй ежедневные задания и получи значок месяца.<br>Мировая статистика: сколько всего минут, тренировок и упражнений сделали пользователи SportApp за всё время, сколько человек зарегистрировано и сколько сейчас онлайн, достижений сообщества где проценты показывают, у скольких пользователей есть каждый из 7 значков, и два рейтинга топ-30 пользователей по XP за всё время и рейтинг друзей, где ты соревнуешься только с теми, кого добавил.',
 
                 '💪 <strong>Страница «Тренировки»</strong><br>Выбирай из готовых тренировок в трёх категориях: Силовые, Фитнес и PREMIUM. Силовые: руки, плечи, пресс, грудь, спина, ноги, всё тело, каждая в трёх уровнях сложности. Фитнес: зарядка, кардио, растяжка, пилатес, для тех, кто хочет быть в тонусе. PREMIUM: кроссфит, ГТО, «Мужская сила», «Женское счастье».<br>Или создай свою тренировку: добавь упражнения из каталога, настрой подходы, повторения, вес и время отдыха.<br>Пригласи друга на совместную тренировку - тренируйтесь одновременно и смотрите прогресс друг друга в реальном времени.',
 
