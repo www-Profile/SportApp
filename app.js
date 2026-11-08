@@ -19456,11 +19456,11 @@ function showSharedWorkoutAddedModal(workout, exercisesCount, isDuplicate) {
             </div>
             <p class="modal-text">${messageText}</p>
             <div style="display: flex; gap: 0.5rem; width: 100%;">
-                <button class="btn btn-primary" id="sharedWorkoutOpenBtn" style="flex: 1;">
-                    Открыть
-                </button>
                 <button class="btn btn-secondary" id="sharedWorkoutCloseBtn" style="flex: 1;">
                     Позже
+                </button>
+                <button class="btn btn-primary" id="sharedWorkoutOpenBtn" style="flex: 1;">
+                    Открыть
                 </button>
             </div>
         </div>
@@ -19794,22 +19794,32 @@ async function incrementPostDownloads(postId) {
     try {
         const ref = firebase.firestore().collection('posts').doc(postId);
 
-        // ★ Транзакция — надёжный инкремент +1
         await firebase.firestore().runTransaction(async (tx) => {
             const doc = await tx.get(ref);
-            if (!doc.exists) return;
+            if (!doc.exists) {
+                throw new Error('POST_NOT_FOUND');
+            }
             const current = doc.data().downloads || 0;
             tx.update(ref, { downloads: current + 1 });
         });
 
-        // ★ Локальный апдейт (без повторного чтения)
+        // Локальный апдейт после успешной транзакции
         const post = _feedPosts.find(p => p.id === postId);
         if (post) {
             post.downloads = (post.downloads || 0) + 1;
             updateFeedDownloadCount(postId, post.downloads);
         }
+        console.log('✅ Счётчик скачиваний увеличен для поста', postId);
     } catch (error) {
-        console.warn('⚠️ Не удалось увеличить счётчик скачиваний:', error);
+        console.error('❌ Не удалось увеличить счётчик скачиваний:', error);
+
+        if (error.code === 'permission-denied') {
+            showToast('⚠️ Нет прав на обновление счётчика (проверьте Firestore Rules)');
+        } else if (error.message === 'POST_NOT_FOUND') {
+            // Пост удалили — молчим
+        } else {
+            showToast('⚠️ Не удалось обновить счётчик скачиваний');
+        }
     }
 }
 
@@ -19834,13 +19844,13 @@ window.toggleFeedLike = async function(postId, event) {
     const likes = post.likes || [];
     const isLiked = likes.includes(user.uid);
 
-    // ★ Оптимистичное обновление
+    // ★ Оптимистичное обновление + пульс (только при постановке лайка)
     if (isLiked) {
         post.likes = likes.filter(id => id !== user.uid);
     } else {
         post.likes = [...likes, user.uid];
     }
-    updateFeedLikeButton(postId, post.likes, user.uid);
+    updateFeedLikeButton(postId, post.likes, user.uid, true);
 
     try {
         await firebase.firestore().collection('posts').doc(postId).update({
@@ -19850,14 +19860,14 @@ window.toggleFeedLike = async function(postId, event) {
         });
     } catch (error) {
         console.error('❌ Ошибка лайка:', error);
-        // ★ Откат
+        // ★ Откат без анимации
         post.likes = likes;
-        updateFeedLikeButton(postId, likes, user.uid);
+        updateFeedLikeButton(postId, likes, user.uid, false);
         showToast('❌ Не удалось поставить лайк');
     }
 };
 
-function updateFeedLikeButton(postId, likes, userId) {
+function updateFeedLikeButton(postId, likes, userId, animate = false) {
     const btn = document.querySelector(`.feed-like-btn[data-post-id="${postId}"]`);
     if (!btn) return;
     const isLiked = likes.includes(userId);
@@ -19866,6 +19876,14 @@ function updateFeedLikeButton(postId, likes, userId) {
     if (icon) icon.className = isLiked ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
     const span = btn.querySelector('span');
     if (span) span.textContent = likes.length;
+
+    // ★ Пульс — только если явно попросили (при клике)
+    if (animate && isLiked) {
+        btn.classList.remove('like-pulse');
+        void btn.offsetWidth;                 // ★ force reflow, чтобы animation перезапустилась
+        btn.classList.add('like-pulse');
+        setTimeout(() => btn.classList.remove('like-pulse'), 450);
+    }
 }
 
 // =================== УМНЫЙ ПОИСК ПО ЛЕНТЕ ===================
@@ -20367,29 +20385,13 @@ async function addSharedWorkoutFromPost(encoded, event, postId = null) {
         return;
     }
 
-    const existing = getMyWorkouts();
-    const duplicate = existing.find(w =>
-        w.title === payload.t &&
-        Array.isArray(w.exercises) &&
-        w.exercises.length === (payload.e?.length || 0)
-    );
-
-    if (duplicate) {
-        showToast('ℹ️ Такая тренировка уже есть у вас');
-        return;
+    // ★ Сразу применяем — без промежуточной модалки «Добавить тренировку?»
+    // applySharedWorkout сам покажет showSharedWorkoutAddedModal
+    // (и учтёт случай, когда такая тренировка уже есть)
+    const ok = await applySharedWorkout(payload);
+    if (ok && postId) {
+        incrementPostDownloads(postId);
     }
-
-    showConfirmModal(
-        'Добавить тренировку?',
-        `Тренировка «${payload.t || 'Без названия'}» будет добавлена в ваши личные.`,
-        async function() {
-            const ok = await applySharedWorkout(payload);
-            if (ok && postId) {
-                incrementPostDownloads(postId);
-            }
-        },
-        'Добавить'
-    );
 }
 window.addSharedWorkoutFromPost = addSharedWorkoutFromPost;
 // =================== СОЗДАНИЕ ПОСТА ===================
