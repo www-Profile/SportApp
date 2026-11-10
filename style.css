@@ -1559,7 +1559,7 @@ body.theme-dark-mode .friend-itemMOD.selected {
 .empty-text {
     color: var(--slate);
     font-size: 0.9rem;
-    margin: 0;
+    margin-bottom: 1rem;
 }
 
 /* ===== АВАТАР ДРУГА ===== */
@@ -2796,20 +2796,36 @@ body.theme-dark-mode .tutorial-highlight .custom-workout .btn-primary {
     margin-bottom: 0.5rem;
 }
 
+/* =================== PREMIUM: КАРТОЧКИ ТАРИФОВ ==================== */
 .premium-price-card {
+    position: relative;
     border-radius: 14px;
     padding: 0.5rem;
     text-align: center;
+    background: var(--light);
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
 }
 
-.premium-price-card-monthly {
-    background: var(--light);
-    border: 1px solid var(--light-grey);
+.premium-price-card-active {
+    border-color: var(--accent);
+    background: var(--accent-light);
 }
 
-.premium-price-card-yearly {
-    background: var(--light);
-    border: 1px solid var(--light-grey);
+/* ★ Плашка -10% на годовом тарифе */
+.premium-price-discount {
+    position: absolute;
+    top: -8px;
+    right: -4px;
+    background: var(--gold);
+    color: #0F172A;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 0.1rem 0.35rem;
+    border-radius: 6px;
+    letter-spacing: 0.3px;
+    z-index: 2;
 }
 
 .premium-price-label {
@@ -2817,8 +2833,6 @@ body.theme-dark-mode .tutorial-highlight .custom-workout .btn-primary {
     color: var(--dark);
     font-weight: 700;
 }
-
-.premium-price-card-yearly .premium-price-label { color: var(--accent); }
 
 .premium-price-row {
     display: flex;
@@ -2833,7 +2847,6 @@ body.theme-dark-mode .tutorial-highlight .custom-workout .btn-primary {
     color: var(--dark);
 }
 
-.premium-price-card-yearly .premium-price-value { color: var(--accent); }
 
 .premium-price-period { font-size: 0.6rem; color: var(--slate); }
 
@@ -2851,12 +2864,20 @@ body.theme-dark-mode .premium-table-cell-highlight {
 }
 body.theme-dark-mode .premium-table-header .premium-table-cell { color: var(--light-grey); }
 body.theme-dark-mode .premium-price-label { color: var(--text-primary); }
-body.theme-dark-mode .premium-price-card-yearly .premium-price-label { color: var(--accent); }
 body.theme-dark-mode .premium-price-card-monthly { background: var(--bg-primary); border-color: var(--border-color); }
 body.theme-dark-mode .premium-price-card-yearly { background: var(--bg-primary); border-color: var(--border-color); }
 body.theme-dark-mode .premium-price-value { color: var(--text-primary); }
-body.theme-dark-mode .premium-price-card-yearly .premium-price-value { color: var(--accent); }
 body.theme-dark-mode .premium-price-period { color: var(--text-secondary); }
+
+body.theme-dark-mode .premium-price-card {
+    background: var(--bg-primary);
+    border-color: transparent;
+}
+
+body.theme-dark-mode .premium-price-card-active {
+    background: var(--accent-dark);
+    border-color: var(--accent);
+}
 
 /* ===================АДАПТАЦИЯ ==================== */
 @media (max-width: 480px) {
@@ -4022,6 +4043,171 @@ body.theme-dark-mode .weekly-load-value { color: var(--accent); }
 }
 
 .theme-dark-mode .premium-people { border-top:1px solid var(--border-color); }
+
+/* =================== ОПЛАТА PREMIUM (СБП) ==================== */
+.premium-payment-tariffs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+}
+
+.payment-tariff-btn {
+    position: relative;
+    padding: 0.5rem 0.4rem;
+    border: 2px solid var(--light-grey);
+    border-radius: 12px;
+    background: var(--white);
+    color: var(--slate);
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    transition: all 0.2s ease;
+}
+
+.payment-tariff-btn.payment-tariff-active {
+    border-color: var(--accent);
+    background: var(--accent-light);
+}
+
+.payment-tariff-btn .tariff-name {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--slate);
+}
+
+.payment-tariff-btn .tariff-price {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--dark);
+}
+
+.payment-tariff-btn.payment-tariff-active .tariff-price {
+    color: var(--accent);
+}
+
+.payment-tariff-btn .tariff-discount {
+    position: absolute;
+    top: -8px;
+    right: -4px;
+    background: var(--gold);
+    color: #0F172A;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 0.1rem 0.35rem;
+    border-radius: 6px;
+    letter-spacing: 0.3px;
+}
+
+/* ── QR-код ── */
+.payment-qr-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--white);
+    border: 2px solid var(--light-grey);
+    border-radius: 16px;
+    padding: 0.6rem;
+    margin-bottom: 0.4rem;
+    min-height: 200px;
+}
+
+.payment-qr-wrapper img {
+    width: 200px;
+    height: 200px;
+    object-fit: contain;
+    display: block;
+    border-radius: 8px;
+}
+
+.payment-qr-placeholder {
+    width: 200px;
+    height: 200px;
+    background: var(--light);
+    border: 2px dashed var(--light-grey);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--slate);
+    font-size: 0.75rem;
+    padding: 0.8rem;
+    line-height: 1.4;
+}
+
+.payment-qr-hint {
+    font-size: 0.7rem;
+    color: var(--slate);
+    text-align: center;
+    line-height: 1.4;
+}
+
+/* ── Инструкция ── */
+.payment-instruction {
+    display: flex;
+    gap: 0.4rem;
+    align-items: flex-start;
+    padding: 0.5rem 0.6rem;
+    background: var(--light);
+    border: 1px solid var(--light-grey);
+    border-radius: 10px;
+    font-size: 0.72rem;
+    color: var(--slate);
+    line-height: 1.4;
+    text-align: left;
+    margin-bottom: 0.6rem;
+}
+
+.payment-instruction i {
+    color: var(--accent);
+    margin-top: 0.15rem;
+    flex-shrink: 0;
+    font-size: 0.85rem;
+}
+
+/* ── Тёмная тема ── */
+body.theme-dark-mode .payment-tariff-btn {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+body.theme-dark-mode .payment-tariff-btn.payment-tariff-active {
+    background: var(--accent-dark);
+    border-color: var(--accent);
+}
+
+body.theme-dark-mode .payment-tariff-btn .tariff-price {
+    color: var(--text-primary);
+}
+
+body.theme-dark-mode .payment-tariff-btn.payment-tariff-active .tariff-price {
+    color: var(--accent);
+}
+
+body.theme-dark-mode .payment-qr-wrapper {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+body.theme-dark-mode .payment-qr-placeholder {
+    background: var(--bg-primary);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+}
+
+body.theme-dark-mode .payment-qr-hint {
+    color: var(--text-secondary);
+}
+
+body.theme-dark-mode .payment-instruction {
+    background: var(--bg-primary);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+}
 
 /* =================== ВЫБОР ИНВЕНТАРЯ ==================== */
 .inventory-grid {
@@ -6946,4 +7132,18 @@ body.theme-dark-mode .friend-itemMOD.selected .challenge-friend-mark {
     background: var(--accent);
     border-color: var(--accent);
     color: var(--white);
+}
+
+/* =================== КНОПКА В ПУСТОМ СОСТОЯНИИ ==================== */
+.empty-state .btn-secondary {
+    display: inline-flex;
+    width: auto;
+    min-width: 180px;
+    margin: 1rem auto 0.3rem auto;
+    padding: 0.55rem 1.2rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
 }

@@ -2857,7 +2857,9 @@
         
 <!-- Цены -->
 <div class="premium-prices">
-    <div class="premium-price-card premium-price-card-monthly">
+    <div class="premium-price-card premium-price-card-monthly"
+         data-tariff="monthly"
+         onclick="selectPremiumTariff('monthly')">
         <div class="premium-price-label">Ежемесячный</div>
         <div class="premium-price-row">
             <div class="premium-price-value">190 ₽</div>
@@ -2865,13 +2867,16 @@
         </div>
         <div class="premium-price-period">2280 ₽ / год</div>
     </div>
-    <div class="premium-price-card premium-price-card-yearly">
+    <div class="premium-price-card premium-price-card-yearly premium-price-card-active"
+         data-tariff="yearly"
+         onclick="selectPremiumTariff('yearly')">
+        <div class="premium-price-discount">-10%</div>
         <div class="premium-price-label">Годовой</div>
         <div class="premium-price-row">
             <div class="premium-price-value">170 ₽</div>
             <div class="premium-price-period">/ мес</div>
         </div>
-        <div class="premium-price-period">скидка 10% · 2040 ₽ / год</div>
+        <div class="premium-price-period">2040 ₽ / год</div>
     </div>
 </div>
 
@@ -2944,6 +2949,49 @@
         
         <!-- Кнопка -->
         <button class="btn btn-primary" onclick="closeModal('premiumActiveModal')">Закрыть</button>
+    </div>
+</div>
+
+<!-- ===== МОДАЛКА: ОПЛАТА PREMIUM (СБП) ===== -->
+<div id="premiumPaymentModal" class="modal-overlay premium-modal" style="display:none;">
+    <div class="modal-content premium-content">
+        <div class="premium-header">
+            <div class="premium-icon"><i class="fa-solid fa-crown"></i></div>
+            <div class="premium-title">ОПЛАТА PREMIUM</div>
+        </div>
+
+        <p class="modal-text" id="premiumPaymentTariffInfo" style="margin-bottom:0.6rem;">
+            Тариф: Годовой · 2040 ₽
+        </p>
+
+        <div class="payment-qr-wrapper" id="premiumPaymentQr"></div>
+        <div class="payment-qr-hint" style="margin-bottom:0.6rem;">
+            Отсканируйте QR камерой или в приложении банка
+        </div>
+
+        <a id="premiumPaymentLinkBtn"
+           class="btn btn-primary"
+           href="#"
+           target="_blank"
+           rel="noopener"
+           style="display:none; margin-bottom:0.6rem; text-decoration:none;">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> Оплатить по ссылке
+        </a>
+
+        <div class="payment-instruction">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>После оплаты нажмите «Я оплатил» — мы получим уведомление и активируем PREMIUM в течение 15 минут. Если не активировался — напишите в поддержку через настройки, приложив чек.</span>
+        </div>
+
+        <div style="display:flex; gap:0.5rem; width:100%;">
+            <button class="btn btn-secondary" onclick="closeModal('premiumPaymentModal')" style="flex:1;">
+                Закрыть
+            </button>
+            <button class="btn btn-primary" id="premiumPaymentConfirmBtn"
+                    onclick="submitPremiumPaymentRequest()" style="flex:1;">
+                <i class="fa-solid fa-check"></i> Я оплатил
+            </button>
+        </div>
     </div>
 </div>
 

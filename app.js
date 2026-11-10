@@ -5997,10 +5997,18 @@ function deleteWorkout(id) {
 function renderMyWorkouts() {
     const container = document.getElementById('myWorkoutsList');
     const workouts = getMyWorkouts();
-    if (workouts.length === 0) {
-        container.innerHTML = `<div class="empty-state"><span class="empty-icon">📋</span><h3 class="empty-title">Нет своих тренировок</h3><p class="empty-text">Создайте свою первую тренировку!</p></div>`;
-        return;
-    }
+if (workouts.length === 0) {
+    container.innerHTML = `
+        <div class="empty-state">
+            <span class="empty-icon">📋</span>
+            <h3 class="empty-title">Нет своих тренировок</h3>
+            <p class="empty-text">Создайте свою первую тренировку!</p>
+            <button class="btn btn-primary" onclick="createNewWorkout()">
+                <i class="fa-solid fa-plus"></i> Создать тренировку
+            </button>
+        </div>`;
+    return;
+}
     container.innerHTML = workouts.map(w => `
         <div class="item-card" data-workout-id="${w._id}" onclick="handleWorkoutClick('${w._id}', event)">
             ${w.icon ? `<div class="item-icon"><img src="images/${w.icon}.png"></div>` : ''}
@@ -8140,8 +8148,15 @@ async function renderFriendsInProfile() {
         }).join('');
         if (requestsDiv) requestsDiv.innerHTML = requestsHtml;
     } else {
-        if (requestsDiv) requestsDiv.innerHTML = '<div class="empty-state"><span class="empty-icon">📧</span><h3 class="empty-title">Нет заявок</h3><p class="empty-text">Здесь будут отображаться входящие заявки.</p></div>';
-    }
+        if (requestsDiv) requestsDiv.innerHTML = `
+    <div class="empty-state">
+        <span class="empty-icon">📧</span>
+        <h3 class="empty-title">Нет заявок</h3>
+        <p class="empty-text">Здесь будут отображаться входящие заявки.</p>
+        <button class="btn btn-primary" onclick="focusFriendSearch()">
+            <i class="fa-solid fa-magnifying-glass"></i> Найти друзей
+        </button>
+    </div>`;    }
     
     // ★★★ ЗАГРУЖАЕМ ДРУЗЕЙ ★★★
     const friends = await getFriendsList();
@@ -8164,7 +8179,15 @@ friendsHtml = friends.data.map(f => {
     </div>`;
 }).join('');
     } else {
-        friendsHtml = '<div class="empty-state"><span class="empty-icon">👥</span><h3 class="empty-title">Нет друзей</h3><p class="empty-text">Добавьте друзей, чтобы соревноваться!</p></div>';
+        friendsHtml = `
+    <div class="empty-state">
+        <span class="empty-icon">👥</span>
+        <h3 class="empty-title">Нет друзей</h3>
+        <p class="empty-text">Добавьте друзей, чтобы соревноваться!</p>
+        <button class="btn btn-primary" onclick="focusFriendSearch()">
+            <i class="fa-solid fa-magnifying-glass"></i> Найти друзей
+        </button>
+    </div>`;
     }
     if (friendsDiv) friendsDiv.innerHTML = friendsHtml;
     // ★★★ БОЛЬШЕ НЕ СКРЫВАЕМ БЛОК ★★★
@@ -8893,13 +8916,17 @@ const achievementIcons = [
             </div>`;
         }).join('');
 
-        if (friends.length === 0) {
-            html += `<div class="empty-state">
-                <span class="empty-icon">👥</span>
-                <h3 class="empty-title">Нет друзей</h3>
-                <p class="empty-text">Добавьте друзей, чтобы соревноваться!</p>
-            </div>`;
-        }
+if (friends.length === 0) {
+    html += `
+        <div class="empty-state">
+            <span class="empty-icon">👥</span>
+            <h3 class="empty-title">Нет друзей</h3>
+            <p class="empty-text">Добавьте друзей, чтобы соревноваться!</p>
+            <button class="btn btn-primary" onclick="focusFriendSearch()">
+                <i class="fa-solid fa-magnifying-glass"></i> Найти друзей
+            </button>
+        </div>`;
+}
 
         container.innerHTML = html;
 
@@ -9497,11 +9524,14 @@ function hasPremium() {
 
 // В функцию openPremiumModal() добавить:
 function openPremiumModal() {
-    // ★★★ ОБНОВЛЯЕМ СЧЕТЧИК ПРИ ОТКРЫТИИ МОДАЛКИ ★★★
+    // Сброс выбора тарифа на Годовой
+    selectPremiumTariff('yearly');
+
+    // Обновляем счётчик PREMIUM
     setTimeout(async () => {
         await updatePremiumCounter();
     }, 100);
-    
+
     openModal('premiumModal');
 }
 
@@ -9517,10 +9547,98 @@ function closePremiumActiveModal() {
     closeModal('premiumActiveModal');
 }
 
+// =================== ОПЛАТА PREMIUM (СБП) ===================
+const PREMIUM_PAYMENT_CONFIG = {
+    // ★★★ ЗАМЕНИ НА СВОИ ДАННЫЕ ★★★
+    // Получи ссылки СБП в банке:
+    //  - оформи самозанятость (НПД)
+    //  - открой приложение банка (Т-Банк, ПСБ, Сбер)
+    //  - найди «Приём платежей по СБП» / «СБП QR»
+    //  - создай 2 ссылки: на 190₽ и на 2040₽
+    monthly: {
+        price: 190,
+        label: 'Ежемесячный',
+        link: 'https://messenger.sbrf.ru/sl/SSlaDz075ty9t5bXW'   // ← вставь ссылку СБП для 190 ₽
+    },
+    yearly: {
+        price: 2040,
+        label: 'Годовой',
+        link: 'https://messenger.sbrf.ru/sl/fQaOeRdQFNg2uVjbq'   // ← вставь ссылку СБП для 2040 ₽
+    }
+};
+
+let _premiumSelectedTariff = 'yearly';
+
+/** Выбор тарифа в основной модалке PREMIUM (по клику на карточку) */
+function selectPremiumTariff(tariff) {
+    _premiumSelectedTariff = tariff;
+
+    document.querySelectorAll('#premiumModal .premium-price-card').forEach(card => {
+        card.classList.toggle('premium-price-card-active', card.dataset.tariff === tariff);
+    });
+}
+
+/** Кнопка «Купить» в основной модалке → открывает окно оплаты */
 function buyPremium() {
     closePremiumModal();
-    openNotAvailableModal(); 
+    setTimeout(() => openPremiumPaymentModal(), 700);
 }
+
+function openPremiumPaymentModal() {
+    renderPremiumPaymentModal();
+    openModal('premiumPaymentModal');
+}
+
+function renderPremiumPaymentModal() {
+    const cfg = PREMIUM_PAYMENT_CONFIG[_premiumSelectedTariff];
+    if (!cfg) return;
+
+    // Информация о тарифе
+    const infoEl = document.getElementById('premiumPaymentTariffInfo');
+    if (infoEl) {
+        infoEl.textContent = `Тариф: ${cfg.label} · ${cfg.price} ₽`;
+    }
+
+    // QR-код
+    const qrWrapper = document.getElementById('premiumPaymentQr');
+    if (qrWrapper) {
+        qrWrapper.innerHTML = '';
+
+        if (cfg.link) {
+            const img = document.createElement('img');
+            img.src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(cfg.link)}`;
+            img.alt = 'QR-код для оплаты';
+            img.onerror = () => {
+                img.remove();
+                const ph = document.createElement('div');
+                ph.className = 'payment-qr-placeholder';
+                ph.textContent = 'Не удалось загрузить QR. Воспользуйтесь кнопкой ниже.';
+                qrWrapper.appendChild(ph);
+            };
+            qrWrapper.appendChild(img);
+        } else {
+            const ph = document.createElement('div');
+            ph.className = 'payment-qr-placeholder';
+            ph.innerHTML = 'QR-код появится после настройки.<br>Оплата ещё не подключена.';
+            qrWrapper.appendChild(ph);
+        }
+    }
+
+    // Кнопка «Оплатить по ссылке»
+    const linkBtn = document.getElementById('premiumPaymentLinkBtn');
+    if (linkBtn) {
+        if (cfg.link) {
+            linkBtn.href = cfg.link;
+            linkBtn.style.display = '';
+        } else {
+            linkBtn.style.display = 'none';
+        }
+    }
+}
+
+window.buyPremium = buyPremium;
+window.selectPremiumTariff = selectPremiumTariff;
+window.openPremiumPaymentModal = openPremiumPaymentModal;
 
 /* function buyPremium() {
     localStorage.setItem(PREMIUM_KEY, 'true');
@@ -19679,22 +19797,38 @@ function renderFeed() {
             ? 'flex' : 'none';
     }
 
-    if (displayPosts.length === 0) {
-        const noPosts = _feedPosts.length === 0;
-        const text = noPosts
-            ? (_feedFilter === 'my'
-                ? 'Вы ещё не публиковали посты. Поделитесь своей тренировкой!'
-                : 'Станьте первым, кто поделится тренировкой!')
-            : 'По вашему запросу ничего не найдено';
+if (displayPosts.length === 0) {
+    const noPosts = _feedPosts.length === 0;
+    const isSearch = _feedSearchQuery && !noPosts;
 
-        container.innerHTML = `
-            <div class="empty-state">
-                <span class="empty-icon">${noPosts ? '📷' : '🔍'}</span>
-                <h3 class="empty-title">${noPosts ? 'Пока нет постов' : 'Ничего не найдено'}</h3>
-                <p class="empty-text">${text}</p>
-            </div>`;
-        return;
+    let title, text, actionHtml = '';
+
+    if (noPosts) {
+        if (_feedFilter === 'my') {
+            title = 'Пока нет ваших постов';
+            text = 'Поделитесь своей тренировкой — покажите прогресс друзьям!';
+        } else {
+            title = 'Пока нет постов';
+            text = 'Станьте первым, кто поделится тренировкой!';
+        }
+        actionHtml = `
+            <button class="btn btn-primary" onclick="tryOpenCreatePostModal()">
+                <i class="fa-solid fa-plus"></i> Сделать пост
+            </button>`;
+    } else {
+        title = 'Ничего не найдено';
+        text = 'По вашему запросу ничего не найдено';
     }
+
+    container.innerHTML = `
+        <div class="empty-state">
+            <span class="empty-icon">${noPosts ? '📷' : '🔍'}</span>
+            <h3 class="empty-title">${title}</h3>
+            <p class="empty-text">${text}</p>
+            ${actionHtml}
+        </div>`;
+    return;
+}
 
     const currentUser = firebase.auth().currentUser;
     const currentUserId = currentUser ? currentUser.uid : null;
@@ -21122,15 +21256,18 @@ function renderWorkoutHistory() {
     }
 
     // ★ Пустые состояния
-    if (total === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <span class="empty-icon">📋</span>
-                <h3 class="empty-title">Нет выполненных тренировок</h3>
-                <p class="empty-text">Выполните свою первую тренировку!</p>
-            </div>`;
-        return;
-    }
+if (total === 0) {
+    container.innerHTML = `
+        <div class="empty-state">
+            <span class="empty-icon">📋</span>
+            <h3 class="empty-title">Нет выполненных тренировок</h3>
+            <p class="empty-text">Выполните свою первую тренировку!</p>
+            <button class="btn btn-primary" onclick="goToWorkoutsFromEmpty()">
+                <i class="fa-solid fa-dumbbell"></i> К тренировкам
+            </button>
+        </div>`;
+    return;
+}
 
     if (found === 0) {
         container.innerHTML = `
@@ -23314,3 +23451,234 @@ document.addEventListener('DOMContentLoaded', () => {
         window.Challenges.render();
     });
 });
+
+window.goToWorkoutsFromEmpty = function() {
+    TabManager.workouts('ready');
+    window.navigateTo('workouts');
+};
+
+window.focusFriendSearch = function() {
+    // Убеждаемся, что мы на вкладке друзей
+    TabManager.profile('friends');
+    window.navigateTo('profile');
+
+    setTimeout(() => {
+        const input = document.getElementById('searchInput');
+        if (input) {
+            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => input.focus(), 350);
+        }
+    }, 300);
+};
+
+// =================== ОТПРАВКА ЗАЯВКИ НА PREMIUM ===================
+const PREMIUM_REQUEST_COOLDOWN_MS = 10 * 60 * 1000; // 10 минут
+
+async function submitPremiumPaymentRequest() {
+    const cfg = PREMIUM_PAYMENT_CONFIG[_premiumSelectedTariff];
+    if (!cfg) return;
+
+    // ★★★ УРОВЕНЬ 1: защита от двойного клика (3 сек) ★★★
+    if (!preventDoubleClick('premiumPaymentConfirmBtn', 3000)) {
+        showToast('⏳ Заявка уже отправляется...');
+        return;
+    }
+
+    const user = await getFirebaseUser();
+    if (!user) {
+        showToast('❌ Вы не авторизованы');
+        return;
+    }
+
+    // ★★★ ЗАЩИТА: если уже PREMIUM — не отправляем ★★★
+    if (hasPremium()) {
+        closeModal('premiumPaymentModal');
+        showToast('ℹ️ У вас уже активирован PREMIUM');
+        return;
+    }
+
+    const btn = document.getElementById('premiumPaymentConfirmBtn');
+
+    // ★★★ УРОВЕНЬ 2: блокируем кнопку на время запроса ★★★
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Отправка...';
+    }
+
+    try {
+        // ★★★ УРОВЕНЬ 3: проверяем, нет ли уже pending-заявки ★★★
+        const recentSnap = await firebase.firestore()
+            .collection('premiumRequests')
+            .where('userId', '==', user.uid)
+            .where('status', '==', 'pending')
+            .get();
+
+        const now = Date.now();
+        const hasRecent = recentSnap.docs.some(d => {
+            const ts = d.data().createdAt?.seconds * 1000 || 0;
+            return now - ts < PREMIUM_REQUEST_COOLDOWN_MS;
+        });
+
+        if (hasRecent) {
+            closeModal('premiumPaymentModal');
+            showToast('⏳ Заявка уже отправлена. Ждём активации.');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Я оплатил';
+            }
+            return;
+        }
+
+        // 1. Сохраняем заявку в Firestore
+        await firebase.firestore().collection('premiumRequests').add({
+            userId: user.uid,
+            email: user.email || '',
+            displayName: user.displayName || '',
+            tariff: _premiumSelectedTariff,
+            tariffLabel: cfg.label,
+            price: cfg.price,
+            status: 'pending',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // 2. Отправляем уведомление в VK
+        const now2 = new Date();
+        const dateStr = now2.toLocaleString('ru-RU', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+
+        const vkMessage =
+            `💳 Новая заявка на PREMIUM\n\n` +
+            `👤 Имя: ${user.displayName || 'Пользователь'}\n` +
+            `📧 Email: ${user.email || '—'}\n` +
+            `🆔 UID: ${user.uid}\n` +
+            `📦 Тариф: ${cfg.label}\n` +
+            `💰 Сумма: ${cfg.price} ₽\n` +
+            `🕐 Время: ${dateStr}`;
+
+        sendVkAdminMessage(vkMessage);
+
+        closeModal('premiumPaymentModal');
+        showToast('✅ Заявка отправлена! Активируем в течение 15 минут');
+
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Я оплатил';
+        }
+
+    } catch (e) {
+        console.error('Ошибка отправки заявки:', e);
+        showToast('❌ Не удалось отправить заявку. Напишите в поддержку.');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Я оплатил';
+        }
+    }
+}
+window.submitPremiumPaymentRequest = submitPremiumPaymentRequest;
+
+// =================== VK: УНИВЕРСАЛЬНАЯ ОТПРАВКА ===================
+const VK_ADMIN_CONFIG = {
+    accessToken: 'vk1.a.wpCQAKqGslU2sTOYFF0tmcf-sHMcCCvTVB_vgKireR3-ja-tDd5XD495bbfWebuBO9xloM04YIRuiq3FbQRyZRent8GWydI0yfvOwKWT84WfUY9uUfV5FfomyxWpS1wpYkTfMm37Ih8ElWhggH3_IiUErNGFPnmSnx6LvrkImIzm75E_5OrjFF5ec9-GHEKP_7ZZq0byF8FbTZT-B6p0Zg',
+    userId: '624264487',
+    apiVersion: '5.199'
+};
+
+async function sendVkAdminMessage(message) {
+    if (!VK_ADMIN_CONFIG.accessToken || !VK_ADMIN_CONFIG.userId) return false;
+
+    try {
+        const resp = await fetch('https://api.vk.com/method/messages.send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                user_id: VK_ADMIN_CONFIG.userId,
+                message: message,
+                access_token: VK_ADMIN_CONFIG.accessToken,
+                v: VK_ADMIN_CONFIG.apiVersion,
+                random_id: Math.floor(Math.random() * 2 ** 31)
+            })
+        });
+
+        const result = await resp.json();
+        if (result.error) {
+            console.error('❌ VK API error:', result.error);
+            return false;
+        }
+        console.log('✅ VK-уведомление отправлено');
+        return true;
+    } catch (e) {
+        console.error('❌ Не удалось отправить VK:', e);
+        return false;
+    }
+}
+window.sendVkAdminMessage = sendVkAdminMessage;
+
+// =================== АКТИВАЦИЯ PREMIUM (ТОЛЬКО ДЛЯ АДМИНА) ===================
+async function activatePremiumByEmail(email) {
+    if (!email) {
+        console.log('❌ Укажи email: activatePremiumByEmail("user@mail.ru")');
+        return;
+    }
+    try {
+        const snap = await firebase.firestore()
+            .collection('users')
+            .where('email', '==', email)
+            .limit(1)
+            .get();
+
+        if (snap.empty) {
+            console.log('❌ Пользователь не найден:', email);
+            return;
+        }
+
+        const doc = snap.docs[0];
+        await doc.ref.update({ premium: true });
+        console.log('✅ PREMIUM активирован:', email, '(uid:', doc.id + ')');
+        showToast('✅ PREMIUM активирован: ' + email);
+    } catch (e) {
+        console.error('Ошибка активации:', e);
+    }
+}
+window.activatePremiumByEmail = activatePremiumByEmail;
+
+async function activatePremiumByUid(uid) {
+    if (!uid) {
+        console.log('❌ Укажи UID: activatePremiumByUid("abc123...")');
+        return;
+    }
+    try {
+        // 1. Активируем PREMIUM
+        await firebase.firestore().collection('users').doc(uid).update({ premium: true });
+
+        // 2. Помечаем все pending-заявки этого юзера как activated
+        const snap = await firebase.firestore()
+            .collection('premiumRequests')
+            .where('userId', '==', uid)
+            .where('status', '==', 'pending')
+            .get();
+
+        const batch = firebase.firestore().batch();
+        snap.docs.forEach(d => {
+            batch.update(d.ref, {
+                status: 'activated',
+                activatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        });
+        await batch.commit();
+
+        // 3. Сбрасываем кэш профиля, если активировали себя
+        const me = firebase.auth().currentUser;
+        if (me && me.uid === uid) {
+            Cache.clearProfile(uid);
+            await loadProfile();
+        }
+
+        console.log('✅ PREMIUM активирован (uid):', uid);
+        showToast('✅ PREMIUM активирован');
+    } catch (e) {
+        console.error('Ошибка активации:', e);
+    }
+}
+window.activatePremiumByUid = activatePremiumByUid;
