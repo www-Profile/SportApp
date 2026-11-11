@@ -4587,8 +4587,6 @@ body.theme-dark-mode .profile-streak.zero i { color: var(--border-color); }
 .carousel-card-img {
     width: 100%;
     max-width: 100%;
-    height: 120px;
-    max-height: 120px;
     object-fit: cover;             /* заполняет блок без искажений */
     border-radius: 12px;
     display: block;
@@ -7278,28 +7276,27 @@ body.theme-dark-mode .program-week-day.preview-active {
     color: var(--accent);
 }
 
-/* ★ Обложка с фото */
+/* Обложка готовой программы (фото) */
 .program-list-cover {
-    width: 80px;
-    height: 80px;
-    min-width: 80px;
+    width: 72px;
+    height: 72px;
+    min-width: 72px;
     border-radius: 14px;
     overflow: hidden;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    position: relative;
 }
 
 .program-list-cover img {
-    width: 90%;
-    height: 90%;
-    object-fit: cover;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
     display: block;
 }
 
-/* ★ Fallback — эмодзи вместо фото */
+/* Fallback-эмодзи, когда фото нет/сломалось */
 .program-list-emoji-fallback {
     width: 100%;
     height: 100%;
@@ -7310,10 +7307,7 @@ body.theme-dark-mode .program-week-day.preview-active {
     line-height: 1;
 }
 
-body.theme-dark-mode .program-list-cover {
-    background: var(--accent-dark);
-}
-
+/* Иконка категории (своя программа) */
 .program-list-icon {
     width: 56px;
     height: 56px;
@@ -7495,7 +7489,7 @@ body.theme-dark-mode .program-list-meta { color: var(--text-secondary); }
 .program-detail-icon img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     border-radius: 14px;
 }
 
