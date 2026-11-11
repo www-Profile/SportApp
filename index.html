@@ -489,6 +489,135 @@
         </div>
     </div>
 
+    <!-- ===== СТРАНИЦА: ПРОГРАММЫ ===== -->
+<div id="page-programs" class="page">
+    <main class="dashboard-container">
+        <header class="dashboard-header">
+            <h1 class="dashboard-title">ПРОГРАММЫ</h1>
+        </header>
+
+        <div class="tabs" style="margin-bottom:0.5rem;">
+            <button class="tab-btn tab-btn-active" data-program-tab="ready" onclick="switchProgramTab('ready')">Готовые</button>
+            <button class="tab-btn" data-program-tab="my" onclick="switchProgramTab('my')">Мои</button>
+        </div>
+
+        <div id="programs-ready" class="program-tab-content program-tab-content-active">
+            <div id="readyProgramsList" class="item-grid"></div>
+        </div>
+
+<div id="programs-my" class="program-tab-content">
+    <div id="myProgramsList" class="item-grid"></div>
+
+    <button class="btn btn-primary" onclick="openCreateProgramModal()" style="margin-top:0.8rem;">
+        <i class="fa-solid fa-plus"></i> Создать программу
+    </button>
+
+    <div id="myProgramsEditButtons" style="margin-top: 0.5rem; width: 100%;">
+        <button id="editMyProgramsBtn" class="btn btn-primary btn-center">
+            <i class="fa-regular fa-pen-to-square"></i> Редактировать страницу
+        </button>
+        <div id="myProgramsEditActions" style="display: none; flex-direction: column; width: 100%; margin-top: 0.5rem;">
+            <div style="display: flex; gap: 0.5rem; width: 100%;">
+                <button id="cancelMyProgramsBtn" class="btn btn-secondary" style="flex: 1;">Отмена</button>
+                <button id="saveMyProgramsBtn" class="btn btn-primary" style="flex: 1;">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+    </main>
+</div>
+
+<!-- ===== МОДАЛКА: ДЕТАЛИ ПРОГРАММЫ ===== -->
+<div id="programDetailModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:460px; width:95%; max-height:88vh; display:flex; flex-direction:column;">
+        <div class="program-detail-header">
+            <div class="program-detail-icon" id="programDetailIcon"></div>
+            <div class="program-detail-titles">
+                <div class="program-detail-title" id="programDetailTitle">Программа</div>
+                <div class="program-detail-subtitle" id="programDetailSubtitle"></div>
+            </div>
+        </div>
+
+<div id="programProgressBar"></div>
+
+<div class="form-label" style="text-align:left; margin: 0.3rem 0 0.4rem 0;">Расписание</div>
+<div class="scroll-wrapper-modal"
+     style="flex:1; min-height:120px; overflow-y:auto; margin-bottom:0.6rem;">
+    <div id="programDetailSchedule" class="program-schedule"></div>
+</div>
+
+<div style="display:flex; gap:0.5rem;">
+    <button class="btn btn-secondary" onclick="closeModal('programDetailModal')" style="flex:1;">Закрыть</button>
+    <button class="btn btn-primary" id="programDetailStartBtn" onclick="startProgram()" style="flex:1;">
+        <i class="fa-solid fa-play"></i> Начать
+    </button>
+</div>
+    </div>
+</div>
+
+<!-- ===== МОДАЛКА: СОЗДАНИЕ ПРОГРАММЫ ===== -->
+<div id="createProgramModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:420px;">
+        <div class="modal-title">Новая программа</div>
+
+        <div class="form-group" style="text-align:left;">
+            <label class="form-label">Название</label>
+            <input type="text" id="newProgramTitle" class="form-input" maxlength="40" placeholder="Например, «Мой путь к прессу»" />
+        </div>
+
+        <div class="form-row">
+            <div class="form-group" style="text-align:left;">
+                <label class="form-label">Длительность</label>
+                <select id="newProgramDuration" class="form-select">
+                    <option value="7">7 дней</option>
+                    <option value="14">14 дней</option>
+                    <option value="21">21 день</option>
+                    <option value="30" selected>30 дней</option>
+                    <option value="42">42 дня</option>
+                    <option value="60">60 дней</option>
+                    <option value="90">90 дней</option>
+                </select>
+            </div>
+            <div class="form-group" style="text-align:left;">
+                <label class="form-label">Тренировок в неделю</label>
+                <select id="newProgramPerWeek" class="form-select">
+                    <option value="2">2</option>
+                    <option value="3" selected>3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group" style="text-align:left;">
+            <label class="form-label">Категория</label>
+            <select id="newProgramCategory" class="form-select">
+                <option value="Пресс">Пресс</option>
+                <option value="Ноги">Ноги</option>
+                <option value="Ягодицы">Ягодицы</option>
+                <option value="Руки">Руки</option>
+                <option value="Плечи">Плечи</option>
+                <option value="Спина">Спина</option>
+                <option value="Грудь">Грудь</option>
+                <option value="Кардио">Кардио</option>
+                <option value="Гибкость">Гибкость</option>
+                <option value="Всё тело">Всё тело</option>
+            </select>
+        </div>
+
+        <p class="modal-text" style="font-size:0.72rem; text-align:left; margin-bottom:0.8rem;">
+            <i class="fa-solid fa-circle-info" style="color:var(--accent);"></i>
+            Тренировки и упражнения для программы появятся в следующем обновлении. Пока создаётся каркас — название, длительность и расписание.
+        </p>
+
+        <div style="display:flex; gap:0.5rem;">
+            <button class="btn btn-secondary" onclick="closeModal('createProgramModal')" style="flex:1;">Отмена</button>
+            <button class="btn btn-primary" onclick="saveCustomProgram()" style="flex:1;">Создать</button>
+        </div>
+    </div>
+</div>
+
 <!-- ===== СТРАНИЦА: РЕДАКТИРОВАНИЕ ТРЕНИРОВКИ ===== -->
 <div id="page-workout-edit" class="page">
     <main class="dashboard-container">
@@ -2980,7 +3109,7 @@
 
         <div class="payment-instruction">
             <i class="fa-solid fa-circle-info"></i>
-            <span>После оплаты нажмите «Я оплатил» — мы получим уведомление и активируем PREMIUM в течение 15 минут. Если не активировался — напишите в поддержку через настройки, приложив чек.</span>
+            <span>После оплаты нажмите «Я оплатил» — мы получим уведомление и активируем PREMIUM в течение 15 минут. Если не активировался — напишите в поддержку через настройки.</span>
         </div>
 
         <div style="display:flex; gap:0.5rem; width:100%;">
