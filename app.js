@@ -17239,12 +17239,12 @@ function renderMyPrograms() {
     const isEditing = window.myProgramsEditor && window.myProgramsEditor.isEditing;
 
     if (list.length === 0) {
-        container.innerHTML = `
-            <div class="programs-empty">
-                <span class="empty-icon">📋</span>
-                <h3 class="empty-title">Нет своих программ</h3>
-                <p class="empty-text">Создайте первую программу — и следите за прогрессом по дням!</p>
-            </div>`;
+container.innerHTML = `
+    <div class="empty-state">
+        <span class="empty-icon">📋</span>
+        <h3 class="empty-title">Нет своих программ</h3>
+        <p class="empty-text">Создайте первую программу — и следите за прогрессом по дням!</p>
+    </div>`;
         return;
     }
 
