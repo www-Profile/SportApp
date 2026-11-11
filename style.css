@@ -4564,7 +4564,7 @@ body.theme-dark-mode .profile-streak.zero i { color: var(--border-color); }
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;   /* было center — теперь контент по верху */
+    justify-content: space-between;   /* было center — теперь контент по верху */
     gap: 0.4rem;
     background: var(--white);
     padding: 0.6rem;               /* уменьшили с 1rem — фото больше влезет */
