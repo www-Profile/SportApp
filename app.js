@@ -16935,58 +16935,40 @@ function shuffleArray(arr) {
 // ─── Готовые программы ───
 const PRESET_PROGRAMS = [
     {
-        id: 'abs_14',
+        id: 'abs_30',
         title: 'Стальной пресс',
-        subtitle: 'за 2 недели',
+        subtitle: 'за месяц',
         icon: 'press',
+        image: 'images/program-abs-30.png',
+        emoji: '🔥',
         category: 'Пресс',
-        durationDays: 14,
-        workoutsPerWeek: 5,
-        difficulty: 'Средний',
-        isPremium: true,
-        description: '14-дневный интенсив на кубики. 5 тренировок в неделю с акцентом на прямые и косые мышцы живота.'
-    },
-    {
-        id: 'legs_30',
-        title: 'Накаченные ноги',
-        subtitle: 'за 1 месяц',
-        icon: 'legs',
-        category: 'Ноги',
         durationDays: 30,
         workoutsPerWeek: 5,
         difficulty: 'Средний',
         isPremium: true,
-        description: 'Месячная программа на проработку квадрицепсов, бицепсов бедра и икр. Приседания, выпады, подъёмы — комплексный подход.'
+        description: '30-дневный интенсив на кубики. 5 тренировок в неделю с акцентом на прямые и косые мышцы живота.'
     },
     {
-        id: 'cut_28',
+        id: 'cut_60',
         title: 'Сушка тела',
-        subtitle: 'за 4 недели',
+        subtitle: 'за 2 месяца',
         icon: 'cardio',
+        image: 'images/program-cut-60.png',
+        emoji: '💧',
         category: 'Кардио',
-        durationDays: 28,
+        durationDays: 60,
         workoutsPerWeek: 6,
         difficulty: 'Высокий',
         isPremium: true,
-        description: 'Высокоинтенсивная программа для сжигания жира. Чередование кардио и силовых, 6 тренировок в неделю. Не для новичков.'
-    },
-    {
-        id: 'arms_21',
-        title: 'Мощные руки',
-        subtitle: 'за 3 недели',
-        icon: 'bodybuilding',
-        category: 'Руки',
-        durationDays: 21,
-        workoutsPerWeek: 5,
-        difficulty: 'Средний',
-        isPremium: true,
-        description: 'Проработка бицепса и трицепса. Отжимания, сгибания, разгибания — всё для объёма и силы рук.'
+        description: 'Высокоинтенсивная программа для сжигания жира. 2 месяца чередования кардио и силовых, 6 тренировок в неделю. Не для новичков.'
     },
     {
         id: 'back_30',
         title: 'Широкая спина',
-        subtitle: 'за 1 месяц',
+        subtitle: 'за месяц',
         icon: 'back',
+        image: 'images/program-back-30.png',
+        emoji: '🦾',
         category: 'Спина',
         durationDays: 30,
         workoutsPerWeek: 4,
@@ -16995,40 +16977,18 @@ const PRESET_PROGRAMS = [
         description: '4 тренировки в неделю на спину и широчайшие. Подтягивания, тяги, гиперэкстензия. Нужен турник.'
     },
     {
-        id: 'body_42',
-        title: 'Стройное тело',
-        subtitle: 'за 6 недель',
-        icon: 'woman',
-        category: 'Ягодицы',
-        durationDays: 42,
-        workoutsPerWeek: 5,
-        difficulty: 'Средний',
-        isPremium: true,
-        description: 'Комплекс на ягодицы, бёдра и общий тонус. 6 недель для формы, которой будут завидовать.'
-    },
-    {
-        id: 'cardio_14',
-        title: 'Кардио-марафон',
-        subtitle: 'за 2 недели',
-        icon: 'cardio',
-        category: 'Кардио',
-        durationDays: 14,
-        workoutsPerWeek: 6,
-        difficulty: 'Лёгкий',
-        isPremium: true,
-        description: 'Лёгкий старт для тех, кто хочет больше двигаться. Ежедневное кардио без перегрузок.'
-    },
-    {
-        id: 'full_30',
-        title: 'Всё тело',
-        subtitle: 'за 1 месяц',
-        icon: 'WholeBody',
-        category: 'Всё тело',
+        id: 'arms_30',
+        title: 'Мощные руки',
+        subtitle: 'за месяц',
+        icon: 'bodybuilding',
+        image: 'images/program-arms-30.png',
+        emoji: '💪',
+        category: 'Руки',
         durationDays: 30,
         workoutsPerWeek: 5,
         difficulty: 'Средний',
         isPremium: true,
-        description: 'Сбалансированная программа на все группы мышц. Идеально, если не знаешь, с чего начать.'
+        description: 'Месячная программа на бицепс и трицепс. Отжимания, сгибания, разгибания — всё для объёма и силы рук.'
     }
 ];
 
@@ -17041,8 +17001,51 @@ const WEEK_PATTERNS = {
     6: ['workout', 'workout', 'workout', 'rest', 'workout', 'workout', 'workout']
 };
 
-function generateProgramSchedule(durationDays, workoutsPerWeek, category) {
-    const pattern = WEEK_PATTERNS[workoutsPerWeek] || WEEK_PATTERNS[3];
+// ★ Паттерн недели для новой программы: 7 boolean (Пн…Вс)
+// true = тренировка, false = отдых
+let _newProgramWeekPattern = [false, true, false, true, false, true, false]; // Пн,Ср,Пт
+
+const WEEK_DAY_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+
+function renderProgramWeekGrid() {
+    const grid = document.getElementById('newProgramWeekGrid');
+    if (!grid) return;
+
+    grid.innerHTML = WEEK_DAY_SHORT.map((label, day) => {
+        const isTraining = _newProgramWeekPattern[day];
+        return `<button type="button"
+                        class="program-week-day${isTraining ? ' active' : ''}"
+                        data-day="${day}">
+                    ${label}
+                </button>`;
+    }).join('');
+
+    updateProgramDaysCount();
+
+    grid.querySelectorAll('.program-week-day').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const day = parseInt(this.dataset.day);
+            _newProgramWeekPattern[day] = !_newProgramWeekPattern[day];
+            renderProgramWeekGrid();
+        });
+    });
+}
+
+function updateProgramDaysCount() {
+    const count = _newProgramWeekPattern.filter(Boolean).length;
+    const el = document.getElementById('newProgramDaysCount');
+    if (el) el.textContent = count;
+}
+
+function generateProgramSchedule(durationDays, workoutsPerWeek, category, weekPattern = null) {
+    // ★ Если передан паттерн недели — используем его
+    let pattern;
+    if (Array.isArray(weekPattern) && weekPattern.length === 7) {
+        pattern = weekPattern.map(isTraining => isTraining ? 'workout' : 'rest');
+    } else {
+        pattern = WEEK_PATTERNS[workoutsPerWeek] || WEEK_PATTERNS[3];
+    }
+
     const schedule = [];
     for (let i = 0; i < durationDays; i++) {
         const type = pattern[i % 7];
@@ -17058,20 +17061,17 @@ function generateProgramSchedule(durationDays, workoutsPerWeek, category) {
 // ─── Карусель: карточки программ ───
 // ★ Эмодзи для карточек карусели (отдельно от PNG-иконок списка)
 const PROGRAM_EMOJI = {
-    'abs_14':    '🔥',
-    'legs_30':   '🦵',
-    'cut_28':    '💧',
-    'arms_21':   '💪',
-    'back_30':   '🦾',
-    'body_42':   '✨',
-    'cardio_14': '🏃',
-    'full_30':   '🏋️'
+    'abs_30':  '🔥',
+    'cut_60':  '💧',
+    'back_30': '🦾',
+    'arms_30': '💪'
 };
 
 const CAROUSEL_CARDS = PRESET_PROGRAMS.map(p => ({
     isProgram: true,
     programId: p.id,
     emoji: PROGRAM_EMOJI[p.id] || '🏆',
+    image: p.image || null,          // ★ ДОБАВИТЬ
     title: p.title,
     desc: p.subtitle,
     action: () => {
@@ -17119,17 +17119,26 @@ function _renderCarouselTrack() {
         _carouselShuffleCache = shuffleArray([...CAROUSEL_CARDS]);
     }
 
-const html = _carouselShuffleCache.map(card => {
-    const idx = CAROUSEL_CARDS.indexOf(card);
-    return `
-        <div class="carousel-card" data-card-index="${idx}">
-            <div class="carousel-card-emoji">${card.emoji}</div>
-            <div class="carousel-card-info">
-                <div class="carousel-card-title">${card.title}</div>
-                <div class="carousel-card-desc">${card.desc}</div>
-            </div>
-        </div>`;
-}).join('');
+    const html = _carouselShuffleCache.map(card => {
+        const idx = CAROUSEL_CARDS.indexOf(card);
+
+        // ★ Фото с fallback на эмодзи при ошибке загрузки
+        const visual = card.image
+            ? `<img src="${card.image}"
+                    class="carousel-card-img"
+                    alt=""
+                    onerror="this.outerHTML='<div class=&quot;carousel-card-emoji&quot;>${card.emoji}</div>'">`
+            : `<div class="carousel-card-emoji">${card.emoji}</div>`;
+
+        return `
+            <div class="carousel-card" data-card-index="${idx}">
+                ${visual}
+                <div class="carousel-card-info">
+                    <div class="carousel-card-title">${card.title}</div>
+                    <div class="carousel-card-desc">${card.desc}</div>
+                </div>
+            </div>`;
+    }).join('');
 
     track.style.animation = 'none';
     track.innerHTML = html + html;
@@ -17179,13 +17188,19 @@ function renderReadyPrograms() {
     if (!container) return;
 
     container.innerHTML = PRESET_PROGRAMS.map(p => {
-        const iconImg = `images/${p.icon}.png`;
         const totalWorkouts = Math.floor(p.durationDays / 7 * p.workoutsPerWeek);
+
+        // ★ Фото с fallback на эмодзи
+        const photoHtml = p.image
+            ? `<img src="${p.image}"
+                    alt=""
+                    onerror="this.outerHTML='<div class=&quot;program-list-emoji-fallback&quot;>${p.emoji || '🏆'}</div>'">`
+            : `<div class="program-list-emoji-fallback">${p.emoji || '🏆'}</div>`;
 
         return `
             <div class="program-list-card" onclick="openProgramDetail('${p.id}')">
-                <div class="program-list-icon">
-                    <img src="${iconImg}" alt="">
+                <div class="program-list-cover">
+                    ${photoHtml}
                 </div>
                 <div class="program-list-info">
                     <div class="program-list-title">${p.title} ${p.subtitle}</div>
@@ -17193,7 +17208,7 @@ function renderReadyPrograms() {
                     <div class="program-list-meta">
                         <span><i class="fa-solid fa-calendar"></i> ${p.durationDays} дн.</span>
                         <span><i class="fa-solid fa-dumbbell"></i> ${totalWorkouts} трен.</span>
-                        <span><i class="fa-solid fa-solid fa-fire"></i> ${p.difficulty}</span>
+                        <span><i class="fa-solid fa-gauge-high"></i> ${p.difficulty}</span>
                     </div>
                 </div>
                 <div class="program-list-arrow"><i class="fa-solid fa-chevron-right"></i></div>
@@ -17234,7 +17249,6 @@ function renderMyPrograms() {
     }
 
     container.innerHTML = list.map(p => {
-        const totalWorkouts = Math.floor(p.durationDays / 7 * p.workoutsPerWeek);
         const catIconMap = {
             'Пресс': 'press', 'Ноги': 'legs', 'Ягодицы': 'woman',
             'Руки': 'bodybuilding', 'Плечи': 'shoulder', 'Спина': 'back',
@@ -17243,7 +17257,16 @@ function renderMyPrograms() {
         };
         const icon = catIconMap[p.category] || 'WholeBody';
 
-        // ★ В режиме редактирования — мусорка, иначе — стрелка
+        // ★ Прогресс программы
+        const schedule = generateProgramSchedule(p.durationDays, p.workoutsPerWeek, p.category, p.weekPattern);
+        const totalWorkouts = schedule.filter(d => d.type === 'workout').length;
+        const progress = getProgramProgress(p.id);
+        const completedCount = (progress.completedDays || []).length;
+        const percent = totalWorkouts > 0
+            ? Math.min(100, Math.round((completedCount / totalWorkouts) * 100))
+            : 0;
+
+        // В режиме редактирования — мусорка, иначе — стрелка
         const actionHtml = isEditing
             ? `<button class="item-action program-delete"
                        onclick="event.stopPropagation(); deleteProgramFromList('${p.id}')">
@@ -17259,7 +17282,12 @@ function renderMyPrograms() {
                 </div>
                 <div class="program-list-info">
                     <div class="program-list-title">${p.title}</div>
-                    <div class="program-list-subtitle">${p.category} · ${p.durationDays} дней</div>
+                    <div class="program-list-progress">
+                        <div class="program-list-progress-line">
+                            <div class="program-list-progress-fill" style="width:${percent}%"></div>
+                        </div>
+                        <span class="program-list-progress-text">${completedCount}/${totalWorkouts}</span>
+                    </div>
                     <div class="program-list-meta">
                         <span><i class="fa-solid fa-calendar"></i> ${p.durationDays} дн.</span>
                         <span><i class="fa-solid fa-dumbbell"></i> ${totalWorkouts} трен.</span>
@@ -17315,16 +17343,35 @@ function openProgramDetail(programId) {
     }
 
     // ── Иконка и заголовок ──
-    const catIconMap = {
-        'Пресс': 'press', 'Ноги': 'legs', 'Ягодицы': 'woman',
-        'Руки': 'bodybuilding', 'Плечи': 'shoulder', 'Спина': 'back',
-        'Грудь': 'breast', 'Кардио': 'cardio', 'Гибкость': 'stretching',
-        'Всё тело': 'WholeBody'
-    };
-    const iconName = catIconMap[program.category] || 'WholeBody';
+// ── Иконка и заголовок ──
+const catIconMap = {
+    'Пресс': 'press', 'Ноги': 'legs', 'Ягодицы': 'woman',
+    'Руки': 'bodybuilding', 'Плечи': 'shoulder', 'Спина': 'back',
+    'Грудь': 'breast', 'Кардио': 'cardio', 'Гибкость': 'stretching',
+    'Всё тело': 'WholeBody'
+};
 
-    document.getElementById('programDetailIcon').innerHTML =
-        `<img src="images/${iconName}.png" alt="">`;
+const iconEl = document.getElementById('programDetailIcon');
+const emoji = program.emoji || PROGRAM_EMOJI[program.id] || '🏆';
+
+if (isCustom) {
+    // ★ Своя программа — иконка категории (как в блоке), фон оставляем
+    const catIcon = catIconMap[program.category] || 'WholeBody';
+    iconEl.style.background = '';        // сброс → возьмётся accent-light из CSS
+    iconEl.innerHTML = `<img src="images/${catIcon}.png" alt="" class="program-detail-cat-icon">`;
+
+} else if (program.image) {
+    // ★ Готовая программа с фото — фото, ФОН УБИРАЕМ
+    iconEl.style.background = 'transparent';
+    iconEl.innerHTML = `<img src="${program.image}"
+        alt=""
+        onerror="this.outerHTML='<div class=&quot;program-detail-emoji-fallback&quot;>${emoji}</div>'">`;
+
+} else {
+    // Fallback — эмодзи с фоном (на случай программы без фото)
+    iconEl.style.background = '';
+    iconEl.innerHTML = `<div class="program-detail-emoji-fallback">${emoji}</div>`;
+}
     document.getElementById('programDetailTitle').textContent = program.title;
 
     const subEl = document.getElementById('programDetailSubtitle');
@@ -17337,11 +17384,12 @@ function openProgramDetail(programId) {
     const progress = getProgramProgress(programId);
     const completedDays = progress.completedDays || [];
 
-    const schedule = generateProgramSchedule(
-        program.durationDays,
-        program.workoutsPerWeek,
-        program.category
-    );
+const schedule = generateProgramSchedule(
+    program.durationDays,
+    program.workoutsPerWeek,
+    program.category,
+    program.weekPattern   // ★ для старых программ = undefined → fallback
+);
 
     // текущий день = первый невыполненный workout
     let currentDayNumber = null;
@@ -17480,11 +17528,12 @@ function startProgram(programId) {
     const progress = getProgramProgress(programId);
     const completedDays = progress.completedDays || [];
 
-    const schedule = generateProgramSchedule(
-        program.durationDays,
-        program.workoutsPerWeek,
-        program.category
-    );
+const schedule = generateProgramSchedule(
+    program.durationDays,
+    program.workoutsPerWeek,
+    program.category,
+    program.weekPattern   // ★ для старых программ = undefined → fallback
+);
 
     const nextDay = schedule.find(d =>
         d.type === 'workout' && !completedDays.includes(d.day)
@@ -17505,9 +17554,16 @@ window.startProgram = startProgram;
 function openCreateProgramModal() {
     document.getElementById('newProgramTitle').value = '';
     document.getElementById('newProgramDuration').value = '30';
-    document.getElementById('newProgramPerWeek').value = '3';
     document.getElementById('newProgramCategory').value = 'Пресс';
     document.getElementById('newProgramTitle').classList.remove('error');
+
+    // ★ Сброс паттерна недели (Пн, Ср, Пт по умолчанию)
+    _newProgramWeekPattern = [false, true, false, true, false, true, false];
+
+    // Рендерим сетку + перерисовываем при смене длительности
+    renderProgramWeekGrid();
+    document.getElementById('newProgramDuration').onchange = renderProgramWeekGrid;
+
     openModal('createProgramModal');
 }
 window.openCreateProgramModal = openCreateProgramModal;
@@ -17515,7 +17571,6 @@ window.openCreateProgramModal = openCreateProgramModal;
 function saveCustomProgram() {
     const title = document.getElementById('newProgramTitle').value.trim();
     const durationDays = parseInt(document.getElementById('newProgramDuration').value);
-    const workoutsPerWeek = parseInt(document.getElementById('newProgramPerWeek').value);
     const category = document.getElementById('newProgramCategory').value;
     const titleInput = document.getElementById('newProgramTitle');
 
@@ -17527,12 +17582,20 @@ function saveCustomProgram() {
         return;
     }
 
+    // ★ Проверяем, что выбраны дни тренировок
+    const workoutsPerWeek = _newProgramWeekPattern.filter(Boolean).length;
+    if (workoutsPerWeek === 0) {
+        showToast('⚠️ Выберите хотя бы один день тренировки');
+        return;
+    }
+
     const program = {
         id: 'myprog_' + Date.now(),
         title: title,
         category: category,
         durationDays: durationDays,
         workoutsPerWeek: workoutsPerWeek,
+        weekPattern: [..._newProgramWeekPattern],   // ★ сохраняем паттерн
         createdAt: Date.now(),
         isCustom: true
     };

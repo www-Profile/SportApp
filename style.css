@@ -4564,12 +4564,16 @@ body.theme-dark-mode .profile-streak.zero i { color: var(--border-color); }
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;   /* было center — теперь контент по верху */
     gap: 0.4rem;
     background: var(--white);
-    padding: 1rem;
+    padding: 0.6rem;               /* уменьшили с 1rem — фото больше влезет */
     border-radius: 20px;
     width: 140px;
+    min-width: 140px;              /* не сжимается во флексе */
+    max-width: 140px;
+    box-sizing: border-box;        /* padding входит в 140px */
+    overflow: hidden;              /* ★ обрезаем всё, что вылезет */
     box-shadow: var(--shadow-card);
     flex-shrink: 0;
     cursor: pointer;
@@ -4577,6 +4581,30 @@ body.theme-dark-mode .profile-streak.zero i { color: var(--border-color); }
     margin: 0 0 12px;
     text-align: center;
     transition: transform 0.2s ease;
+}
+
+/* ★ Фото в карусели */
+.carousel-card-img {
+    width: 100%;
+    max-width: 100%;
+    height: 120px;
+    max-height: 120px;
+    object-fit: cover;             /* заполняет блок без искажений */
+    border-radius: 12px;
+    display: block;
+    flex-shrink: 0;
+}
+
+/* ★ Эмодзи — ровно такой же высоты, чтобы карточки не «прыгали» */
+.carousel-card-emoji {
+    font-size: 2.4rem;             /* уменьшили с 3.2rem под 80px */
+    line-height: 1;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0;
+    flex-shrink: 0;
 }
 
 .carousel-card-emoji {
@@ -7182,8 +7210,109 @@ body.theme-dark-mode .friend-itemMOD.selected .challenge-friend-mark {
     min-width: 0;
 }
 
-/* ★ Удалено: .program-list-card:active { border-color: var(--accent); } */
-/* ★ Удалено: transition: border-color 0.2s ease; */
+/* ★ Сетка выбора дней недели в модалке создания программы */
+.program-week-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 0.3rem;
+}
+
+.program-week-day {
+    aspect-ratio: 1 / 1;
+    border-radius: 8px;
+    border: 2px solid var(--light-grey);
+    background: var(--white);
+    color: var(--slate);
+    font-size: 0.65rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    padding: 0;
+    font-family: inherit;
+    min-width: 0;
+    min-height: 0;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.program-week-day.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--white);
+}
+
+.program-week-day.preview {
+    cursor: default;
+    opacity: 0.85;
+}
+
+.program-week-day.preview-active {
+    background: var(--accent-light);
+    border-color: var(--accent-light);
+    color: var(--accent);
+}
+
+.program-week-day.preview-inactive {
+    opacity: 0.35;
+}
+
+/* Тёмная тема */
+body.theme-dark-mode .program-week-day {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+}
+
+body.theme-dark-mode .program-week-day.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--white);
+}
+
+body.theme-dark-mode .program-week-day.preview-active {
+    background: var(--accent-dark);
+    border-color: var(--accent-dark);
+    color: var(--accent);
+}
+
+/* ★ Обложка с фото */
+.program-list-cover {
+    width: 80px;
+    height: 80px;
+    min-width: 80px;
+    border-radius: 14px;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.program-list-cover img {
+    width: 90%;
+    height: 90%;
+    object-fit: cover;
+    display: block;
+}
+
+/* ★ Fallback — эмодзи вместо фото */
+.program-list-emoji-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+    line-height: 1;
+}
+
+body.theme-dark-mode .program-list-cover {
+    background: var(--accent-dark);
+}
 
 .program-list-icon {
     width: 56px;
@@ -7211,7 +7340,6 @@ body.theme-dark-mode .friend-itemMOD.selected .challenge-friend-mark {
     display: flex;
     flex-direction: column;
     text-align: left;
-    gap: 0.15rem;
 }
 
 /* ★ Заголовок — обрезается на «...» */
@@ -7233,6 +7361,50 @@ body.theme-dark-mode .friend-itemMOD.selected .challenge-friend-mark {
     word-break: break-word;
     overflow-wrap: break-word;
     line-height: 1.3;
+}
+
+/* ★ Полоска прогресса в карточке «Мои программы» */
+.program-list-progress {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100%;
+    min-width: 0;
+}
+
+.program-list-progress-line {
+    flex: 1;
+    height: 4px;
+    background: var(--light-grey);
+    border-radius: 2px;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.program-list-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+}
+
+.program-list-progress-text {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--accent);
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 30px;
+    text-align: right;
+    letter-spacing: 0.2px;
+}
+
+/* Тёмная тема */
+body.theme-dark-mode .program-list-progress-line {
+    background: var(--border-color);
+}
+body.theme-dark-mode .program-list-progress-text {
+    color: var(--accent);
 }
 
 .program-list-meta {
@@ -7301,10 +7473,30 @@ body.theme-dark-mode .program-list-meta { color: var(--text-secondary); }
     flex-shrink: 0;
 }
 
+/* ★ Иконка категории внутри шапки модалки программы */
+.program-detail-icon .program-detail-cat-icon {
+    width: 32px !important;
+    height: 32px !important;
+    object-fit: contain !important;
+    border-radius: 0 !important;
+}
+
+/* ★ Fallback в шапке модалки */
+.program-detail-emoji-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    line-height: 1;
+}
+
 .program-detail-icon img {
-    width: 36px;
-    height: 36px;
-    object-fit: contain;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 14px;
 }
 
 .program-detail-titles {
