@@ -202,7 +202,6 @@ body {
     border: 2px solid transparent;
 }
 
-#communityGoalTop,
 #worldLeaderboard,
 #friendsLeaderboard,
 .section-block[data-block-id="world-leaderboard"] .section-body,
@@ -779,7 +778,6 @@ body.theme-dark-mode .item-card-light {
 
 #statsSummary,
 #globalStatsContainer,
-#communityGoalTop,
 .section-block .section-body {
     overflow: visible !important;
 }
@@ -867,7 +865,7 @@ body.theme-dark-mode .item-card-light {
 
 /* ===================ИСТОРИЯ ТРЕНИРОВОК ==================== */
 .scroll-wrapper {
-    padding: 0rem 0.5rem;         /* ← вместо 0 0 0.5rem */
+    padding: 0.5rem;         /* ← вместо 0 0 0.5rem */
     max-height: 380px;
     overflow-y: auto;
     scroll-behavior: smooth;
@@ -1561,7 +1559,7 @@ body.theme-dark-mode .friend-itemMOD.selected {
 .empty-text {
     color: var(--slate);
     font-size: 0.9rem;
-    margin: 0;
+    margin-bottom: 1rem;
 }
 
 /* ===== АВАТАР ДРУГА ===== */
@@ -1972,6 +1970,21 @@ body.theme-dark-mode .btn-submit-arrow {
 
 .sortable-ghost { opacity: 0.4; }
 
+/* ★ Режим редактирования — карточки можно таскать */
+.editing .program-list-card {
+    cursor: grab;
+    border: 2px dashed transparent;
+}
+
+.editing .program-list-card:hover { border-color: var(--accent); }
+.editing .program-list-card:active { cursor: grabbing; }
+
+/* ★ Кнопка-мусорка в режиме редактирования */
+.program-delete {
+    color: var(--danger) !important;
+}
+
+
 /* ===================ТРЕНИРОВКА СЕССИЯ ==================== */
 .training-session-container {
     height: 100vh;
@@ -2164,7 +2177,7 @@ body.theme-dark-mode .btn-submit-arrow {
     transform: none;        /* ← убираем центрирование */
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.3rem;
     padding: 0.3rem 0.4rem;
     border: 1.5px solid var(--light-grey);
     border-radius: 999px;
@@ -2180,7 +2193,7 @@ body.theme-dark-mode .btn-submit-arrow {
 
 .session-muscles-hint i {
     color: var(--accent);
-    font-size: 0.8rem;
+    font-size: 0.7rem;
 }
 
 .session-muscles-hint:active {
@@ -2192,6 +2205,19 @@ body.theme-dark-mode .session-muscles-hint {
     border-color: var(--border-color);
     color: var(--text-secondary);
     box-shadow: var(--shadow-card-dark);
+}
+
+/* ── Сжатый вид: только иконка ── */
+.session-muscles-hint.compact {
+
+    padding: 0.3rem;
+font-size: 0.7rem;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.session-muscles-hint.compact .muscles-hint-text {
+    display: none;
 }
 
 /* =================== КАРТИНКА В МОДАЛКЕ «ЦВЕТ МЫШЦ» ==================== */
@@ -2861,20 +2887,36 @@ body.theme-dark-mode .tutorial-highlight .custom-workout .btn-primary {
     margin-bottom: 0.5rem;
 }
 
+/* =================== PREMIUM: КАРТОЧКИ ТАРИФОВ ==================== */
 .premium-price-card {
+    position: relative;
     border-radius: 14px;
     padding: 0.5rem;
     text-align: center;
-}
-
-.premium-price-card-monthly {
     background: var(--light);
     border: 1px solid var(--light-grey);
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
 }
 
-.premium-price-card-yearly {
-    background: var(--light);
-    border: 1px solid var(--light-grey);
+.premium-price-card-active {
+    border: 2px solid var(--accent);
+    background: var(--accent-light);
+}
+
+/* ★ Плашка -10% на годовом тарифе */
+.premium-price-discount {
+    position: absolute;
+    top: -8px;
+    right: -4px;
+    background: var(--gold);
+    color: #0F172A;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 0.1rem 0.35rem;
+    border-radius: 6px;
+    letter-spacing: 0.3px;
+    z-index: 2;
 }
 
 .premium-price-label {
@@ -2882,8 +2924,6 @@ body.theme-dark-mode .tutorial-highlight .custom-workout .btn-primary {
     color: var(--dark);
     font-weight: 700;
 }
-
-.premium-price-card-yearly .premium-price-label { color: var(--accent); }
 
 .premium-price-row {
     display: flex;
@@ -2898,7 +2938,6 @@ body.theme-dark-mode .tutorial-highlight .custom-workout .btn-primary {
     color: var(--dark);
 }
 
-.premium-price-card-yearly .premium-price-value { color: var(--accent); }
 
 .premium-price-period { font-size: 0.6rem; color: var(--slate); }
 
@@ -2916,12 +2955,21 @@ body.theme-dark-mode .premium-table-cell-highlight {
 }
 body.theme-dark-mode .premium-table-header .premium-table-cell { color: var(--light-grey); }
 body.theme-dark-mode .premium-price-label { color: var(--text-primary); }
-body.theme-dark-mode .premium-price-card-yearly .premium-price-label { color: var(--accent); }
 body.theme-dark-mode .premium-price-card-monthly { background: var(--bg-primary); border-color: var(--border-color); }
 body.theme-dark-mode .premium-price-card-yearly { background: var(--bg-primary); border-color: var(--border-color); }
 body.theme-dark-mode .premium-price-value { color: var(--text-primary); }
-body.theme-dark-mode .premium-price-card-yearly .premium-price-value { color: var(--accent); }
 body.theme-dark-mode .premium-price-period { color: var(--text-secondary); }
+
+body.theme-dark-mode .premium-price-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+
+}
+
+body.theme-dark-mode .premium-price-card-active {
+    background: var(--accent-dark);
+    border-color: var(--accent);
+}
 
 /* ===================АДАПТАЦИЯ ==================== */
 @media (max-width: 480px) {
@@ -4088,6 +4136,171 @@ body.theme-dark-mode .weekly-load-value { color: var(--accent); }
 
 .theme-dark-mode .premium-people { border-top:1px solid var(--border-color); }
 
+/* =================== ОПЛАТА PREMIUM (СБП) ==================== */
+.premium-payment-tariffs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+}
+
+.payment-tariff-btn {
+    position: relative;
+    padding: 0.5rem 0.4rem;
+    border: 2px solid var(--light-grey);
+    border-radius: 12px;
+    background: var(--white);
+    color: var(--slate);
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    transition: all 0.2s ease;
+}
+
+.payment-tariff-btn.payment-tariff-active {
+    border-color: var(--accent);
+    background: var(--accent-light);
+}
+
+.payment-tariff-btn .tariff-name {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--slate);
+}
+
+.payment-tariff-btn .tariff-price {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--dark);
+}
+
+.payment-tariff-btn.payment-tariff-active .tariff-price {
+    color: var(--accent);
+}
+
+.payment-tariff-btn .tariff-discount {
+    position: absolute;
+    top: -8px;
+    right: -4px;
+    background: var(--gold);
+    color: #0F172A;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 0.1rem 0.35rem;
+    border-radius: 6px;
+    letter-spacing: 0.3px;
+}
+
+/* ── QR-код ── */
+.payment-qr-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--white);
+    border: 2px solid var(--light-grey);
+    border-radius: 16px;
+    padding: 0.6rem;
+    margin-bottom: 0.4rem;
+    min-height: 200px;
+}
+
+.payment-qr-wrapper img {
+    width: 200px;
+    height: 200px;
+    object-fit: contain;
+    display: block;
+    border-radius: 8px;
+}
+
+.payment-qr-placeholder {
+    width: 200px;
+    height: 200px;
+    background: var(--light);
+    border: 2px dashed var(--light-grey);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--slate);
+    font-size: 0.75rem;
+    padding: 0.8rem;
+    line-height: 1.4;
+}
+
+.payment-qr-hint {
+    font-size: 0.7rem;
+    color: var(--slate);
+    text-align: center;
+    line-height: 1.4;
+}
+
+/* ── Инструкция ── */
+.payment-instruction {
+    display: flex;
+    gap: 0.4rem;
+    align-items: flex-start;
+    padding: 0.5rem 0.6rem;
+    background: var(--light);
+    border: 1px solid var(--light-grey);
+    border-radius: 10px;
+    font-size: 0.72rem;
+    color: var(--slate);
+    line-height: 1.4;
+    text-align: left;
+    margin-bottom: 0.6rem;
+}
+
+.payment-instruction i {
+    color: var(--accent);
+    margin-top: 0.15rem;
+    flex-shrink: 0;
+    font-size: 0.85rem;
+}
+
+/* ── Тёмная тема ── */
+body.theme-dark-mode .payment-tariff-btn {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+body.theme-dark-mode .payment-tariff-btn.payment-tariff-active {
+    background: var(--accent-dark);
+    border-color: var(--accent);
+}
+
+body.theme-dark-mode .payment-tariff-btn .tariff-price {
+    color: var(--text-primary);
+}
+
+body.theme-dark-mode .payment-tariff-btn.payment-tariff-active .tariff-price {
+    color: var(--accent);
+}
+
+body.theme-dark-mode .payment-qr-wrapper {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+body.theme-dark-mode .payment-qr-placeholder {
+    background: var(--bg-primary);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+}
+
+body.theme-dark-mode .payment-qr-hint {
+    color: var(--text-secondary);
+}
+
+body.theme-dark-mode .payment-instruction {
+    background: var(--bg-primary);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+}
+
 /* =================== ВЫБОР ИНВЕНТАРЯ ==================== */
 .inventory-grid {
     display: grid;
@@ -4375,86 +4588,6 @@ body.theme-dark-mode .community-achievement-tile:not(:last-child)::after {
 body.theme-dark-mode .community-achievement-icon.locked { color: var(--border-color); }
 body.theme-dark-mode .community-achievement-percent      { color: var(--text-primary); }
 
-/* =================== ОБЩАЯ ЦЕЛЬ СООБЩЕСТВА =================== */
-.community-goal {
-    background: var(--white);
-    border-radius: 12px;
-    padding: 0.5rem 0.8rem 0.5rem 0.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-    box-shadow: var(--shadow-card); /* ← ДОБАВИТЬ */
-}
-
-.community-goal-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.8rem;
-}
-
-.community-goal-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
-    background: var(--accent-light);
-    color: var(--accent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.3rem;
-    flex-shrink: 0;
-}
-
-body.theme-dark-mode .community-goal-icon { background: var(--accent-dark); }
-
-.community-goal-content { flex: 1; min-width: 0; }
-
-.community-goal-text {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.5rem;
-    gap: 0.5rem;
-}
-
-.community-goal-title {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--dark);
-}
-
-.community-goal-progress {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--accent);
-    white-space: nowrap;
-}
-
-.community-goal-bar {
-    width: 100%;
-    height: 10px;
-    background: var(--light-grey);
-    border-radius: 5px;
-    overflow: hidden;
-}
-
-.community-goal-fill {
-    height: 100%;
-    background: var(--accent);
-    border-radius: 5px;
-    animation: fillBar 3s ease;
-}
-
-body.theme-dark-mode .community-goal {
-    background: var(--bg-secondary);
-    box-shadow: var(--shadow-card-dark);
-}
-
-body.theme-dark-mode .community-goal-title { color: var(--text-primary); }
-body.theme-dark-mode .community-goal-progress { color: var(--accent); }
-body.theme-dark-mode .community-goal-bar { background: var(--bg-primary); }
-
-#communityGoalTop .item-info { text-align: left; }
 
 /* =================== СЕРИЯ ТРЕНИРОВОК =================== */
 .profile-streak {
@@ -4505,68 +4638,92 @@ body.theme-dark-mode .profile-streak.zero i { color: var(--border-color); }
 
 .carousel-card {
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    flex-direction: column;
+    align-items: center;        /* центр по горизонтали */
+    justify-content: flex-end;  /* ★ прижато к низу */
+    gap: 0.4rem;
     background: var(--white);
-    padding: 0.5rem;
-    border-radius: 14px;
+    padding: 0.6rem;
+    border-radius: 20px;
+    width: 140px;
+    min-width: 140px;
+    max-width: 140px;
+    box-sizing: border-box;
+    overflow: hidden;
     box-shadow: var(--shadow-card);
-    border-left: 4px solid var(--accent);
-    width: 260px;
-    cursor: pointer;
     flex-shrink: 0;
+    cursor: pointer;
     user-select: none;
     margin: 0 0 12px;
+    text-align: center;
+    transition: transform 0.2s ease;
 }
 
-.carousel-card-icon {
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    border-radius: 10px;
-    background: var(--accent-light);
+/* ★ Фото в карусели */
+.carousel-card-img {
+    width: 100%;
+    max-width: 100%;
+    object-fit: cover;             /* заполняет блок без искажений */
+    border-radius: 12px;
+    display: block;
+    flex-shrink: 0;
+}
+
+/* ★ Эмодзи — ровно такой же высоты, чтобы карточки не «прыгали» */
+.carousel-card-emoji {
+    font-size: 2.4rem;             /* уменьшили с 3.2rem под 80px */
+    line-height: 1;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.3rem;
-    color: var(--accent);
+    margin-bottom: 0;
     flex-shrink: 0;
 }
 
-.carousel-card-icon img { width: 24px; height: 24px; object-fit: contain; }
+.carousel-card-emoji {
+    font-size: 3.2rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.2rem;
+}
 
 .carousel-card-info {
-    flex: 1;
-    min-width: 0;
     display: flex;
     flex-direction: column;
+    gap: 0.15rem;
+    width: 100%;
+    min-width: 0;
 }
 
 .carousel-card-title {
-    font-size: 0.8rem;
-    font-weight: 600;
+    font-size: 0.85rem;
+    font-weight: 700;
     color: var(--dark);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: 1.2;
+    width: 100%;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .carousel-card-desc {
     font-size: 0.7rem;
     color: var(--slate);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: 1.2;
+    width: 100%;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
+/* Тёмная тема */
 body.theme-dark-mode .carousel-card {
     background: var(--bg-secondary);
     box-shadow: var(--shadow-card-dark);
 }
-
-body.theme-dark-mode .carousel-card-icon { background: var(--accent-dark); }
 body.theme-dark-mode .carousel-card-title { color: var(--text-primary); }
-body.theme-dark-mode .carousel-card-desc { color: var(--text-secondary); }
+body.theme-dark-mode .carousel-card-desc  { color: var(--text-secondary); }
 
 /* =================== ИСТОРИЯ ДРУЗЕЙ =================== */
 .friends-history-scroll {
@@ -5433,37 +5590,201 @@ body.theme-dark-mode .feed-post-avatar {
     white-space: nowrap;
 }
 
-/* =================== FAB (кнопка «+») ==================== */
-.feed-fab {
-    position: fixed;
-    right: 1rem;
-    bottom: calc(80px + 1rem);
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: none;
-    color: var(--accent);
-    border: 2px dashed var(--accent);
-    font-size: 1.1rem;
-    cursor: pointer;
-    z-index: 999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    -webkit-tap-highlight-color: transparent;
-
-    /* ★ ЭТА СТРОКА ДАЁТ АНИМАЦИЮ */
-    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-                opacity 0.3s ease;
+/* =================== ПОИСК ПО ЛЕНТЕ — «DYNAMIC ISLAND» ==================== */
+.feed-search-panel {
+    position: sticky;
+    top: calc(0.5rem + env(safe-area-inset-top, 0px));
+    z-index: 10;
+    margin: 0.5rem 0 0.75rem 0;
+    padding: 0.35rem;
+    background: rgba(255, 255, 255, 0.85) !important;   /* ★ СВЕТЛЫЙ в светлой теме */
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-radius: 999px;
+    box-shadow:
+        0 8px 24px rgba(15, 23, 42, 0.12),
+        0 2px 6px rgba(15, 23, 42, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        0 0 0 1px rgba(255, 255, 255, 0.6);
+    transition:
+        transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.25s ease;
+    will-change: transform;
 }
 
-/* Прячем вместе с навигацией при скролле */
-.bottom-nav-hidden ~ .feed-fab,
-.feed-fab.nav-hidden {
-    transform: translateY(calc(100% + 20px));
+.feed-search-panel.search-hidden {
+    transform: translateY(-140%);
     opacity: 0;
     pointer-events: none;
+}
+
+.feed-search-panel .search-container {
+    margin-bottom: 0;
+    gap: 0.3rem;
+}
+
+.feed-search-panel .search-input {
+    background: var(--white);
+    border: none !important;
+    color: var(--dark) !important;      /* ★ ТЁМНЫЙ текст на светлом */
+    padding: 0.5rem;
+    max-height: none;
+    font-size: 0.9rem;
+    box-shadow: none !important;
+    border-radius: 999px;
+}
+
+.feed-search-panel .search-input:focus {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.feed-search-panel .search-input::placeholder {
+    color: var(--slate) !important;     /* ★ серый плейсхолдер */
+    font-style: italic;
+}
+
+.feed-search-panel .search-btn {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    max-width: 34px;
+    max-height: 34px;
+    padding: 0;
+    border-radius: 50%;
+    border-bottom: none;
+    flex-shrink: 0;
+    background: var(--accent);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* ★ Тёмная тема — снова тёмная пилюля */
+body.theme-dark-mode .feed-search-panel {
+    background: rgba(30, 41, 59, 0.92) !important;
+    box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.5),
+        0 2px 6px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+body.theme-dark-mode .feed-search-panel .search-input {
+    color: #FFFFFF !important;
+}
+
+body.theme-dark-mode .feed-search-panel .search-input::placeholder {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* =================== ЛАЙКИ В ЛЕНТЕ ==================== */
+.feed-post-footer {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.3rem;
+}
+
+.feed-like-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: transparent;
+    border: none;
+    color: var(--slate);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.3rem 0.5rem;
+    border-radius: 8px;
+    transition: color 0.2s ease, background 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.feed-like-btn:active {
+    background: var(--light);
+}
+
+.feed-like-btn i {
+    font-size: 1rem;
+}
+
+.feed-like-btn.liked {
+    color: var(--accent);
+}
+
+/* ★ Пульс — только когда класс добавляется вручную при клике */
+.feed-like-btn.like-pulse i {
+    animation: likePulse 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes likePulse {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.3); }
+    100% { transform: scale(1); }
+}
+
+body.theme-dark-mode .feed-like-btn {
+    color: var(--text-secondary);
+}
+
+body.theme-dark-mode .feed-like-btn:active {
+    background: var(--bg-secondary);
+}
+
+body.theme-dark-mode .feed-like-btn.liked {
+    color: var(--accent);
+}
+
+/* =================== СКАЧИВАНИЯ ТРЕНИРОВКИ В ЛЕНТЕ ==================== */
+.feed-download-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--slate);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.3rem 0.5rem;
+    border-radius: 8px;
+    user-select: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.2s ease;
+}
+
+.feed-download-stat.downloaded {
+    color: var(--accent);
+}
+
+.feed-download-stat:active {
+    background: var(--light);
+}
+
+.feed-download-stat i {
+    font-size: 0.9rem;
+}
+
+body.theme-dark-mode .feed-download-stat {
+    color: var(--text-secondary);
+}
+
+body.theme-dark-mode .feed-download-stat:active {
+    background: var(--bg-secondary);
+}
+
+/* ★ Явное правило — иначе специфичность выше у body.theme-dark-mode */
+body.theme-dark-mode .feed-download-stat.downloaded {
+    color: var(--accent);
+}
+
+/* =================== ИКОНКА «+» В НИЖНЕЙ НАВИГАЦИИ НА ЛЕНТЕ ==================== */
+.nav-item[data-is-create-post="true"] i {
+    font-size: 20px;
+    color: var(--accent);
+    transform: scale(1.05);
+    filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--accent) 40%, transparent));
+}
+
+body.theme-dark-mode .nav-item[data-is-create-post="true"] i {
+    color: var(--accent);
 }
 
 /* =================== ЗОНА ЗАГРУЗКИ ФОТО ==================== */
@@ -5958,7 +6279,7 @@ body.theme-dark-mode .session-pause-overlay-btn i {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
     padding: 0.5rem;
     background: var(--white);
     border-radius: 12px;
@@ -6927,4 +7248,556 @@ body.theme-dark-mode .friend-itemMOD.selected .challenge-friend-mark {
     background: var(--accent);
     border-color: var(--accent);
     color: var(--white);
+}
+
+/* =================== КНОПКА В ПУСТОМ СОСТОЯНИИ ==================== */
+.empty-state .btn-secondary {
+    display: inline-flex;
+    width: auto;
+    min-width: 180px;
+    margin: 1rem auto 0.3rem auto;
+    padding: 0.55rem 1.2rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* =================== СТРАНИЦА ПРОГРАММ =================== */
+.program-tab-content { display: none; }
+.program-tab-content-active { display: block; }
+
+/* Карточка программы в списке */
+.program-list-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    background: var(--white);
+    padding: 0.7rem;
+    border-radius: 16px;
+    box-shadow: var(--shadow-card);
+    cursor: pointer;
+    border: 2px solid transparent;
+    overflow: hidden;
+    min-width: 0;
+}
+
+/* ★ Сетка выбора дней недели в модалке создания программы */
+.program-week-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 0.3rem;
+}
+
+.program-week-day {
+    aspect-ratio: 1 / 1;
+    border-radius: 8px;
+    border: 2px solid var(--light-grey);
+    background: var(--white);
+    color: var(--slate);
+    font-size: 0.65rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    padding: 0;
+    font-family: inherit;
+    min-width: 0;
+    min-height: 0;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.program-week-day.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--white);
+}
+
+.program-week-day.preview {
+    cursor: default;
+    opacity: 0.85;
+}
+
+.program-week-day.preview-active {
+    background: var(--accent-light);
+    border-color: var(--accent-light);
+    color: var(--accent);
+}
+
+.program-week-day.preview-inactive {
+    opacity: 0.35;
+}
+
+/* Тёмная тема */
+body.theme-dark-mode .program-week-day {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+}
+
+body.theme-dark-mode .program-week-day.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--white);
+}
+
+body.theme-dark-mode .program-week-day.preview-active {
+    background: var(--accent-dark);
+    border-color: var(--accent-dark);
+    color: var(--accent);
+}
+
+/* Обложка готовой программы (фото) */
+.program-list-cover {
+    width: 72px;
+    height: 72px;
+    min-width: 72px;
+    border-radius: 14px;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.program-list-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+/* Fallback-эмодзи, когда фото нет/сломалось */
+.program-list-emoji-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+    line-height: 1;
+}
+
+/* Иконка категории (своя программа) */
+.program-list-icon {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    border-radius: 14px;
+    background: var(--accent-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.program-list-icon img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+
+.program-list-info {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+/* ★ Заголовок — обрезается на «...» */
+.program-list-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+}
+
+/* ★ Описание — НЕ обрезается, переносится на след. строку */
+.program-list-subtitle {
+    font-size: 0.7rem;
+    color: var(--slate);
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.3;
+}
+
+/* ★ Полоска прогресса в карточке «Мои программы» */
+.program-list-progress {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100%;
+    min-width: 0;
+}
+
+.program-list-progress-line {
+    flex: 1;
+    height: 4px;
+    background: var(--light-grey);
+    border-radius: 2px;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.program-list-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+}
+
+.program-list-progress-text {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--accent);
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 30px;
+    text-align: right;
+    letter-spacing: 0.2px;
+}
+
+/* Тёмная тема */
+body.theme-dark-mode .program-list-progress-line {
+    background: var(--border-color);
+}
+body.theme-dark-mode .program-list-progress-text {
+    color: var(--accent);
+}
+
+.program-list-meta {
+    font-size: 0.65rem;
+    color: var(--slate);
+    display: flex;
+    gap: 0.3rem;
+    align-items: center;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.program-list-meta > span {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.program-list-meta i { font-size: 0.6rem; color: var(--accent); }
+
+.program-list-arrow {
+    width: 28px;
+    height: 28px;
+    color: var(--light-grey);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+body.theme-dark-mode .program-list-arrow {
+    color: var(--border-color);
+}
+
+/* Тёмная тема */
+body.theme-dark-mode .program-list-card {
+    background: var(--bg-secondary);
+    box-shadow: var(--shadow-card-dark);
+}
+
+body.theme-dark-mode .program-list-icon { background: var(--accent-dark); }
+body.theme-dark-mode .program-list-title { color: var(--text-primary); }
+body.theme-dark-mode .program-list-subtitle,
+body.theme-dark-mode .program-list-meta { color: var(--text-secondary); }
+
+/* =================== ДЕТАЛИ ПРОГРАММЫ =================== */
+.program-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin-bottom: 0.8rem;
+    text-align: left;
+}
+
+.program-detail-icon {
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
+    border-radius: 14px;
+    background: var(--accent-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* ★ Иконка категории внутри шапки модалки программы */
+.program-detail-icon .program-detail-cat-icon {
+    width: 32px !important;
+    height: 32px !important;
+    object-fit: contain !important;
+    border-radius: 0 !important;
+}
+
+/* ★ Fallback в шапке модалки */
+.program-detail-emoji-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.program-detail-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 14px;
+}
+
+.program-detail-titles {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.program-detail-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+}
+
+.program-detail-subtitle {
+    font-size: 0.75rem;
+    color: var(--slate);
+    line-height: 1.3;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+.program-detail-subtitle i {
+    font-size: 0.65rem;
+    color: var(--accent);
+    margin-right: 0.15rem;
+}
+
+/* ── Верхняя полоса прогресса всей программы ── */
+.program-progress-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.9rem;
+}
+
+.program-progress-line {
+    flex: 1;
+    height: 5px;
+    background: var(--light-grey);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.program-progress-line-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 4px;
+    transition: width 0.4s ease;
+}
+
+.program-progress-text {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--accent);
+    white-space: nowrap;
+    letter-spacing: 0.2px;
+}
+
+/* ── Timeline ── */
+.program-timeline {
+    text-align: left;
+    padding-left: 0.2rem;
+}
+
+.program-week-sep {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--accent);            /* ← акцент */
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin: 0.9rem 0 0.4rem 0;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px dashed var(--light-grey);
+}
+
+.program-week-sep:first-child { margin-top: 0; }
+
+.program-tl-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.4rem 0 0.4rem 1.6rem;
+}
+
+/* вертикальная линия от точки к точке */
+.program-tl-item::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 0;
+    bottom: 0;
+    width: 1.5px;
+    background: var(--light-grey);
+}
+
+.program-tl-item:last-child::before { bottom: 50%; }
+.program-tl-item:first-child::before { top: 50%; }
+.program-tl-item:only-child::before { display: none; }
+
+/* сама точка */
+.program-tl-dot {
+    position: absolute;
+    left: 3px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--white);
+    border: 2px solid var(--light-grey);
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* выполненный */
+.program-tl-item.done .program-tl-dot {
+    background: var(--accent);
+    border-color: none;
+}
+
+/* текущий */
+.program-tl-item.current .program-tl-dot {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+/* отдых — маленькая точка */
+.program-tl-item.rest .program-tl-dot {
+    width: 9px;
+    height: 9px;
+    left: 6px;
+}
+
+/* ── Текст ── */
+.program-tl-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.program-tl-day {
+    font-weight: 500;
+    color: var(--dark);
+}
+
+.program-tl-sep-dot {
+    color: var(--slate);
+    opacity: 0.5;
+}
+
+.program-tl-cat {
+    font-weight: 500;
+    color: var(--dark);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.program-tl-cat.italic { font-style: italic; }
+
+/* выполненный — зачёркнуто */
+.program-tl-item.done .program-tl-day,
+.program-tl-item.done .program-tl-cat {
+    text-decoration: line-through;
+}
+
+/* ★ Отдых — серый */
+.program-tl-item.rest .program-tl-day,
+.program-tl-item.rest .program-tl-cat {
+    color: var(--slate);
+}
+
+/* ── Кнопка Старт (только текущий) ── */
+.program-tl-btn {
+    flex-shrink: 0;
+    padding: 0.28rem 0.75rem;
+    border-radius: 8px;
+    border: none;
+    background: var(--accent);
+    color: var(--white);
+    font-size: 0.7rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    border-bottom: 2px solid color-mix(in srgb, var(--accent) 80%, black);
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.12s ease;
+}
+
+.program-tl-btn:active { transform: scale(0.94); }
+
+/* ── Тёмная тема ── */
+body.theme-dark-mode .program-detail-icon { background: var(--accent-dark); }
+body.theme-dark-mode .program-detail-title { color: var(--text-primary); }
+body.theme-dark-mode .program-progress-line { background: var(--border-color); }
+body.theme-dark-mode .program-week-sep { border-bottom-color: var(--border-color); }
+
+body.theme-dark-mode .program-tl-item::before { background: var(--border-color); }
+
+body.theme-dark-mode .program-tl-dot {
+    background: var(--bg-primary);
+    border-color: var(--border-color);
+}
+
+body.theme-dark-mode .program-tl-item.done .program-tl-dot {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+
+body.theme-dark-mode .program-tl-day,
+body.theme-dark-mode .program-tl-cat { color: var(--text-primary); }
+
+/* ★ Отдых — серый в тёмной теме */
+body.theme-dark-mode .program-tl-item.rest .program-tl-day,
+body.theme-dark-mode .program-tl-item.rest .program-tl-cat {
+    color: var(--text-secondary);
 }

@@ -248,6 +248,42 @@ let finishPageShown = false;
 // app.js - в самом начале, после объявления констант
 const DAILY_PROGRESS_KEY = 'sportapp_daily_progress';
 
+// =================== ПРОГРЕСС ПРОГРАММ ===================
+const PROGRAM_PROGRESS_KEY = 'sportapp_program_progress';
+let _pendingProgramDay = null;   // { programId, day, category }
+
+function getAllProgramProgress() {
+    try {
+        return JSON.parse(localStorage.getItem(PROGRAM_PROGRESS_KEY) || '{}');
+    } catch (e) {
+        return {};
+    }
+}
+
+function getProgramProgress(programId) {
+    const all = getAllProgramProgress();
+    return all[programId] || { completedDays: [], startedAt: null };
+}
+
+function saveProgramProgress(programId, progress) {
+    const all = getAllProgramProgress();
+    all[programId] = progress;
+    localStorage.setItem(PROGRAM_PROGRESS_KEY, JSON.stringify(all));
+    syncSaveToFirestore('programProgress', all);
+}
+
+function completeProgramDay(programId, day) {
+    const progress = getProgramProgress(programId);
+    progress.completedDays = progress.completedDays || [];
+    if (!progress.completedDays.includes(day)) {
+        progress.completedDays.push(day);
+        progress.completedDays.sort((a, b) => a - b);
+        if (!progress.startedAt) progress.startedAt = new Date().toISOString();
+        saveProgramProgress(programId, progress);
+        showToast(`✅ День ${day} программы выполнен!`);
+    }
+}
+
 // =================== СЧЁТЧИК ТРЕНИРОВОК ДЛЯ PREMIUM ===================
 const WORKOUTS_COUNT_KEY = 'sportapp_workouts_count';
 const PREMIUM_OFFER_SHOWN_KEY = 'sportapp_premium_offer_shown';
@@ -757,6 +793,7 @@ function startCoopTraining(data) {
     finishPageShown = false;
     coopStarted = true;
 
+        // ★★★ ОБНОВЛЯЕМ ВИД ПЛАШКИ ★★★
     updateMusclesHintState();
     
     const user = firebase.auth().currentUser;
@@ -1767,8 +1804,6 @@ document.getElementById('coopFinishDoneBtn')?.addEventListener('click', async fu
                 showToast('💾 Тренировка сохранена');
                 // После сохранения или добавления в офлайн-очередь
                 await updateAchievementsAfterWorkout();
-                    // ★★★ ПРОВЕРЯЕМ ОБЩУЮ ЦЕЛЬ ★★★
-                    await checkAndGiveCommunityGoalReward();
             } else {
                 addPendingWorkout(workoutData);
                 showToast('⚠️ Тренировка сохранена локально, синхронизация позже');
@@ -1867,11 +1902,6 @@ document.getElementById('coopFinishDoneBtn')?.addEventListener('click', async fu
             enqueueModal({ type: 'premium' });
         }, 800);
     }
-
-    // ★★★ ДОБАВЛЯЕМ ПРОВЕРКУ НАГРАДЫ ★★★
-    setTimeout(() => {
-        checkAndGiveCommunityGoalReward();
-    }, 1000);
 
         } catch (error) {
             console.error('❌ [coopFinishDoneBtn] ОШИБКА:', error);
@@ -2350,7 +2380,7 @@ function getDefaultStatsLayout() {
 statsBlocksContainer: ['muscles', 'categories', 'calendar', 'weekly-load', 'body-progress', 'history', 'monthly-badges', 'world-leaderboard', 'friends-leaderboard'],        exerciseMuscleStats: ['Руки', 'Плечи', 'Пресс', 'Грудь', 'Спина', 'Ноги', 'Ягодицы'],
         categoriesStats: ['Руки', 'Плечи', 'Пресс', 'Грудь', 'Спина', 'Ноги', 'Ягодицы', 'Кардио', 'Гибкость', 'Всё тело'],
         globalStatsContainer: ['minutes', 'workouts', 'exercises'],  // ★ ДОБАВИЛИ
-        worldStatsBlocksContainer: ['community-achievements', 'community-goal', 'world-leaderboard', 'friends-leaderboard']
+        worldStatsBlocksContainer: ['community-achievements', 'world-leaderboard', 'friends-leaderboard']
     };
 }
 
@@ -3313,6 +3343,7 @@ window.navigateTo = function(page, params) {
 const NAV_SECTION_MAP = {
     'feed':                'feed',      // ← ДОБАВИТЬ
     'workouts':            'workouts',
+    'programs': 'workouts',
     'workout-detail':      'workouts',
     'level-select':        'workouts',
     'workout-edit':        'workouts',
@@ -3333,9 +3364,27 @@ document.querySelectorAll('.nav-item').forEach(btn => {
     btn.classList.toggle('nav-item-active', btn.dataset.page === activeSection);
 });
 
+    // ★★★ FEED NAV ITEM: иконка → «+», когда мы на ленте ★★★
+    const feedNavItem = document.querySelector('.nav-item[data-page="feed"]');
+    if (feedNavItem) {
+        const icon = feedNavItem.querySelector('i');
+        if (icon) {
+            if (page === 'feed') {
+                icon.className = 'fa-solid fa-plus';
+                feedNavItem.dataset.isCreatePost = 'true';
+            } else {
+                icon.className = 'fa-regular fa-images';
+                delete feedNavItem.dataset.isCreatePost;
+            }
+        }
+    }
+
     // ===== ВЫЗОВЫ СТРАНИЦ =====
     if (page === 'feed') {
-    loadFeed();
+        if (typeof window._resetFeedSearchScroll === 'function') {
+            window._resetFeedSearchScroll();
+        }
+        loadFeed();
     }
 
     if (page === 'profile') {
@@ -3374,6 +3423,9 @@ if (page === 'workouts') {
     if (typeof refreshAutoCarousel === 'function') refreshAutoCarousel(); // ★
 }
         if (page === 'exercise-list') renderExerciseListPage();
+        if (page === 'programs') {
+    renderProgramsPage();
+}
     if (page === 'stats') {
         const currentTab = TabManager.state.stats || 'personal';
         TabManager.stats(currentTab);
@@ -3394,7 +3446,17 @@ if (page === 'workouts') {
 document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', function() {
         const page = this.dataset.page;
-        if (page) window.navigateTo(page);
+        if (!page) return;
+
+        // ★★★ На ленте «feed»-иконка стала «+» — открываем модалку поста ★★★
+        if (page === 'feed' && this.dataset.isCreatePost === 'true') {
+            if (typeof tryOpenCreatePostModal === 'function') {
+                tryOpenCreatePostModal();
+            }
+            return;
+        }
+
+        window.navigateTo(page);
     });
 });
 
@@ -3575,7 +3637,6 @@ if (currentTab === 'world') {
         // ★ Волна 2: остальное — после того, как первый рендер устоялся
         loadOnlineUsersCount();
         loadCommunityAchievements();
-        loadCommunityGoal();
         loadFriendsLeaderboard();
     };
 
@@ -4296,6 +4357,10 @@ let sessionCategory = '';
 let sessionWorkoutIcon = null;
 
 function startTrainingSession(exercises, title, category, workoutIcon) {
+    // ★ Если программа была выбрана, но категория не та — сбрасываем
+    if (_pendingProgramDay && _pendingProgramDay.category !== category) {
+        _pendingProgramDay = null;
+    }
     // Сброс совместных данных
     if (sessionListener) {
         sessionListener();
@@ -4318,6 +4383,7 @@ function startTrainingSession(exercises, title, category, workoutIcon) {
         return;
     }
 
+        // ★★★ ОБНОВЛЯЕМ ВИД ПЛАШКИ ★★★
     updateMusclesHintState();
     
     sessionExercises = exercises.map(ex => ({
@@ -6011,10 +6077,18 @@ function deleteWorkout(id) {
 function renderMyWorkouts() {
     const container = document.getElementById('myWorkoutsList');
     const workouts = getMyWorkouts();
-    if (workouts.length === 0) {
-        container.innerHTML = `<div class="empty-state"><span class="empty-icon">📋</span><h3 class="empty-title">Нет своих тренировок</h3><p class="empty-text">Создайте свою первую тренировку!</p></div>`;
-        return;
-    }
+if (workouts.length === 0) {
+    container.innerHTML = `
+        <div class="empty-state">
+            <span class="empty-icon">📋</span>
+            <h3 class="empty-title">Нет своих тренировок</h3>
+            <p class="empty-text">Создайте свою первую тренировку!</p>
+            <button class="btn btn-primary" onclick="createNewWorkout()">
+                <i class="fa-solid fa-plus"></i> Создать тренировку
+            </button>
+        </div>`;
+    return;
+}
     container.innerHTML = workouts.map(w => `
         <div class="item-card" data-workout-id="${w._id}" onclick="handleWorkoutClick('${w._id}', event)">
             ${w.icon ? `<div class="item-icon"><img src="images/${w.icon}.png"></div>` : ''}
@@ -6634,6 +6708,9 @@ if (Array.isArray(customWorkouts)) {
     localStorage.setItem('myCustomWorkouts', JSON.stringify(customWorkouts));
     renderMyWorkouts();
 }
+
+// ★★★ ЗАГРУЖАЕМ ПРОГРЕСС ПРОГРАММ ★★★
+await syncLoadWithFallback('programProgress', PROGRAM_PROGRESS_KEY, {});
 
 // ★★★ ЗАГРУЖАЕМ НАСТРОЙКИ ТЕМЫ ★★★
 const settings = await syncLoadFromFirestore('settings');
@@ -7709,11 +7786,6 @@ function enterApp() {
         }, 1000);
     }
 
-    // ★★★ ПРОВЕРЯЕМ НАГРАДУ ЗА ОБЩУЮ ЦЕЛЬ ★★★
-    setTimeout(() => {
-        checkAndGiveCommunityGoalReward();
-    }, 1000);
-
     // ★★★ ПРОВЕРЯЕМ ОТЛОЖЕННОЕ ПРИГЛАШЕНИЕ ★★★
     setTimeout(() => {
         tryOpenPendingInvite();
@@ -8159,8 +8231,15 @@ async function renderFriendsInProfile() {
         }).join('');
         if (requestsDiv) requestsDiv.innerHTML = requestsHtml;
     } else {
-        if (requestsDiv) requestsDiv.innerHTML = '<div class="empty-state"><span class="empty-icon">📧</span><h3 class="empty-title">Нет заявок</h3><p class="empty-text">Здесь будут отображаться входящие заявки.</p></div>';
-    }
+        if (requestsDiv) requestsDiv.innerHTML = `
+    <div class="empty-state">
+        <span class="empty-icon">📧</span>
+        <h3 class="empty-title">Нет заявок</h3>
+        <p class="empty-text">Здесь будут отображаться входящие заявки.</p>
+        <button class="btn btn-primary" onclick="focusFriendSearch()">
+            <i class="fa-solid fa-magnifying-glass"></i> Найти друзей
+        </button>
+    </div>`;    }
     
     // ★★★ ЗАГРУЖАЕМ ДРУЗЕЙ ★★★
     const friends = await getFriendsList();
@@ -8183,7 +8262,15 @@ friendsHtml = friends.data.map(f => {
     </div>`;
 }).join('');
     } else {
-        friendsHtml = '<div class="empty-state"><span class="empty-icon">👥</span><h3 class="empty-title">Нет друзей</h3><p class="empty-text">Добавьте друзей, чтобы соревноваться!</p></div>';
+        friendsHtml = `
+    <div class="empty-state">
+        <span class="empty-icon">👥</span>
+        <h3 class="empty-title">Нет друзей</h3>
+        <p class="empty-text">Добавьте друзей, чтобы соревноваться!</p>
+        <button class="btn btn-primary" onclick="focusFriendSearch()">
+            <i class="fa-solid fa-magnifying-glass"></i> Найти друзей
+        </button>
+    </div>`;
     }
     if (friendsDiv) friendsDiv.innerHTML = friendsHtml;
     // ★★★ БОЛЬШЕ НЕ СКРЫВАЕМ БЛОК ★★★
@@ -8912,13 +8999,17 @@ const achievementIcons = [
             </div>`;
         }).join('');
 
-        if (friends.length === 0) {
-            html += `<div class="empty-state">
-                <span class="empty-icon">👥</span>
-                <h3 class="empty-title">Нет друзей</h3>
-                <p class="empty-text">Добавьте друзей, чтобы соревноваться!</p>
-            </div>`;
-        }
+if (friends.length === 0) {
+    html += `
+        <div class="empty-state">
+            <span class="empty-icon">👥</span>
+            <h3 class="empty-title">Нет друзей</h3>
+            <p class="empty-text">Добавьте друзей, чтобы соревноваться!</p>
+            <button class="btn btn-primary" onclick="focusFriendSearch()">
+                <i class="fa-solid fa-magnifying-glass"></i> Найти друзей
+            </button>
+        </div>`;
+}
 
         container.innerHTML = html;
 
@@ -9538,11 +9629,14 @@ function hasPremium() {
 
 // В функцию openPremiumModal() добавить:
 function openPremiumModal() {
-    // ★★★ ОБНОВЛЯЕМ СЧЕТЧИК ПРИ ОТКРЫТИИ МОДАЛКИ ★★★
+    // Сброс выбора тарифа на Годовой
+    selectPremiumTariff('yearly');
+
+    // Обновляем счётчик PREMIUM
     setTimeout(async () => {
         await updatePremiumCounter();
     }, 100);
-    
+
     openModal('premiumModal');
 }
 
@@ -9558,10 +9652,98 @@ function closePremiumActiveModal() {
     closeModal('premiumActiveModal');
 }
 
+// =================== ОПЛАТА PREMIUM (СБП) ===================
+const PREMIUM_PAYMENT_CONFIG = {
+    // ★★★ ЗАМЕНИ НА СВОИ ДАННЫЕ ★★★
+    // Получи ссылки СБП в банке:
+    //  - оформи самозанятость (НПД)
+    //  - открой приложение банка (Т-Банк, ПСБ, Сбер)
+    //  - найди «Приём платежей по СБП» / «СБП QR»
+    //  - создай 2 ссылки: на 190₽ и на 2040₽
+    monthly: {
+        price: 190,
+        label: 'Ежемесячный',
+        link: 'https://messenger.sbrf.ru/sl/SSlaDz075ty9t5bXW'   // ← вставь ссылку СБП для 190 ₽
+    },
+    yearly: {
+        price: 2040,
+        label: 'Годовой',
+        link: 'https://messenger.sbrf.ru/sl/fQaOeRdQFNg2uVjbq'   // ← вставь ссылку СБП для 2040 ₽
+    }
+};
+
+let _premiumSelectedTariff = 'yearly';
+
+/** Выбор тарифа в основной модалке PREMIUM (по клику на карточку) */
+function selectPremiumTariff(tariff) {
+    _premiumSelectedTariff = tariff;
+
+    document.querySelectorAll('#premiumModal .premium-price-card').forEach(card => {
+        card.classList.toggle('premium-price-card-active', card.dataset.tariff === tariff);
+    });
+}
+
+/** Кнопка «Купить» в основной модалке → открывает окно оплаты */
 function buyPremium() {
     closePremiumModal();
-    openNotAvailableModal(); 
+    setTimeout(() => openPremiumPaymentModal(), 700);
 }
+
+function openPremiumPaymentModal() {
+    renderPremiumPaymentModal();
+    openModal('premiumPaymentModal');
+}
+
+function renderPremiumPaymentModal() {
+    const cfg = PREMIUM_PAYMENT_CONFIG[_premiumSelectedTariff];
+    if (!cfg) return;
+
+    // Информация о тарифе
+    const infoEl = document.getElementById('premiumPaymentTariffInfo');
+    if (infoEl) {
+        infoEl.textContent = `Тариф: ${cfg.label} · ${cfg.price} ₽`;
+    }
+
+    // QR-код
+    const qrWrapper = document.getElementById('premiumPaymentQr');
+    if (qrWrapper) {
+        qrWrapper.innerHTML = '';
+
+        if (cfg.link) {
+            const img = document.createElement('img');
+            img.src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(cfg.link)}`;
+            img.alt = 'QR-код для оплаты';
+            img.onerror = () => {
+                img.remove();
+                const ph = document.createElement('div');
+                ph.className = 'payment-qr-placeholder';
+                ph.textContent = 'Не удалось загрузить QR. Воспользуйтесь кнопкой ниже.';
+                qrWrapper.appendChild(ph);
+            };
+            qrWrapper.appendChild(img);
+        } else {
+            const ph = document.createElement('div');
+            ph.className = 'payment-qr-placeholder';
+            ph.innerHTML = 'QR-код появится после настройки.<br>Оплата ещё не подключена.';
+            qrWrapper.appendChild(ph);
+        }
+    }
+
+    // Кнопка «Оплатить по ссылке»
+    const linkBtn = document.getElementById('premiumPaymentLinkBtn');
+    if (linkBtn) {
+        if (cfg.link) {
+            linkBtn.href = cfg.link;
+            linkBtn.style.display = '';
+        } else {
+            linkBtn.style.display = 'none';
+        }
+    }
+}
+
+window.buyPremium = buyPremium;
+window.selectPremiumTariff = selectPremiumTariff;
+window.openPremiumPaymentModal = openPremiumPaymentModal;
 
 /* function buyPremium() {
     localStorage.setItem(PREMIUM_KEY, 'true');
@@ -9817,6 +9999,8 @@ function toggleEditWorkout() {
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('SportApp загружен!');
+
+        initFeedSearch();          // ★ добавили
 
         // ★★★ ПРИ СТАРТЕ — КНОПКИ СКРЫТЫ ★★★
     hideHeroButtons();
@@ -10194,6 +10378,10 @@ class PageEditor {
         this.backupLayout = null;
         this.blockedClickHandler = null;
 
+            this.onEnable  = config.onEnable  || null;
+    this.onDisable = config.onDisable || null;
+    this.onSave    = config.onSave    || null;
+
         this.editBtn = document.getElementById(config.editBtnId);
         this.saveBtn = document.getElementById(config.saveBtnId);
         this.cancelBtn = document.getElementById(config.cancelBtnId);
@@ -10271,19 +10459,22 @@ enableEdit() {
 
     this.containers.forEach(container => {
         const element = document.getElementById(container.id);
-        if (element) {
-            element.classList.add('editing');
-        }
+        if (element) element.classList.add('editing');
     });
 
     this.editBtn.style.display = 'none';
     this.actionsContainer.style.display = 'flex';
 
     this.blockNavigation();
+
+    // ★ Сначала рендерим (показываем мусорки), потом Sortable
+    if (typeof this.onEnable === 'function') this.onEnable();
+
     this.initSortables();
 
     showToast('✏️ Режим редактирования включен');
 }
+
 
 // ★★★ НОВЫЙ МЕТОД ДЛЯ ПРЕДОТВРАЩЕНИЯ СКРОЛЛА ★★★
 _preventScroll(e) {
@@ -10320,16 +10511,19 @@ disableEdit(save = false) {
         this.backupLayout = null;
         showToast('↩️ Изменения отменены');
     }
-}
 
+    // ★ Скрываем мусорки, возвращаем стрелки
+    if (typeof this.onDisable === 'function') this.onDisable();
+}
 
 save() {
     const layout = this.getCurrentLayout();
     localStorage.setItem(this.storageKey, JSON.stringify(layout));
-    
-    // ★★★ В FIRESTORE ★★★
     saveLayoutToFirestore(this.storageKey, layout);
-    
+
+    // ★ Сохраняем реальный порядок в массив программ
+    if (typeof this.onSave === 'function') this.onSave(layout);
+
     this.backupLayout = null;
     this.disableEdit(true);
     showToast('✅ Изменения применены');
@@ -10369,18 +10563,27 @@ blockNavigation() {
         }
 
         // ★★★ ПРОПУСКАЕМ ВСЕ КНОПКИ РЕДАКТИРОВАНИЯ ★★★
-        if (e.target.closest('#editStatsBtn') ||
-            e.target.closest('#editWorkoutsBtn') ||
-            e.target.closest('#statsEditActions') ||
-            e.target.closest('#workoutsEditActions') ||
-            e.target.closest('#saveStatsBtn') ||
-            e.target.closest('#saveWorkoutsBtn') ||
-            e.target.closest('#cancelStatsBtn') ||
-            e.target.closest('#cancelWorkoutsBtn') ||
-            e.target.closest('#resetStatsBtn') ||
-            e.target.closest('#resetWorkoutsBtn')) {
-            return;
-        }
+if (e.target.closest('#editStatsBtn') ||
+    e.target.closest('#editWorkoutsBtn') ||
+    e.target.closest('#editMyProgramsBtn') ||
+    e.target.closest('#editReadyProgramsBtn') ||           // ★
+    e.target.closest('#statsEditActions') ||
+    e.target.closest('#workoutsEditActions') ||
+    e.target.closest('#myProgramsEditActions') ||
+    e.target.closest('#readyProgramsEditActions') ||       // ★
+    e.target.closest('#saveStatsBtn') ||
+    e.target.closest('#saveWorkoutsBtn') ||
+    e.target.closest('#saveMyProgramsBtn') ||
+    e.target.closest('#saveReadyProgramsBtn') ||           // ★
+    e.target.closest('#cancelStatsBtn') ||
+    e.target.closest('#cancelWorkoutsBtn') ||
+    e.target.closest('#cancelMyProgramsBtn') ||
+    e.target.closest('#cancelReadyProgramsBtn') ||         // ★
+    e.target.closest('#resetStatsBtn') ||
+    e.target.closest('#resetWorkoutsBtn') ||
+    e.target.closest('#resetReadyProgramsBtn')) {          // ★
+    return;
+}
 
         // Разрешаем перетаскивание
         if (e.target.closest('.section-drag') ||
@@ -10421,8 +10624,8 @@ initSortables() {
         const element = document.getElementById(container.id);
         if (!element) return;
 
-        let handle = container.handle || '.section-drag';
-        let filter = container.filter || null;
+let handle = (container.handle !== undefined) ? container.handle : '.section-drag';
+let filter = container.filter || null;
         
         if (['catalogGridStrength', 'catalogGridFitness', 'catalogGridPremium', 'myWorkoutsList'].includes(container.id)) {
             filter = '.workout-delete';
@@ -10523,7 +10726,7 @@ statsBlocksContainer: ['muscles', 'categories', 'calendar', 'weekly-load', 'body
         exerciseMuscleStats: ['Руки', 'Плечи', 'Пресс', 'Грудь', 'Спина', 'Ноги', 'Ягодицы'],
         categoriesStats: ['Руки', 'Плечи', 'Пресс', 'Грудь', 'Спина', 'Ноги', 'Ягодицы', 'Кардио', 'Гибкость', 'Всё тело'],
         globalStatsContainer: ['minutes', 'workouts', 'exercises'],  // ★ ДОБАВИЛИ
-        worldStatsBlocksContainer: ['community-achievements', 'community-goal', 'world-leaderboard', 'friends-leaderboard']
+        worldStatsBlocksContainer: ['community-achievements', 'world-leaderboard', 'friends-leaderboard']
     }
 });
 // ===================ЕДИНЫЙ РЕДАКТОР тренировок ===================
@@ -10543,6 +10746,76 @@ window.workoutsEditor = new PageEditor({
         { id: 'myWorkoutsList', dataAttr: 'workoutId', filter: '.workout-delete' }
     ],
     defaultLayout: getDefaultWorkoutsLayout()
+});
+
+// =================== РЕДАКТОР «МОИ ПРОГРАММЫ» ===================
+window.myProgramsEditor = new PageEditor({
+    pageId: 'page-programs',
+    storageKey: 'myProgramsLayout',
+    editBtnId: 'editMyProgramsBtn',
+    saveBtnId: 'saveMyProgramsBtn',
+    cancelBtnId: 'cancelMyProgramsBtn',
+    actionsId: 'myProgramsEditActions',
+    containers: [
+        { id: 'myProgramsList', dataAttr: 'programId', filter: '.program-delete', handle: null }
+    ],
+    defaultLayout: { myProgramsList: [] },
+    onEnable:  () => renderMyPrograms(),
+    onDisable: () => renderMyPrograms(),
+    onSave: (layout) => {
+        const order = layout.myProgramsList || [];
+        const list = getMyPrograms();
+        const byId = {};
+        list.forEach(p => byId[p.id] = p);
+        const reordered = order.map(id => byId[id]).filter(Boolean);
+        // на всякий случай добавляем всё, чего не было в layout
+        list.forEach(p => {
+            if (!order.includes(p.id)) reordered.push(p);
+        });
+        saveMyPrograms(reordered);
+    }
+});
+
+// =================== РЕДАКТОР «ГОТОВЫЕ ПРОГРАММЫ» ===================
+window.readyProgramsEditor = new PageEditor({
+    pageId: 'page-programs',
+    storageKey: 'readyProgramsLayout',
+    editBtnId: 'editReadyProgramsBtn',
+    saveBtnId: 'saveReadyProgramsBtn',
+    cancelBtnId: 'cancelReadyProgramsBtn',
+    resetBtnId: 'resetReadyProgramsBtn',
+    actionsId: 'readyProgramsEditActions',
+    containers: [
+        // ★ Сортируем только блоки внутри обёртки
+        { id: 'programsReadyBlocks',  dataAttr: 'blockId',   handle: '.section-drag' },
+        // ★ Сортируем карточки внутри каждого блока
+        { id: 'freeProgramsList',     dataAttr: 'programId', handle: null },
+        { id: 'premiumProgramsList',  dataAttr: 'programId', handle: null }
+    ],
+    defaultLayout: {
+        programsReadyBlocks: ['programs-free', 'programs-premium'],  // ★ ключ = id обёртки
+        freeProgramsList: [],
+        premiumProgramsList: []
+    },
+    onEnable:  () => renderReadyPrograms(),
+    onDisable: () => renderReadyPrograms(),
+    onSave: (layout) => {
+        const freeIds    = layout.freeProgramsList    || [];
+        const premiumIds = layout.premiumProgramsList || [];
+        const order = [...freeIds, ...premiumIds];
+
+        const byId = {};
+        PRESET_PROGRAMS.forEach(p => byId[p.id] = p);
+
+        const reordered = order.map(id => byId[id]).filter(Boolean);
+        PRESET_PROGRAMS.forEach(p => {
+            if (!order.includes(p.id)) reordered.push(p);
+        });
+
+        // Переставляем PRESET_PROGRAMS in-place
+        PRESET_PROGRAMS.length = 0;
+        PRESET_PROGRAMS.push(...reordered);
+    }
 });
 
 document.getElementById('resetWorkoutsBtn')?.addEventListener('click', function() {
@@ -10652,7 +10925,14 @@ window.addEventListener('load', function() {
 
 // ===================СТРАНИЦА ФИНИШ ===================
 function showFinishPage(exercisesCount, completedCount, seconds, xpEarned) {
-    // ★★★ ЗАПОЛНЯЕМ СТАТИСТИКУ ★★★
+    // ★ Отмечаем день программы выполненным
+    if (_pendingProgramDay) {
+        const { programId, day } = _pendingProgramDay;
+        if (completedCount > 0) {
+            completeProgramDay(programId, day);
+        }
+        _pendingProgramDay = null;
+    }    // ★★★ ЗАПОЛНЯЕМ СТАТИСТИКУ ★★★
     document.getElementById('finishExercises').textContent = `${completedCount}/${exercisesCount}`;
     
     const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
@@ -10774,10 +11054,11 @@ if (shareBtn) {
                         showToast('⚠️ Тренировка сохранена локально');
                     }
 
-                    // Сбрасываем переменные
-                    sessionExercises = [];
-                    sessionCompleted = new Set();
-                    sessionCompletedSets = {};
+            // Сбрасываем переменные
+            sessionExercises = [];
+            sessionCompleted = new Set();
+            sessionSkipped = new Set();
+            sessionCompletedSets = {};
                     sessionSeconds = 0;
                     sessionWorkoutTitle = '';
                     sessionCategory = '';
@@ -10793,11 +11074,6 @@ if (shareBtn) {
                             enqueueModal({ type: 'premium' });
                         }, 800);
                     }
-
-                    // ★★★ ПРОВЕРЯЕМ НАГРАДУ ★★★
-                    setTimeout(() => {
-                        checkAndGiveCommunityGoalReward(true);
-                    }, 1000);
 
                 } catch (error) {
                     console.error('❌ Ошибка сохранения тренировки:', error);
@@ -11067,10 +11343,6 @@ document.addEventListener('click', function(e) {
 const navItem = e.target.closest('.nav-item');
 if (navItem) {
     setTimeout(refreshNotificationData, 300);
-    // ★★★ ПРОВЕРЯЕМ НАГРАДУ ПРИ ПЕРЕХОДАХ ПО МЕНЮ ★★★
-    setTimeout(() => {
-        checkAndGiveCommunityGoalReward();
-    }, 500);
     return;
 }
     
@@ -11134,11 +11406,6 @@ function handleRulesAccept() {
         closeModal('rulesModal');
         showToast('✅ Спасибо за честность! Приятных тренировок!');
         console.log('✅ Все правила приняты, модальное окно закрыто');
-
-        // ★★★ ОТКРЫВАЕМ ПОДСКАЗКУ ПРО ЦВЕТ МЫШЦ ★★★
-        setTimeout(() => {
-            openMusclesHintModal();
-        }, 650); // ждём, пока закроется модалка Правил (600мс анимация + запас)
     } else {
         // Не все правила приняты - показываем тост
         showToast('⚠️ Примите все правила, чтобы продолжить');
@@ -16124,9 +16391,10 @@ function openMusclesHintModal() {
     // ★ Запоминаем, что пользователь уже видел подсказку
     localStorage.setItem('musclesHintSeen', 'true');
 
-    // ★ Прячем плашку
+    // ★ Прячем текст у всех таких плашек на странице
+    //   (на случай если их несколько или перерисовка)
     document.querySelectorAll('.session-muscles-hint').forEach(btn => {
-        btn.style.display = 'none';
+        btn.classList.add('compact');
     });
 
     openModal('musclesHintModal');
@@ -16134,14 +16402,18 @@ function openMusclesHintModal() {
 window.openMusclesHintModal = openMusclesHintModal;
 
 /**
- * Обновить видимость плашки в зависимости от того,
+ * Обновить вид плашки в зависимости от того,
  * видел ли пользователь подсказку раньше.
  * Вызывается при старте тренировки.
  */
 function updateMusclesHintState() {
     const seen = localStorage.getItem('musclesHintSeen') === 'true';
     document.querySelectorAll('.session-muscles-hint').forEach(btn => {
-        btn.style.display = seen ? 'none' : 'inline-flex';
+        if (seen) {
+            btn.classList.add('compact');
+        } else {
+            btn.classList.remove('compact');
+        }
     });
 }
 window.updateMusclesHintState = updateMusclesHintState;
@@ -16480,427 +16752,6 @@ async function loadCommunityAchievements() {
     }
 }
 
-// =================== ОБЩАЯ ЦЕЛЬ СООБЩЕСТВА ===================
-const COMMUNITY_GOAL = {
-    target: 1000,
-    topCount: 10,
-    title: 'Выполнить 1000 тренировок',
-
-    getRewardByPosition(position) {
-        if (position === 1) return 100;
-        if (position === 2) return 80;
-        if (position === 3) return 60;
-        if (position === 4 || position === 5) return 40;
-        return 20;
-    }
-};
-
-const COMMUNITY_GOAL_DOC = 'communityGoals/current';
-
-/**
- * Получить текущую цель из Firestore.
- * Если документа нет — создаём с дефолтными значениями.
- */
-async function getCommunityGoalState() {
-    try {
-        const docRef = firebase.firestore().doc(COMMUNITY_GOAL_DOC);
-        const doc = await docRef.get();
-
-        if (!doc.exists) {
-            const defaultState = {
-                target: COMMUNITY_GOAL.target,
-                title: COMMUNITY_GOAL.title,
-                status: 'active',
-                completedAt: null,
-                top10: [],
-                startedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            await docRef.set(defaultState);
-            return defaultState;
-        }
-
-        return doc.data();
-    } catch (error) {
-        console.error('❌ Ошибка получения состояния цели:', error);
-        return null;
-    }
-}
-
-async function countAllWorkouts(force = false) {
-    const CACHE_KEY = 'goalWorkoutsAggregate';
-
-    if (!force) {
-        const cached = Cache.getAggregate(CACHE_KEY);
-        if (cached) {
-            console.log('📦 countAllWorkouts из кэша');
-            return cached;
-        }
-    }
-
-    const state = await getCommunityGoalState();
-    const startedAt = state?.startedAt;
-
-    let startMs = 0;
-    if (startedAt) {
-        if (typeof startedAt.toMillis === 'function') startMs = startedAt.toMillis();
-        else if (startedAt.seconds) startMs = startedAt.seconds * 1000;
-        else startMs = new Date(startedAt).getTime();
-    }
-
-    const snapshot = await firebase.firestore()
-        .collection('workouts')
-        .get();
-
-    const counts = {};
-    let totalWorkouts = 0;
-
-    snapshot.forEach(doc => {
-        const data = doc.data();
-        const icon = data.icon || null;
-        if (!icon || icon === 'charging' || data.isSingle === true) return;
-
-        const workoutDate = data.date ? new Date(data.date).getTime() : 0;
-        if (workoutDate < startMs) return;
-
-        totalWorkouts++;
-        const userId = data.userId;
-        if (!userId) return;
-        counts[userId] = (counts[userId] || 0) + 1;
-    });
-
-    const result = { counts, totalWorkouts };
-    Cache.setAggregate(CACHE_KEY, result);
-    return result;
-}
-
-/**
- * Фиксирует завершение цели: сохраняет топ-10 и ставит status = 'completed'.
- */
-async function completeCommunityGoal(totalWorkouts, counts) {
-    try {
-        const sorted = Object.entries(counts)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, COMMUNITY_GOAL.topCount);
-
-        const top10 = [];
-        for (let i = 0; i < sorted.length; i++) {
-            const [userId, count] = sorted[i];
-            const position = i + 1;
-
-            let name = 'Пользователь';
-            let xp = 0;
-            let achievements = {};
-            try {
-                const profileResult = await getUserProfile(userId);
-                if (profileResult.success) {
-                    name = profileResult.data.displayName || 'Пользователь';
-                    xp = profileResult.data.totalXp || 0;
-                    achievements = profileResult.data.achievements || {};
-                }
-            } catch (e) {}
-
-            top10.push({
-                userId,
-                name,
-                count,
-                position,
-                xp,
-                achievements,
-                reward: COMMUNITY_GOAL.getRewardByPosition(position)
-            });
-        }
-
-        await firebase.firestore().doc(COMMUNITY_GOAL_DOC).update({
-            status: 'completed',
-            completedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            top10: top10,
-            totalWorkouts: totalWorkouts
-        });
-
-        // ★ Сбрасываем кэш агрегата — цель зафиксирована, данные устарели
-        Cache.aggregates.delete('goalWorkoutsAggregate');
-
-        console.log('🏆 Цель зафиксирована! Топ-10 сохранён.');
-        return top10;
-    } catch (error) {
-        console.error('❌ Ошибка фиксации цели:', error);
-        return null;
-    }
-}
-
-// =================== ПРОГРЕСС ОБЩЕЙ ЦЕЛИ ===================
-async function loadCommunityGoal() {
-    const progressEl = document.getElementById('communityGoalProgress');
-    const fillEl = document.getElementById('communityGoalFill');
-    const titleEl = document.getElementById('communityGoalTitle');
-    if (!progressEl || !fillEl) return;
-
-    progressEl.textContent = '... / ...';
-    fillEl.style.width = '0%';
-
-    try {
-        const user = await getFirebaseUser();
-        if (!user) {
-            progressEl.textContent = '—';
-            return;
-        }
-
-        let state = await getCommunityGoalState();
-        if (!state) return;
-
-        let totalWorkouts = 0;
-
-        if (state.status === 'completed') {
-            // Не пересчитываем — показываем финальное значение
-            totalWorkouts = state.totalWorkouts || 0;
-            progressEl.textContent = `${totalWorkouts} / ${state.target}`;
-            fillEl.style.width = '100%';
-            if (titleEl) titleEl.textContent = state.title || `Выполнить ${state.target} тренировок`;
-            console.log(`🎯 Цель завершена: ${totalWorkouts}/${state.target}`);
-            return;
-        }
-
-        // Цель активна — считаем
-        const { counts, totalWorkouts: total } = await countAllWorkouts();
-        totalWorkouts = total;
-
-        // Если цель только что достигнута — фиксируем
-        if (totalWorkouts >= state.target) {
-            console.log('🎉 Цель достигнута! Фиксируем топ-10...');
-            await completeCommunityGoal(totalWorkouts, counts);
-            state = await getCommunityGoalState();
-            progressEl.textContent = `${totalWorkouts} / ${state.target}`;
-            fillEl.style.width = '100%';
-        } else {
-            const percent = Math.min(100, Math.round((totalWorkouts / state.target) * 100));
-            progressEl.textContent = `${totalWorkouts} / ${state.target}`;
-            fillEl.style.width = percent + '%';
-        }
-        if (titleEl) titleEl.textContent = state.title || `Выполнить ${state.target} тренировок`;
-
-        console.log(`🎯 Общая цель: статус=${state.status}, прогресс=${totalWorkouts}/${state.target}`);
-
-    } catch (error) {
-        console.error('❌ Ошибка загрузки общей цели:', error);
-        progressEl.textContent = '—';
-    }
-}
-
-// =================== ТОП-10 ВКЛАДЧИКОВ ===================
-async function loadCommunityGoalTop() {
-    const container = document.getElementById('communityGoalTop');
-    if (!container) return;
-
-    container.innerHTML = Skeleton.itemCardList(5);
-
-    try {
-        const user = await getFirebaseUser();
-        if (!user) {
-            container.innerHTML = '<div style="text-align:center;color:var(--slate);padding:1rem;">Авторизуйтесь</div>';
-            return;
-        }
-
-        const state = await getCommunityGoalState();
-        if (!state) return;
-
-        let topUsers = [];
-
-        if (state.status === 'completed' && state.top10 && state.top10.length > 0) {
-            // ★★★ ИСПОЛЬЗУЕМ ЗАФИКСИРОВАННЫЙ ТОП ★★★
-            console.log('📌 Используем зафиксированный топ-10');
-            topUsers = state.top10.map(u => ({
-                id: u.userId,
-                name: u.name,
-                count: u.count,
-                xp: u.xp,
-                achievements: u.achievements || {},
-                position: u.position,
-                reward: u.reward
-            }));
-        } else {
-            // ★★★ СЧИТАЕМ АКТУАЛЬНЫЙ ТОП ★★★
-            const { counts } = await countAllWorkouts();
-
-            const sorted = Object.entries(counts)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, COMMUNITY_GOAL.topCount);
-
-// СТАЛО:
-const userIds = sorted.map(([id]) => id);
-const profilesMap = await getProfilesBatch(userIds);
-
-for (let i = 0; i < sorted.length; i++) {
-    const [userId, count] = sorted[i];
-    const position = i + 1;
-    const p = profilesMap[userId] || {};
-    topUsers.push({
-        id: userId,
-        name: p.displayName || 'Пользователь',
-        count,
-        xp: p.totalXp || 0,
-        achievements: p.achievements || {},
-        position,
-        reward: COMMUNITY_GOAL.getRewardByPosition(position)
-    });
-}
-        }
-
-        if (topUsers.length === 0) {
-            container.innerHTML = '<div style="text-align:center;color:var(--slate);padding:1rem;">Пока нет тренировок</div>';
-            return;
-        }
-
-        const visible = getAchievementsVisibility();
-        container.innerHTML = topUsers.map(u => {
-            const isCurrentUser = u.id === user.uid;
-
-            let infoHtml = '';
-            if (visible) {
-const achievementIcons = [
-    { id: 'friendly', icon: 'fa-solid fa-user-group' },
-    { id: 'marathoner', icon: 'fa-solid fa-dumbbell' },
-    { id: 'fitnessMaster', icon: 'fa-solid fa-heart-pulse' },
-    { id: 'unstoppable', icon: 'fa-solid fa-fire' },
-    { id: 'ironEndurance', icon: 'fa-solid fa-stopwatch' },
-    { id: 'masterOfStyles', icon: 'fa-solid fa-award' },
-    { id: 'vip', icon: 'fa-solid fa-crown' }
-];
-                infoHtml = achievementIcons.map(a => {
-                    const unlocked = u.achievements[a.id] === true;
-                    return `<span class="achievement-icon-top ${unlocked ? 'unlocked' : 'locked'}"><i class="${a.icon}"></i></span>`;
-                }).join('');
-            } else {
-                const level = getCurrentLevel(u.xp).id;
-                infoHtml = `<span style="font-size:0.6rem; color:var(--slate);">Уровень ${level}</span>`;
-            }
-
-            const statsText = `${u.count} ${declOfNum(u.count, ['тренировка', 'тренировки', 'тренировок'])} · +${u.reward} XP`;
-
-            return `
-                <div class="item-card-light ${isCurrentUser ? 'current-user' : ''}">
-                    <div class="item-icon" style="width:44px;height:44px;min-width:44px;background:var(--accent-light);border-radius:10px;display:flex;align-items:center;justify-content:center;">
-                        <span style="font-size:1rem;font-weight:700;color:var(--accent);">${u.position}</span>
-                    </div>
-                    <div class="item-info" style="text-align:left;">
-                        <h3 class="item-title">${u.name}</h3>
-                        <p class="item-desc" style="font-weight:600; color:var(--accent);">${statsText}</p>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-    } catch (error) {
-        console.error('❌ Ошибка загрузки топ-10:', error);
-        container.innerHTML = '<div style="text-align:center;color:#EF4444;padding:1rem;">Ошибка загрузки</div>';
-    }
-}
-
-// =================== МОДАЛКА «ОБЩАЯ ЦЕЛЬ» ===================
-async function openCommunityGoalModal() {
-    // ★★★ СНАЧАЛА ЗАГРУЖАЕМ ДАННЫЕ, ПОТОМ ОТКРЫВАЕМ МОДАЛКУ ★★★
-    const placeTextEl = document.getElementById('communityGoalMyPlaceText');
-    const rewardEl = document.getElementById('communityGoalMyReward');
-    if (placeTextEl) placeTextEl.textContent = 'Вы на ... месте';
-    if (rewardEl) {
-        rewardEl.textContent = '+...XP';
-        rewardEl.style.color = 'var(--slate)';
-    }
-
-    openModal('communityGoalModal');
-
-    // Обновляем текст статуса
-    const statusTextEl = document.getElementById('communityGoalStatusText');
-    if (statusTextEl) {
-        try {
-            const state = await getCommunityGoalState();
-            if (state && state.status === 'completed') {
-                statusTextEl.textContent = '✅ Задание выполнено! Все награды разданы!';
-            } else {
-                statusTextEl.textContent = 'Как только сообщество достигнет цели, все получат свою награду.';
-            }
-        } catch (e) {
-            statusTextEl.textContent = 'Как только сообщество достигнет цели, все получат свою награду.';
-        }
-    }
-
-    // Загружаем топ-10 и моё место параллельно
-    await Promise.all([
-        loadCommunityGoalTop(),
-        loadCommunityGoalMyPlace()
-    ]);
-}
-
-window.openCommunityGoalModal = openCommunityGoalModal;
-
-// ★★★ МОЁ МЕСТО И НАГРАДА ★★★
-async function loadCommunityGoalMyPlace() {
-    const placeTextEl = document.getElementById('communityGoalMyPlaceText');
-    const rewardEl = document.getElementById('communityGoalMyReward');
-    if (!placeTextEl || !rewardEl) return;
-
-    // ★ Показываем индикатор загрузки
-    placeTextEl.textContent = 'Вы на ... месте';
-    rewardEl.textContent = '+...XP';
-    rewardEl.style.color = 'var(--slate)';
-
-    try {
-        const user = await getFirebaseUser();
-        if (!user) {
-            placeTextEl.textContent = 'Авторизуйтесь';
-            rewardEl.textContent = '';
-            return;
-        }
-
-        const state = await getCommunityGoalState();
-        if (!state) {
-            placeTextEl.textContent = 'Вы на ... месте';
-            rewardEl.textContent = '+...XP';
-            return;
-        }
-
-        let myPosition = 0;
-        let myReward = 0;
-
-        // ★★★ ЕСЛИ ЦЕЛЬ ЗАВЕРШЕНА — БЕРЁМ ИЗ ЗАФИКСИРОВАННОГО ТОПА ★★★
-        if (state.status === 'completed' && state.top10 && state.top10.length > 0) {
-            const topUser = state.top10.find(u => u.userId === user.uid);
-            if (topUser) {
-                myPosition = topUser.position;
-                myReward = topUser.reward;
-            } else {
-                // Не в топ-10 — считаем место по общей статистике
-                const { counts } = await countAllWorkouts();
-                const myCount = counts[user.uid] || 0;
-                myPosition = Object.values(counts).filter(c => c > myCount).length + 1;
-                myReward = 0;
-            }
-        } else {
-            // ★★★ ЦЕЛЬ АКТИВНА — СЧИТАЕМ АКТУАЛЬНОЕ МЕСТО ★★★
-            const { counts } = await countAllWorkouts();
-            const myCount = counts[user.uid] || 0;
-            myPosition = Object.values(counts).filter(c => c > myCount).length + 1;
-
-            if (myPosition === 1) myReward = 100;
-            else if (myPosition === 2) myReward = 80;
-            else if (myPosition === 3) myReward = 60;
-            else if (myPosition === 4 || myPosition === 5) myReward = 40;
-            else if (myPosition <= 10) myReward = 20;
-            else myReward = 0;
-        }
-
-        // ★★★ ОБНОВЛЯЕМ UI — ГАРАНТИРОВАННО ★★★
-        placeTextEl.textContent = `Вы на ${myPosition}-м месте`;
-        rewardEl.textContent = myReward > 0 ? `+${myReward}XP` : 'без награды';
-        rewardEl.style.color = myReward > 0 ? 'var(--accent)' : 'var(--slate)';
-
-        console.log(`🎯 Ваше место: ${myPosition}, награда: ${myReward}XP`);
-
-    } catch (error) {
-        console.error('❌ Ошибка загрузки места:', error);
-        placeTextEl.textContent = 'Вы на ... месте';
-        rewardEl.textContent = '+...XP';
-    }
-}
 
 // =================== ОЧЕРЕДЬ МОДАЛОК ===================
 const modalQueue = [];
@@ -16943,11 +16794,10 @@ function processModalQueue() {
         }
     }
 
-    // Не показываем, если уже открыта какая-то модалка
     const openModalOverlay = document.querySelector(
         '.modal-overlay[style*="display: flex"], .modal-overlay[style*="display:flex"]'
     );
-    if (openModalOverlay && openModalOverlay.id !== 'communityGoalRewardModal') {
+    if (openModalOverlay) {
         console.log('⏸️ Другая модалка открыта — очередь ждёт');
         return;
     }
@@ -16977,14 +16827,6 @@ function processModalQueue() {
             processModalQueue();
         });
 
-    } else if (item.type === 'goalReward') {
-        try {
-            showCommunityGoalRewardModal(item.topUser, item.goalState);
-        } catch (error) {
-            console.error('❌ Ошибка показа reward-модалки:', error);
-            isModalQueueProcessing = false;
-            processModalQueue();
-        }
     } else {
         console.warn('⚠️ Неизвестный тип модалки в очереди:', item.type);
         isModalQueueProcessing = false;
@@ -17017,149 +16859,6 @@ function watchModalClose(modalId, callback) {
     observer.observe(modal, { attributes: true, attributeFilter: ['style'] });
 }
 
-// =================== МОДАЛКА НАГРАДЫ ЗА ЦЕЛЬ ===================
-async function showCommunityGoalRewardModal(topUser, goalState) {
-    const modal = document.getElementById('communityGoalRewardModal');
-
-    // ★★★ ЕСЛИ МОДАЛКИ НЕТ — ПРОДОЛЖАЕМ ОЧЕРЕДЬ ★★★
-    if (!modal) {
-        console.warn('⚠️ Модалка communityGoalRewardModal не найдена в HTML');
-        isModalQueueProcessing = false;
-        processModalQueue();
-        return;
-    }
-
-    // ★★★ ЕСЛИ НЕТ ДАННЫХ — ПРОПУСКАЕМ ★★★
-    if (!topUser || !goalState) {
-        console.warn('⚠️ showCommunityGoalRewardModal: нет topUser или goalState');
-        isModalQueueProcessing = false;
-        processModalQueue();
-        return;
-    }
-
-    const titleEl = document.getElementById('communityGoalRewardTitle');
-    const textEl = document.getElementById('communityGoalRewardText');
-    const acceptBtn = document.getElementById('communityGoalRewardAcceptBtn');
-
-    // Заполняем тексты
-    if (titleEl) {
-        titleEl.textContent = `Задание "${goalState.title || 'Общая цель'}" выполнено!`;
-    }
-    if (textEl) {
-        textEl.textContent = `Вы заняли ${topUser.position} место и получаете награду: +${topUser.reward}XP.`;
-    }
-
-    // Обработчик кнопки «Принять»
-    if (acceptBtn) {
-        // Убираем старые обработчики
-        const newBtn = acceptBtn.cloneNode(true);
-        acceptBtn.parentNode.replaceChild(newBtn, acceptBtn);
-
-        newBtn.disabled = false;
-        newBtn.addEventListener('click', async function() {
-            newBtn.disabled = true;
-
-            try {
-                const user = await getFirebaseUser();
-                if (!user) {
-                    closeModal('communityGoalRewardModal');
-                    isModalQueueProcessing = false;
-                    processModalQueue();
-                    return;
-                }
-
-                const profileResult = await getUserProfile(user.uid);
-                const profile = profileResult.success ? profileResult.data : {};
-                const currentXp = profile.totalXp || 0;
-
-                await updateUserProfile(user.uid, {
-                    totalXp: currentXp + topUser.reward,
-                    communityGoalReward: goalState.target
-                });
-
-                console.log(`🏆 Награда принята: +${topUser.reward} XP`);
-
-                closeModal('communityGoalRewardModal');
-
-                // Обновляем профиль, чтобы XP отобразился
-                if (typeof loadProfile === 'function') loadProfile();
-
-                // ★★★ ПРОДОЛЖАЕМ ОЧЕРЕДЬ ★★★
-                isModalQueueProcessing = false;
-                processModalQueue();
-
-            } catch (error) {
-                console.error('❌ Ошибка принятия награды:', error);
-                closeModal('communityGoalRewardModal');
-                isModalQueueProcessing = false;
-                processModalQueue();
-            }
-        });
-    }
-
-    openModal('communityGoalRewardModal');
-}
-
-// =================== ПРОВЕРКА НАГРАДЫ ЗА ЦЕЛЬ ===================
-let _lastGoalRewardCheck = 0;
-
-/**
- * Проверяет, должен ли пользователь получить награду.
- * Если да — добавляет модалку в очередь.
- * @param {boolean} force — игнорировать throttle
- */
-async function checkAndGiveCommunityGoalReward(force = false) {
-    // ★★★ THROTTLE: не чаще раза в 10 секунд (если не force) ★★★
-    const now = Date.now();
-    if (!force && now - _lastGoalRewardCheck < 10000) {
-        return;
-    }
-    _lastGoalRewardCheck = now;
-
-    try {
-        const user = await getFirebaseUser();
-        if (!user) return;
-
-        const profileResult = await getUserProfile(user.uid);
-        if (!profileResult.success) return;
-        const profile = profileResult.data;
-
-        const state = await getCommunityGoalState();
-        if (!state) return;
-
-        // Если цель не завершена — выходим
-        if (state.status !== 'completed') return;
-
-        // Если уже получал награду за эту цель — выходим
-        if (profile.communityGoalReward === state.target) {
-            console.log('ℹ️ Награда за эту цель уже получена');
-            return;
-        }
-
-        // Ищем пользователя в зафиксированном топе
-        const topUser = (state.top10 || []).find(u => u.userId === user.uid);
-
-        if (!topUser) {
-            // Не в топ-10 — ставим флаг, чтобы не проверять каждый раз
-            console.log('ℹ️ Вы не в топ-10 зафиксированной цели');
-            await updateUserProfile(user.uid, {
-                communityGoalReward: state.target
-            });
-            return;
-        }
-
-        // ★★★ ДОБАВЛЯЕМ В ОЧЕРЕДЬ ★★★
-        console.log(`📥 Добавляем награду в очередь: место ${topUser.position}, +${topUser.reward} XP`);
-        enqueueModal({
-            type: 'goalReward',
-            topUser: topUser,
-            goalState: state
-        });
-
-    } catch (error) {
-        console.error('❌ Ошибка проверки награды:', error);
-    }
-}
 
 // =================== ГТО: ВОЗРАСТНЫЕ КАТЕГОРИИ (15 СТУПЕНЕЙ) ===================
 const GTO_AGE_MAP = {
@@ -17348,7 +17047,7 @@ function filterExercisesByInventory(userInventory) {
     });
 }
 
-// =================== АВТО-КАРУСЕЛЬ (БЕСКОНЕЧНАЯ) ===================
+// =================== КАРУСЕЛЬ И ПРОГРАММЫ ===================
 function shuffleArray(arr) {
     const result = [...arr];
     for (let i = result.length - 1; i > 0; i--) {
@@ -17358,305 +17057,226 @@ function shuffleArray(arr) {
     return result;
 }
 
-const CAROUSEL_CARDS = [
-    // ★★★ КАРТОЧКА УРОВНЯ ★★★
+// ─── Готовые программы ───
+const PRESET_PROGRAMS = [
     {
-        dynamic: true,
-        isLevelCard: true,
-        icon: 'fa-solid fa-trophy',
-        iconImg: null,
-        title: 'НОВИЧОК',
-        desc: '0 / 100 XP',
-        action: () => {
-            if (typeof openLevelInfoModal === 'function') {
-                openLevelInfoModal();
-            }
-        }
+        id: 'abs_30',
+        title: 'Стальной пресс',
+        subtitle: 'за месяц',
+        icon: 'press',
+        image: 'images/program-abs-30.png',
+        emoji: '🔥',
+        category: 'Пресс',
+        durationDays: 30,
+        workoutsPerWeek: 5,
+        difficulty: 'Средний',
+        isPremium: true,
+        description: '30-дневный интенсив на кубики. 5 тренировок в неделю с акцентом на прямые и косые мышцы живота.'
     },
     {
-        icon: 'fa-solid fa-dumbbell',
-        iconImg: null,
-        title: 'Силовые тренировки',
-        desc: 'Руки, пресс, грудь, спина',
-        action: () => {
-            TabManager.workouts('ready');
-            window.navigateTo('workouts');
-            // Скролл к силовым
-            setTimeout(() => {
-                const block = document.querySelector('[data-block-id="strength"]');
-                if (block) {
-                    block.classList.add('open');
-                    block.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            }, 300);
-        }
+        id: 'cut_60',
+        title: 'Сушка тела',
+        subtitle: 'за 2 месяца',
+        icon: 'cardio',
+        image: 'images/program-cut-60.png',
+        emoji: '💧',
+        category: 'Кардио',
+        durationDays: 60,
+        workoutsPerWeek: 6,
+        difficulty: 'Высокий',
+        isPremium: true,
+        description: 'Высокоинтенсивная программа для сжигания жира. 2 месяца чередования кардио и силовых, 6 тренировок в неделю. Не для новичков.'
     },
     {
-        icon: 'fa-solid fa-heart-pulse',
-        iconImg: null,
-        title: 'Кардио и Фитнес',
-        desc: 'Бег, прыжки, растяжка',
-        action: () => {
-            TabManager.workouts('ready');
-            window.navigateTo('workouts');
-            setTimeout(() => {
-                const block = document.querySelector('[data-block-id="fitness"]');
-                if (block) {
-                    block.classList.add('open');
-                    block.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            }, 300);
-        }
+        id: 'back_30',
+        title: 'Широкая спина',
+        subtitle: 'за месяц',
+        icon: 'back',
+        image: 'images/program-back-30.png',
+        emoji: '🦾',
+        category: 'Спина',
+        durationDays: 30,
+        workoutsPerWeek: 4,
+        difficulty: 'Высокий',
+        isPremium: true,
+        description: '4 тренировки в неделю на спину и широчайшие. Подтягивания, тяги, гиперэкстензия. Нужен турник.'
     },
     {
-        icon: 'fa-solid fa-crown',
-        iconImg: null,
-        title: 'PREMIUM',
-        desc: 'Кроссфит, ГТО, мощь',
-        action: () => {
-            if (!hasPremium()) {
-                openModal('premiumModal');
-            } else {
-                TabManager.workouts('ready');
-                window.navigateTo('workouts');
-                setTimeout(() => {
-                    const block = document.querySelector('[data-block-id="premium"]');
-                    if (block) {
-                        block.classList.add('open');
-                        block.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                }, 300);
-            }
-        }
+        id: 'arms_30',
+        title: 'Мощные руки',
+        subtitle: 'за месяц',
+        icon: 'bodybuilding',
+        image: 'images/program-arms-30.png',
+        emoji: '💪',
+        category: 'Руки',
+        durationDays: 30,
+        workoutsPerWeek: 5,
+        difficulty: 'Средний',
+        isPremium: true,
+        description: 'Месячная программа на бицепс и трицепс. Отжимания, сгибания, разгибания — всё для объёма и силы рук.'
+    },
+
+    // ★★★ НОВЫЕ ПРОГРАММЫ ★★★
+{
+    id: 'fullbody_90',
+    title: 'Всё тело',
+    subtitle: 'за 3 месяца',
+    icon: 'WholeBody',
+    image: 'images/program-fullbody-90.png',
+    emoji: '🏋️',
+    category: 'Всё тело',
+    durationDays: 90,
+    workoutsPerWeek: 4,
+    difficulty: 'Средний',
+    isPremium: false,   // ← ★ единственное изменение
+    description: 'Комплексная 3-месячная программа на всё тело. Равномерная проработка всех групп мышц, 4 тренировки в неделю. Идеально для гармоничного развития.'
+},
+    {
+        id: 'legs_30',
+        title: 'Сильные ноги',
+        subtitle: 'за месяц',
+        icon: 'legs',
+        image: 'images/program-legs-30.png',
+        emoji: '🦵',
+        category: 'Ноги',
+        durationDays: 30,
+        workoutsPerWeek: 4,
+        difficulty: 'Средний',
+        isPremium: true,
+        description: 'Месячная программа на ноги и ягодицы. Приседания, выпады, подъёмы — всё для силы и объёма нижней части тела.'
     },
     {
-        icon: 'fa-solid fa-list-check',
-        iconImg: null,
-        title: 'Задания',           // ← будет переопределяться динамически
-        desc: 'Выполнено 0/5',      // ← будет переопределяться динамически
-        dynamic: true,              // ★★★ ФЛАГ ДЛЯ ДИНАМИЧЕСКОЙ КАРТОЧКИ ★★★
-        action: () => {
-            TabManager.profile('my');
-            window.navigateTo('profile');
-            
-            // Раскрываем нужный блок через 300мс, когда страница отрисуется
-            setTimeout(() => {
-                const isDaily = checkAllTasksCompleted();
-                const blockId = isDaily ? 'daily-tasks-block' : 'tasks-block';
-                const block = document.getElementById(blockId);
-                
-                if (block) {
-                    // Скрываем другой блок
-                    const otherId = isDaily ? 'tasks-block' : 'daily-tasks-block';
-                    const otherBlock = document.getElementById(otherId);
-                    if (otherBlock) otherBlock.style.display = 'none';
-                    
-                    // Показываем нужный
-                    block.style.display = 'block';
-                    block.classList.add('open');
-                    
-                    // Скролл к блоку
-                    setTimeout(() => {
-                        block.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }, 100);
-                    
-                    // Перерисовываем содержимое
-                    if (isDaily) {
-                        renderDailyTasks();
-                    } else {
-                        updateTasksUI();
-                    }
-                    
-                    saveBlocksState();
-                }
-            }, 400);
-        }
+        id: 'endurance_60',
+        title: 'Железная выносливость',
+        subtitle: 'за 2 месяца',
+        icon: 'cardio',
+        image: 'images/program-endurance-60.png',
+        emoji: '🏃',
+        category: 'Кардио',
+        durationDays: 60,
+        workoutsPerWeek: 5,
+        difficulty: 'Высокий',
+        isPremium: true,
+        description: '2-месячная программа на выносливость и работу сердца. Интервальное кардио, кроссфит-элементы и функциональные тренировки. 5 занятий в неделю.'
     },
     {
-        icon: 'fa-solid fa-chart-bar',
-        iconImg: null,
-        title: 'Моя статистика',
-        desc: 'Прогресс, XP, история',
-        action: () => {
-            TabManager.stats('personal');
-            window.navigateTo('stats');
-        }
-    },
-    {
-        icon: 'fa-solid fa-user-group',
-        iconImg: null,
-        title: 'Соревнуйся с друзьями',
-        desc: 'Рейтинг и достижения друзей',
-        action: () => {
-            TabManager.stats('world');
-            window.navigateTo('stats');
-            setTimeout(() => {
-                const block = document.querySelector('[data-block-id="friends-leaderboard"]');
-                if (block) {
-                    block.classList.add('open');
-                    block.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            }, 300);
-        }
-    },
-    {
-        icon: 'fa-solid fa-fire',
-        iconImg: null,
-        title: 'Серия тренировок',
-        desc: 'Тренируйся каждый день',
-        action: () => {
-            TabManager.profile('my');
-            window.navigateTo('profile');
-            setTimeout(() => openStreakModal(), 400);
-        }
+        id: 'flexibility_60',
+        title: 'Гибкое тело',
+        subtitle: 'за 2 месяца',
+        icon: 'stretching',
+        image: 'images/program-flexibility-60.png',
+        emoji: '🧘',
+        category: 'Гибкость',
+        durationDays: 60,
+        workoutsPerWeek: 5,
+        difficulty: 'Низкий',
+        isPremium: true,
+        description: '2-месячная программа на гибкость и растяжку. Мягкие ежедневные занятия, растяжка позвоночника, пилатес. Подходит для любого уровня.'
     }
 ];
 
-function initAutoCarousel() {
-    const track = document.getElementById('autoCarouselTrack');
-    if (!track) return;
+// ─── Расписание: массив паттернов ───
+const WEEK_PATTERNS = {
+    2: ['workout', 'rest', 'rest', 'workout', 'rest', 'rest', 'rest'],
+    3: ['workout', 'rest', 'workout', 'rest', 'workout', 'rest', 'rest'],
+    4: ['workout', 'rest', 'workout', 'rest', 'workout', 'rest', 'workout'],
+    5: ['workout', 'workout', 'rest', 'workout', 'workout', 'workout', 'rest'],
+    6: ['workout', 'workout', 'workout', 'rest', 'workout', 'workout', 'workout']
+};
 
-    // ★★★ ОБНОВЛЯЕМ ДИНАМИЧЕСКИЕ КАРТОЧКИ ПЕРЕД РЕНДЕРОМ ★★★
-    updateCarouselDynamicCards();
+// ★ Паттерн недели для новой программы: 7 boolean (Пн…Вс)
+// true = тренировка, false = отдых
+let _newProgramWeekPattern = [false, true, false, true, false, true, false]; // Пн,Ср,Пт
 
-    // ★★★ ПОЛНАЯ СЛУЧАЙНАЯ ТАСОВКА ★★★
-    const shuffledCards = shuffleArray(CAROUSEL_CARDS);
-    console.log('🎲 Карусель перемешана:', shuffledCards.map(c => c.title));
+const WEEK_DAY_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
-    // Дублируем карточки для бесконечной прокрутки
-const cardsHtml = shuffledCards.map((card) => {
-    const originalIndex = CAROUSEL_CARDS.indexOf(card);
-    const iconHtml = card.iconImg
-        ? `<img src="${card.iconImg}" alt="${card.title}">`
-        : `<i class="${card.icon}"></i>`;
-    return `
-        <div class="carousel-card" data-card-index="${originalIndex}">
-            <div class="carousel-card-icon">${iconHtml}</div>
-            <div class="carousel-card-info">
-                <div class="carousel-card-title">${card.title}</div>
-                <div class="carousel-card-desc">${card.desc}</div>
-            </div>
-        </div>
-    `;
-}).join('');
+function renderProgramWeekGrid() {
+    const grid = document.getElementById('newProgramWeekGrid');
+    if (!grid) return;
 
-    track.innerHTML = cardsHtml + cardsHtml;
-}
+    grid.innerHTML = WEEK_DAY_SHORT.map((label, day) => {
+        const isTraining = _newProgramWeekPattern[day];
+        return `<button type="button"
+                        class="program-week-day${isTraining ? ' active' : ''}"
+                        data-day="${day}">
+                    ${label}
+                </button>`;
+    }).join('');
 
-// ★★★ ГЛОБАЛЬНЫЙ ОБРАБОТЧИК КЛИКОВ ПО КАРУСЕЛИ ★★★
-document.addEventListener('click', function(e) {
-    const card = e.target.closest('#autoCarouselTrack .carousel-card');
-    if (!card) return;
+    updateProgramDaysCount();
 
-    const index = parseInt(card.dataset.cardIndex, 10);
-    if (isNaN(index)) return;
-
-    const cardData = CAROUSEL_CARDS[index];
-    if (cardData && typeof cardData.action === 'function') {
-        console.log('🎠 Клик по карточке карусели:', cardData.title);
-        cardData.action();
-    }
-});
-
-/**
- * Обновляет карточку уровня в карусели (название, XP).
- * Номер уровня из CAROUSEL_CARDS убран — вместо него иконка-трофей.
- */
-async function updateLevelCarouselCard() {
-    const levelCard = CAROUSEL_CARDS.find(c => c.isLevelCard);
-    if (!levelCard) return;
-
-    try {
-        const user = await getFirebaseUser();
-        if (!user) return;
-
-        const profileResult = await getUserProfile(user.uid);
-        if (!profileResult.success) return;
-
-        const profile = profileResult.data;
-        const xp = profile.totalXp || 0;
-
-        const currentLevel = getCurrentLevel(xp);
-        const nextLevel = getNextLevel(xp);
-        const xpRounded = Math.round(xp);
-
-        // ★ Название уровня
-        levelCard.title = currentLevel.name;
-
-        // ★ XP
-        if (nextLevel) {
-            levelCard.desc = `${xpRounded} / ${nextLevel.minXp} XP`;
-        } else {
-            levelCard.desc = `${xpRounded}+ XP`;
-        }
-
-    } catch (error) {
-        console.warn('⚠️ Ошибка обновления карточки уровня:', error);
-    }
-}
-
-// ★★★ ОБНОВЛЕНИЕ ДИНАМИЧЕСКИХ КАРТОЧЕК ★★★
-function updateCarouselDynamicCards() {
-    // ★★★ Обновляем карточку уровня ★★★
-    updateLevelCarouselCard();
-    CAROUSEL_CARDS.forEach(card => {
-        if (!card.dynamic) return;
-
-        if (card.icon === 'fa-solid fa-list-check') {
-            const isDaily = checkAllTasksCompleted();
-
-            if (isDaily) {
-                // ★★★ ЕЖЕДНЕВНЫЕ ЗАДАНИЯ ★★★
-const total = (dailyTasksList && dailyTasksList.length > 0) 
-    ? dailyTasksList.length 
-    : 3;
-                    
-                const completed = (dailyTasksList && dailyTasksList.length > 0)
-                    ? dailyTasksList.filter(t => t.completed).length 
-                    : 0;
-
-                const remaining = total - completed;
-
-                card.title = 'Ежедневные задания';
-                card.desc = remaining > 0 
-                    ? `Выполнено ${completed} из ${total} · Осталось ${remaining}`
-                    : `Все ${total} заданий выполнены`;
-            } else {
-                // ★★★ ПЕРВЫЕ ЗАДАНИЯ ★★★
-                const totalTasks = 5;
-                const completedTasks = Object.values(tasks).filter(v => v === true).length;
-                const remainingTasks = totalTasks - completedTasks;
-
-                card.title = 'Первые задания';
-                card.desc = remainingTasks > 0
-                    ? `Пройдено ${completedTasks} из ${totalTasks} · Осталось ${remainingTasks}`
-                    : `Все ${totalTasks} заданий пройдены`;
-            }
-        }
+    grid.querySelectorAll('.program-week-day').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const day = parseInt(this.dataset.day);
+            _newProgramWeekPattern[day] = !_newProgramWeekPattern[day];
+            renderProgramWeekGrid();
+        });
     });
 }
 
-// ★★★ ПЕРЕЗАПУСК КАРУСЕЛИ (для обновления после выполнения заданий) ★★★
+function updateProgramDaysCount() {
+    const count = _newProgramWeekPattern.filter(Boolean).length;
+    const el = document.getElementById('newProgramDaysCount');
+    if (el) el.textContent = count;
+}
+
+function generateProgramSchedule(durationDays, workoutsPerWeek, category, weekPattern = null) {
+    // ★ Если передан паттерн недели — используем его
+    let pattern;
+    if (Array.isArray(weekPattern) && weekPattern.length === 7) {
+        pattern = weekPattern.map(isTraining => isTraining ? 'workout' : 'rest');
+    } else {
+        pattern = WEEK_PATTERNS[workoutsPerWeek] || WEEK_PATTERNS[3];
+    }
+
+    const schedule = [];
+    for (let i = 0; i < durationDays; i++) {
+        const type = pattern[i % 7];
+        schedule.push({
+            day: i + 1,
+            type: type,
+            category: type === 'workout' ? category : null
+        });
+    }
+    return schedule;
+}
+
+// ─── Карусель: карточки программ ───
+// ★ Эмодзи для карточек карусели (отдельно от PNG-иконок списка)
+const PROGRAM_EMOJI = {
+    'abs_30':  '🔥',
+    'cut_60':  '💧',
+    'back_30': '🦾',
+    'arms_30': '💪'
+};
+
+const CAROUSEL_CARDS = PRESET_PROGRAMS.map(p => ({
+    isProgram: true,
+    programId: p.id,
+    emoji: PROGRAM_EMOJI[p.id] || '🏆',
+    image: p.image || null,          // ★ ДОБАВИТЬ
+    title: p.title,
+    desc: p.subtitle,
+    action: () => {
+        window.navigateTo('programs');
+    }
+}));
+// ─── Инициализация и рендер ───
+let _carouselShuffleCache = null;
 let _carouselTimer = null;
 let _lastCarouselRenderTs = 0;
 let _carouselDataHash = '';
 const CAROUSEL_COOLDOWN = 1000;
 
 function _carouselHash() {
-    const profileXp = window._lastProfileXp ?? '';
-    const tasksHash = Object.values(tasks).map(v => v ? '1' : '0').join('');
-    const dailyDone = (dailyTasksList || []).filter(t => t.completed).length;
-    const dailyTotal = (dailyTasksList || []).length;
-    return `${profileXp}|${tasksHash}|${dailyDone}/${dailyTotal}`;
+    return `programs_${hasPremium() ? '1' : '0'}`;
 }
 
 function refreshAutoCarousel() {
-    // 1. Если данные не менялись — выходим
     const hash = _carouselHash();
     if (hash === _carouselDataHash) return;
     _carouselDataHash = hash;
 
-    // 2. Throttle
     if (_carouselTimer) return;
     const elapsed = Date.now() - _lastCarouselRenderTs;
     const delay = Math.max(0, CAROUSEL_COOLDOWN - elapsed);
@@ -17668,21 +17288,15 @@ function refreshAutoCarousel() {
     }, delay);
 }
 
-/**
- * Внутренний рендер. Использует сохранённую перемешку.
- */
 function initAutoCarousel() {
     _carouselDataHash = '';
+    _carouselShuffleCache = null;
     _renderCarouselTrack();
 }
-
-let _carouselShuffleCache = null;
 
 function _renderCarouselTrack() {
     const track = document.getElementById('autoCarouselTrack');
     if (!track) return;
-
-    updateCarouselDynamicCards();
 
     if (!_carouselShuffleCache) {
         _carouselShuffleCache = shuffleArray([...CAROUSEL_CARDS]);
@@ -17690,12 +17304,18 @@ function _renderCarouselTrack() {
 
     const html = _carouselShuffleCache.map(card => {
         const idx = CAROUSEL_CARDS.indexOf(card);
-        const iconHtml = card.iconImg
-            ? `<img src="${card.iconImg}" alt="${card.title}">`
-            : `<i class="${card.icon}"></i>`;
+
+        // ★ Фото с fallback на эмодзи при ошибке загрузки
+        const visual = card.image
+            ? `<img src="${card.image}"
+                    class="carousel-card-img"
+                    alt=""
+                    onerror="this.outerHTML='<div class=&quot;carousel-card-emoji&quot;>${card.emoji}</div>'">`
+            : `<div class="carousel-card-emoji">${card.emoji}</div>`;
+
         return `
             <div class="carousel-card" data-card-index="${idx}">
-                <div class="carousel-card-icon">${iconHtml}</div>
+                ${visual}
                 <div class="carousel-card-info">
                     <div class="carousel-card-title">${card.title}</div>
                     <div class="carousel-card-desc">${card.desc}</div>
@@ -17708,6 +17328,527 @@ function _renderCarouselTrack() {
     void track.offsetWidth;
     track.style.animation = '';
 }
+
+// Обработчик кликов по карусели
+document.addEventListener('click', function(e) {
+    const card = e.target.closest('#autoCarouselTrack .carousel-card');
+    if (!card) return;
+
+    const index = parseInt(card.dataset.cardIndex, 10);
+    if (isNaN(index)) return;
+
+    const cardData = CAROUSEL_CARDS[index];
+    if (cardData && typeof cardData.action === 'function') {
+        cardData.action();
+    }
+});
+
+// =================== СТРАНИЦА ПРОГРАММ ===================
+function switchProgramTab(tab) {
+    document.querySelectorAll('#page-programs .tab-btn').forEach(btn => {
+        btn.classList.toggle('tab-btn-active', btn.dataset.programTab === tab);
+    });
+    document.querySelectorAll('#page-programs .program-tab-content').forEach(el => {
+        el.classList.remove('program-tab-content-active');
+    });
+    const target = document.getElementById('programs-' + tab);
+    if (target) target.classList.add('program-tab-content-active');
+
+    if (tab === 'my') renderMyPrograms();
+}
+window.switchProgramTab = switchProgramTab;
+
+function renderProgramsPage() {
+    renderReadyPrograms();
+    renderMyPrograms();
+    switchProgramTab('ready');
+}
+window.renderProgramsPage = renderProgramsPage;
+
+// ─── Готовые программы ───
+function renderReadyPrograms() {
+    const freeList    = document.getElementById('freeProgramsList');
+    const premiumList = document.getElementById('premiumProgramsList');
+
+    // Если старый контейнер ещё где-то используется — не падаем
+    if (!freeList && !premiumList) {
+        // fallback на старый одиночный контейнер, если HTML не обновлён
+        const legacy = document.getElementById('readyProgramsList');
+        if (legacy) {
+            legacy.innerHTML = PRESET_PROGRAMS.map(p => buildProgramCardHTML(p)).join('');
+        }
+        return;
+    }
+
+    const freeHtml    = [];
+    const premiumHtml = [];
+
+    PRESET_PROGRAMS.forEach(p => {
+        const card = buildProgramCardHTML(p);
+        if (p.isPremium) {
+            premiumHtml.push(card);
+        } else {
+            freeHtml.push(card);
+        }
+    });
+
+    if (freeList) {
+        freeList.innerHTML = freeHtml.join('');
+        // ★ Скрываем блок «Бесплатные», если бесплатных программ нет
+        const block = freeList.closest('.section-block');
+        if (block) block.style.display = freeHtml.length ? '' : 'none';
+    }
+
+    if (premiumList) {
+        premiumList.innerHTML = premiumHtml.join('');
+        // ★ Скрываем блок PREMIUM, если premium-программ нет
+        const block = premiumList.closest('.section-block');
+        if (block) block.style.display = premiumHtml.length ? '' : 'none';
+    }
+}
+
+// ─── Карточка готовой программы (вынесено, чтобы не дублировать разметку) ───
+function buildProgramCardHTML(p) {
+    const totalWorkouts = Math.floor(p.durationDays / 7 * p.workoutsPerWeek);
+
+    // ★ Фото с fallback на эмодзи
+    const photoHtml = p.image
+        ? `<img src="${p.image}"
+                alt=""
+                onerror="this.outerHTML='<div class=&quot;program-list-emoji-fallback&quot;>${p.emoji || '🏆'}</div>'">`
+        : `<div class="program-list-emoji-fallback">${p.emoji || '🏆'}</div>`;
+
+    return `
+        <div class="program-list-card" data-program-id="${p.id}" onclick="openProgramDetail('${p.id}')">
+            <div class="program-list-cover">
+                ${photoHtml}
+            </div>
+            <div class="program-list-info">
+                <div class="program-list-title">${p.title} ${p.subtitle}</div>
+                <div class="program-list-subtitle">${p.description}</div>
+                <div class="program-list-meta">
+                    <span><i class="fa-solid fa-calendar"></i> ${p.durationDays} дн.</span>
+                    <span><i class="fa-solid fa-dumbbell"></i> ${totalWorkouts} трен.</span>
+                    <span><i class="fa-solid fa-gauge-high"></i> ${p.difficulty}</span>
+                </div>
+            </div>
+            <div class="program-list-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+        </div>
+    `;
+}
+
+// ─── Мои программы ───
+const MY_PROGRAMS_KEY = 'sportapp_my_programs';
+
+function getMyPrograms() {
+    try {
+        return JSON.parse(localStorage.getItem(MY_PROGRAMS_KEY) || '[]');
+    } catch (e) { return []; }
+}
+
+function saveMyPrograms(list) {
+    localStorage.setItem(MY_PROGRAMS_KEY, JSON.stringify(list));
+    syncSaveToFirestore('myPrograms', list);
+}
+
+function renderMyPrograms() {
+    const container = document.getElementById('myProgramsList');
+    if (!container) return;
+
+    const list = getMyPrograms();
+    const isEditing = window.myProgramsEditor && window.myProgramsEditor.isEditing;
+
+    if (list.length === 0) {
+container.innerHTML = `
+    <div class="empty-state">
+        <span class="empty-icon">📋</span>
+        <h3 class="empty-title">Нет своих программ</h3>
+        <p class="empty-text">Создайте первую программу — и следите за прогрессом по дням!</p>
+    </div>`;
+        return;
+    }
+
+    container.innerHTML = list.map(p => {
+        const catIconMap = {
+            'Пресс': 'press', 'Ноги': 'legs', 'Ягодицы': 'woman',
+            'Руки': 'bodybuilding', 'Плечи': 'shoulder', 'Спина': 'back',
+            'Грудь': 'breast', 'Кардио': 'cardio', 'Гибкость': 'stretching',
+            'Всё тело': 'WholeBody'
+        };
+        const icon = catIconMap[p.category] || 'WholeBody';
+
+        // ★ Прогресс программы
+        const schedule = generateProgramSchedule(p.durationDays, p.workoutsPerWeek, p.category, p.weekPattern);
+        const totalWorkouts = schedule.filter(d => d.type === 'workout').length;
+        const progress = getProgramProgress(p.id);
+        const completedCount = (progress.completedDays || []).length;
+        const percent = totalWorkouts > 0
+            ? Math.min(100, Math.round((completedCount / totalWorkouts) * 100))
+            : 0;
+
+        // В режиме редактирования — мусорка, иначе — стрелка
+        const actionHtml = isEditing
+            ? `<button class="item-action program-delete"
+                       onclick="event.stopPropagation(); deleteProgramFromList('${p.id}')">
+                   <i class="fa-regular fa-trash-can"></i>
+               </button>`
+            : `<div class="program-list-arrow"><i class="fa-solid fa-chevron-right"></i></div>`;
+
+        return `
+            <div class="program-list-card" data-program-id="${p.id}"
+                 onclick="handleProgramClick('${p.id}', event)">
+                <div class="program-list-icon">
+                    <img src="images/${icon}.png" alt="">
+                </div>
+                <div class="program-list-info">
+                    <div class="program-list-title">${p.title}</div>
+                    <div class="program-list-progress">
+                        <div class="program-list-progress-line">
+                            <div class="program-list-progress-fill" style="width:${percent}%"></div>
+                        </div>
+                        <span class="program-list-progress-text">${completedCount}/${totalWorkouts}</span>
+                    </div>
+                    <div class="program-list-meta">
+                        <span><i class="fa-solid fa-calendar"></i> ${p.durationDays} дн.</span>
+                        <span><i class="fa-solid fa-dumbbell"></i> ${totalWorkouts} трен.</span>
+                    </div>
+                </div>
+                ${actionHtml}
+            </div>
+        `;
+    }).join('');
+}
+
+function handleProgramClick(programId, event) {
+    if (event) event.stopPropagation();
+    // ★ В режиме редактирования клик по карточке ничего не делает
+    if (window.myProgramsEditor && window.myProgramsEditor.isEditing) return;
+    openProgramDetail(programId);
+}
+
+function deleteProgramFromList(programId) {
+    showConfirmModal(
+        'Удалить программу?',
+        'Все настройки программы будут удалены. Это действие нельзя отменить.',
+        () => {
+            const list = getMyPrograms().filter(p => p.id !== programId);
+            saveMyPrograms(list);
+            renderMyPrograms();
+            showToast('🗑️ Программа удалена');
+        },
+        'Удалить'
+    );
+}
+
+// =================== ДЕТАЛИ ПРОГРАММЫ ===================
+
+function openProgramDetail(programId) {
+    let program = PRESET_PROGRAMS.find(p => p.id === programId);
+    let isCustom = false;
+
+    if (!program) {
+        const mine = getMyPrograms();
+        program = mine.find(p => p.id === programId);
+        isCustom = true;
+    }
+
+    if (!program) {
+        showToast('❌ Программа не найдена');
+        return;
+    }
+
+    if (!isCustom && program.isPremium && !hasPremium()) {
+        openModal('premiumModal');
+        return;
+    }
+
+    // ── Иконка и заголовок ──
+// ── Иконка и заголовок ──
+const catIconMap = {
+    'Пресс': 'press', 'Ноги': 'legs', 'Ягодицы': 'woman',
+    'Руки': 'bodybuilding', 'Плечи': 'shoulder', 'Спина': 'back',
+    'Грудь': 'breast', 'Кардио': 'cardio', 'Гибкость': 'stretching',
+    'Всё тело': 'WholeBody'
+};
+
+const iconEl = document.getElementById('programDetailIcon');
+const emoji = program.emoji || PROGRAM_EMOJI[program.id] || '🏆';
+
+if (isCustom) {
+    // ★ Своя программа — иконка категории (как в блоке), фон оставляем
+    const catIcon = catIconMap[program.category] || 'WholeBody';
+    iconEl.style.background = '';        // сброс → возьмётся accent-light из CSS
+    iconEl.innerHTML = `<img src="images/${catIcon}.png" alt="" class="program-detail-cat-icon">`;
+
+} else if (program.image) {
+    // ★ Готовая программа с фото — фото, ФОН УБИРАЕМ
+    iconEl.style.background = 'transparent';
+    iconEl.innerHTML = `<img src="${program.image}"
+        alt=""
+        onerror="this.outerHTML='<div class=&quot;program-detail-emoji-fallback&quot;>${emoji}</div>'">`;
+
+} else {
+    // Fallback — эмодзи с фоном (на случай программы без фото)
+    iconEl.style.background = '';
+    iconEl.innerHTML = `<div class="program-detail-emoji-fallback">${emoji}</div>`;
+}
+    document.getElementById('programDetailTitle').textContent = program.title;
+
+    const subEl = document.getElementById('programDetailSubtitle');
+    const daysLabel = program.subtitle || `${program.durationDays} дней`;
+    subEl.innerHTML =
+        `<i class="fa-solid fa-calendar"></i> ${daysLabel} · ` +
+        `<i class="fa-solid fa-tag"></i> ${program.category}`;
+
+    // ── Прогресс ──
+    const progress = getProgramProgress(programId);
+    const completedDays = progress.completedDays || [];
+
+const schedule = generateProgramSchedule(
+    program.durationDays,
+    program.workoutsPerWeek,
+    program.category,
+    program.weekPattern   // ★ для старых программ = undefined → fallback
+);
+
+    // текущий день = первый невыполненный workout
+    let currentDayNumber = null;
+    for (const d of schedule) {
+        if (d.type === 'workout' && !completedDays.includes(d.day)) {
+            currentDayNumber = d.day;
+            break;
+        }
+    }
+
+    // ── Верхний прогресс-бар (рендерим отдельно над «Расписание») ──
+    const totalWorkouts = schedule.filter(d => d.type === 'workout').length;
+    const doneWorkouts = completedDays.length;
+    const overallPercent = totalWorkouts > 0
+        ? Math.round((doneWorkouts / totalWorkouts) * 100)
+        : 0;
+
+    document.getElementById('programProgressBar').innerHTML = `
+        <div class="program-progress-bar">
+            <div class="program-progress-line">
+                <div class="program-progress-line-fill" style="width:${overallPercent}%"></div>
+            </div>
+            <div class="program-progress-text">${doneWorkouts} / ${totalWorkouts}</div>
+        </div>
+    `;
+
+    // ── Timeline ──
+    let scheduleHtml = `<div class="program-timeline">`;
+
+    const weeks = {};
+    schedule.forEach(day => {
+        const weekNum = Math.ceil(day.day / 7);
+        if (!weeks[weekNum]) weeks[weekNum] = [];
+        weeks[weekNum].push(day);
+    });
+
+    Object.entries(weeks).forEach(([weekNum, days]) => {
+        scheduleHtml += `<div class="program-week-sep">Неделя ${weekNum}</div>`;
+
+        days.forEach(d => {
+            const isCompleted = completedDays.includes(d.day);
+            const isCurrent = d.day === currentDayNumber;
+
+if (d.type === 'rest') {
+    const restIsDone = currentDayNumber === null
+        ? true                          // программа завершена — все дни «пройдены»
+        : d.day < currentDayNumber;     // день уже позади → выполнен
+
+    const restClass = restIsDone ? 'done' : 'future';
+
+    scheduleHtml += `
+        <div class="program-tl-item rest ${restClass}">
+            <div class="program-tl-dot"></div>
+            <div class="program-tl-body">
+                <span class="program-tl-day">День ${d.day}</span>
+                <span class="program-tl-sep-dot">·</span>
+                <span class="program-tl-cat italic">Отдых</span>
+            </div>
+        </div>`;
+    return;
+}
+
+if (isCompleted) {
+    scheduleHtml += `
+        <div class="program-tl-item done">
+            <div class="program-tl-dot"></div>
+            <div class="program-tl-body">
+                <span class="program-tl-day">День ${d.day}</span>
+                <span class="program-tl-sep-dot">·</span>
+                <span class="program-tl-cat">${d.category}</span>
+            </div>
+        </div>`;
+    return;
+}
+
+            if (isCurrent) {
+                scheduleHtml += `
+                    <div class="program-tl-item current">
+                        <div class="program-tl-dot"></div>
+                        <div class="program-tl-body">
+                            <span class="program-tl-day">День ${d.day}</span>
+                            <span class="program-tl-sep-dot">·</span>
+                            <span class="program-tl-cat">${d.category}</span>
+                        </div>
+                        <button class="program-tl-btn"
+                                onclick="startProgramDay('${programId}', ${d.day}, '${d.category}', event)">
+                            Старт
+                        </button>
+                    </div>`;
+                return;
+            }
+
+            // будущие дни — просто текст, без кнопки
+            scheduleHtml += `
+                <div class="program-tl-item future">
+                    <div class="program-tl-dot"></div>
+                    <div class="program-tl-body">
+                        <span class="program-tl-day">День ${d.day}</span>
+                        <span class="program-tl-sep-dot">·</span>
+                        <span class="program-tl-cat">${d.category}</span>
+                    </div>
+                </div>`;
+        });
+    });
+
+    scheduleHtml += `</div>`;
+    document.getElementById('programDetailSchedule').innerHTML = scheduleHtml;
+
+    // ── Кнопка «Начать» ──
+    const startBtn = document.getElementById('programDetailStartBtn');
+    startBtn.innerHTML = '<i class="fa-solid fa-play"></i> Начать';
+    startBtn.className = 'btn btn-primary';
+    startBtn.onclick = () => startProgram(programId);
+
+    openModal('programDetailModal');
+}
+window.openProgramDetail = openProgramDetail;
+
+function startProgramDay(programId, day, category, event) {
+    if (event) event.stopPropagation();
+
+    _pendingProgramDay = { programId, day, category };
+
+    closeModal('programDetailModal');
+    window.navigateTo('level-select', { category: category });
+}
+window.startProgramDay = startProgramDay;
+
+function startProgram(programId) {
+    closeModal('programDetailModal');
+
+    let program = PRESET_PROGRAMS.find(p => p.id === programId);
+    if (!program) program = getMyPrograms().find(p => p.id === programId);
+    if (!program) return;
+
+    const progress = getProgramProgress(programId);
+    const completedDays = progress.completedDays || [];
+
+const schedule = generateProgramSchedule(
+    program.durationDays,
+    program.workoutsPerWeek,
+    program.category,
+    program.weekPattern   // ★ для старых программ = undefined → fallback
+);
+
+    const nextDay = schedule.find(d =>
+        d.type === 'workout' && !completedDays.includes(d.day)
+    );
+
+    if (!nextDay) {
+        showToast('🎉 Программа уже завершена!');
+        return;
+    }
+
+    setTimeout(() => {
+        startProgramDay(programId, nextDay.day, nextDay.category);
+    }, 300);
+}
+window.startProgram = startProgram;
+
+// ─── Создание своей программы ───
+function openCreateProgramModal() {
+    document.getElementById('newProgramTitle').value = '';
+    document.getElementById('newProgramDuration').value = '30';
+    document.getElementById('newProgramCategory').value = 'Пресс';
+    document.getElementById('newProgramTitle').classList.remove('error');
+
+    // ★ Сброс паттерна недели (Пн, Ср, Пт по умолчанию)
+    _newProgramWeekPattern = [false, true, false, true, false, true, false];
+
+    // Рендерим сетку + перерисовываем при смене длительности
+    renderProgramWeekGrid();
+    document.getElementById('newProgramDuration').onchange = renderProgramWeekGrid;
+
+    openModal('createProgramModal');
+}
+window.openCreateProgramModal = openCreateProgramModal;
+
+function saveCustomProgram() {
+    const title = document.getElementById('newProgramTitle').value.trim();
+    const durationDays = parseInt(document.getElementById('newProgramDuration').value);
+    const category = document.getElementById('newProgramCategory').value;
+    const titleInput = document.getElementById('newProgramTitle');
+
+    titleInput.classList.remove('error');
+
+    if (!title || title.length < 3) {
+        titleInput.classList.add('error');
+        showToast('⚠️ Введите название (мин. 3 символа)');
+        return;
+    }
+
+    // ★ Проверяем, что выбраны дни тренировок
+    const workoutsPerWeek = _newProgramWeekPattern.filter(Boolean).length;
+    if (workoutsPerWeek === 0) {
+        showToast('⚠️ Выберите хотя бы один день тренировки');
+        return;
+    }
+
+    const program = {
+        id: 'myprog_' + Date.now(),
+        title: title,
+        category: category,
+        durationDays: durationDays,
+        workoutsPerWeek: workoutsPerWeek,
+        weekPattern: [..._newProgramWeekPattern],   // ★ сохраняем паттерн
+        createdAt: Date.now(),
+        isCustom: true
+    };
+
+    const list = getMyPrograms();
+    list.push(program);
+    saveMyPrograms(list);
+
+    closeModal('createProgramModal');
+    showToast('✅ Программа создана');
+
+    switchProgramTab('my');
+    renderMyPrograms();
+}
+window.saveCustomProgram = saveCustomProgram;
+
+function deleteCustomProgram(programId) {
+    closeModal('programDetailModal');
+    setTimeout(() => {
+        showConfirmModal(
+            'Удалить программу?',
+            'Все настройки программы будут удалены. Это действие нельзя отменить.',
+            () => {
+                const list = getMyPrograms().filter(p => p.id !== programId);
+                saveMyPrograms(list);
+                renderMyPrograms();
+                showToast('🗑️ Программа удалена');
+            },
+            'Удалить'
+        );
+    }, 400);
+}
+window.deleteCustomProgram = deleteCustomProgram;
 
 // =================== СВЯЗЬ С АДМИНИСТРАЦИЕЙ ===================
 
@@ -18874,6 +19015,65 @@ function updateNav() {
     console.log('📜 Авто-скрытие нижнего меню активно');
 })();
 
+// =================== АВТО-СКРЫТИЕ ПОИСКА В ЛЕНТЕ ===================
+(function initFeedSearchAutoHide() {
+    const search = document.getElementById('feedSearchPanel');
+    if (!search) return;
+
+    const HIDE_THRESHOLD = 8;
+    const TOP_ZONE = 60;
+    let lastScrollY = 0;
+    let ticking = false;
+    let isHidden = false;
+
+    function update() {
+        const feedPage = document.getElementById('page-feed');
+        if (!feedPage || !feedPage.classList.contains('page-active')) {
+            ticking = false;
+            return;
+        }
+
+        const currentY = window.scrollY || window.pageYOffset;
+        const delta = currentY - lastScrollY;
+
+        if (currentY < TOP_ZONE) {
+            if (isHidden) {
+                search.classList.remove('search-hidden');
+                isHidden = false;
+            }
+        } else if (delta > HIDE_THRESHOLD) {
+            if (!isHidden) {
+                search.classList.add('search-hidden');
+                isHidden = true;
+            }
+        } else if (delta < -HIDE_THRESHOLD) {
+            if (isHidden) {
+                search.classList.remove('search-hidden');
+                isHidden = false;
+            }
+        }
+
+        lastScrollY = currentY;
+        ticking = false;
+    }
+
+    window.addEventListener('scroll', () => {
+        if (!ticking) {
+            requestAnimationFrame(update);
+            ticking = true;
+        }
+    }, { passive: true });
+
+    // ★ Сброс при входе на ленту
+    window._resetFeedSearchScroll = function() {
+        lastScrollY = window.scrollY || window.pageYOffset;
+        if (isHidden) {
+            search.classList.remove('search-hidden');
+            isHidden = false;
+        }
+    };
+})();
+
 // =================== HAPTIC FEEDBACK ===================
 (function initHaptics() {
     // Проверяем поддержку вибрации один раз
@@ -19968,10 +20168,9 @@ function showShareWorkoutLinkManual(url) {
 async function applySharedWorkout(payload) {
     if (!payload || !Array.isArray(payload.e) || payload.e.length === 0) {
         showToast('❌ Тренировка пустая');
-        return;
+        return false;
     }
 
-    // Восстанавливаем упражнения из компактного формата
     const exercises = payload.e.map(arr => ({
         name: String(arr[0] || 'Упражнение'),
         sets: parseInt(arr[1]) || 3,
@@ -19984,7 +20183,6 @@ async function applySharedWorkout(payload) {
     const icon = payload.i || null;
     const restTime = parseInt(payload.r) || 30;
 
-    // ★ Проверяем дубликаты
     const existing = getMyWorkouts();
     const duplicate = existing.find(w =>
         w.title === title &&
@@ -19995,10 +20193,9 @@ async function applySharedWorkout(payload) {
     if (duplicate) {
         console.log('ℹ️ Такая тренировка уже есть:', duplicate._id);
         showSharedWorkoutAddedModal(duplicate, exercises.length, true);
-        return;
+        return false;                       // ★ дубликат — не считаем
     }
 
-    // ★ Добавляем
     const newWorkout = {
         _id: Date.now().toString(),
         title: title,
@@ -20012,6 +20209,7 @@ async function applySharedWorkout(payload) {
 
     console.log('✅ Тренировка добавлена в личные:', newWorkout._id);
     showSharedWorkoutAddedModal(newWorkout, exercises.length, false);
+    return true;                            // ★ реально добавили
 }
 
 /**
@@ -20039,11 +20237,11 @@ function showSharedWorkoutAddedModal(workout, exercisesCount, isDuplicate) {
             </div>
             <p class="modal-text">${messageText}</p>
             <div style="display: flex; gap: 0.5rem; width: 100%;">
-                <button class="btn btn-primary" id="sharedWorkoutOpenBtn" style="flex: 1;">
-                    Открыть
-                </button>
                 <button class="btn btn-secondary" id="sharedWorkoutCloseBtn" style="flex: 1;">
                     Позже
+                </button>
+                <button class="btn btn-primary" id="sharedWorkoutOpenBtn" style="flex: 1;">
+                    Открыть
                 </button>
             </div>
         </div>
@@ -20118,7 +20316,13 @@ function getLocalDateKey() {
 }
 
 /** Проверка: может ли пользователь публиковать сегодня */
+/** Проверка: может ли пользователь публиковать сегодня */
 async function canPostToday() {
+    // ★★★ ВРЕМЕННО: лимит «1 пост в день» отключён для теста ★★★
+    // Чтобы вернуть — раскомментируйте блок ниже и удалите `return { allowed: true };`
+    return { allowed: true };
+
+    /*
     const user = await getFirebaseUser();
     if (!user) return { allowed: false, reason: 'no-auth' };
 
@@ -20141,6 +20345,7 @@ async function canPostToday() {
         console.warn('canPostToday: ошибка проверки, разрешаем пост', e);
         return { allowed: true };
     }
+    */
 }
 
 /** Секунд до полуночи локального времени */
@@ -20153,6 +20358,7 @@ function secondsUntilMidnight() {
 
 let _feedFilter = 'all';
 let _feedPosts = [];
+let _feedSearchQuery = '';
 let _postImageBlob = null;
 let _postShareLink = true;   // по умолчанию «Да»
 
@@ -20233,32 +20439,56 @@ if (_feedFilter === 'my') {
 window.loadFeed = loadFeed;
 
 /**
- * Рендер постов
+ * Рендер постов (с поиском и лайками)
  */
 function renderFeed() {
     const container = document.getElementById('feedContainer');
     if (!container) return;
 
-    // ★★★ УПРАВЛЕНИЕ КНОПКАМИ ВНИЗУ СПИСКА ★★★
     const scrollTopBtn = document.getElementById('feedScrollTopBtn');
-    const createPostBtn = document.getElementById('feedCreatePostBtn');
+
+    // ★ Поиск поверх уже отфильтрованного _feedPosts
+    const displayPosts = _feedPosts.filter(post => {
+        if (!_feedSearchQuery) return true;
+        const title = (post.workoutTitle || '').toLowerCase();
+        const author = (post.userName || '').toLowerCase();
+        return title.includes(_feedSearchQuery) || author.includes(_feedSearchQuery);
+    });
 
     if (scrollTopBtn) {
-        scrollTopBtn.style.display = (_feedFilter === 'all' && _feedPosts.length > 0) ? 'flex' : 'none';
-    }
-    if (createPostBtn) {
-        createPostBtn.style.display = (_feedFilter === 'my') ? 'flex' : 'none';
+        scrollTopBtn.style.display = (_feedFilter === 'all' && displayPosts.length > 0)
+            ? 'flex' : 'none';
     }
 
-if (_feedPosts.length === 0) {
-    const text = _feedFilter === 'my'
-        ? 'Вы ещё не публиковали посты. Поделитесь своей тренировкой!'
-        : 'Станьте первым, кто поделится тренировкой!';
+if (displayPosts.length === 0) {
+    const noPosts = _feedPosts.length === 0;
+    const isSearch = _feedSearchQuery && !noPosts;
+
+    let title, text, actionHtml = '';
+
+    if (noPosts) {
+        if (_feedFilter === 'my') {
+            title = 'Пока нет ваших постов';
+            text = 'Поделитесь своей тренировкой — покажите прогресс друзьям!';
+        } else {
+            title = 'Пока нет постов';
+            text = 'Станьте первым, кто поделится тренировкой!';
+        }
+        actionHtml = `
+            <button class="btn btn-primary" onclick="tryOpenCreatePostModal()">
+                <i class="fa-solid fa-plus"></i> Сделать пост
+            </button>`;
+    } else {
+        title = 'Ничего не найдено';
+        text = 'По вашему запросу ничего не найдено';
+    }
+
     container.innerHTML = `
         <div class="empty-state">
-            <span class="empty-icon">📷</span>
-            <h3 class="empty-title">Пока нет постов</h3>
+            <span class="empty-icon">${noPosts ? '📷' : '🔍'}</span>
+            <h3 class="empty-title">${title}</h3>
             <p class="empty-text">${text}</p>
+            ${actionHtml}
         </div>`;
     return;
 }
@@ -20266,7 +20496,7 @@ if (_feedPosts.length === 0) {
     const currentUser = firebase.auth().currentUser;
     const currentUserId = currentUser ? currentUser.uid : null;
 
-    container.innerHTML = _feedPosts.map(post => {
+    container.innerHTML = displayPosts.map(post => {
         const isMe = post.userId === currentUserId;
         const avatarSrc = post.userGender === 'female'
             ? 'images/avatar-woman.png'
@@ -20274,62 +20504,240 @@ if (_feedPosts.length === 0) {
         const timeStr = formatRelativeTime(post.createdAt);
         const s = post.stats || {};
 
-return `
-    <div class="feed-post" data-post-id="${post.id}">
-        <!-- ★ Шапка — отдельный блок, кликабельный для открытия профиля -->
-        <div class="feed-post-header"
-             style="cursor:pointer;"
-             onclick="openPostAuthorProfile('${post.userId}', event)">
-            <div class="feed-post-avatar">
-                <img src="${avatarSrc}" alt="">
-            </div>
-            <div class="feed-post-info">
-                <div class="feed-post-name">${post.userName || 'Пользователь'}</div>
-                <div class="feed-post-time">${timeStr}</div>
-            </div>
-            ${isMe ? `
-                <button class="feed-post-action-btn" title="Скачать фото"
-                        onclick="openPostDownloadModal('${post.id}', event)">
-                    <i class="fa-solid fa-download"></i>
-                </button>
-                <button class="feed-post-action-btn" title="Удалить"
-                        onclick="deletePost('${post.id}', event)">
-                    <i class="fa-regular fa-trash-can"></i>
-                </button>
-            ` : `
-                <button class="feed-post-action-btn" title="Действия"
-                        onclick="openPostDownloadModal('${post.id}', event)">
-                    <i class="fa-solid fa-download"></i>
-                </button>
-            `}
-        </div>
+        // ★ Лайки
+        const likes = post.likes || [];
+        const isLiked = currentUserId && likes.includes(currentUserId);
+        const likeCount = likes.length;
 
-        <!-- ★ Контент — отдельный блок (фото + статистика) -->
-        <div class="feed-post-content">
-            <div class="feed-post-image">
-                <img src="${post.imageData}" alt="" loading="lazy">
+        return `
+            <div class="feed-post" data-post-id="${post.id}">
+                <div class="feed-post-header"
+                     style="cursor:pointer;"
+                     onclick="openPostAuthorProfile('${post.userId}', event)">
+                    <div class="feed-post-avatar">
+                        <img src="${avatarSrc}" alt="">
+                    </div>
+                    <div class="feed-post-info">
+                        <div class="feed-post-name">${post.userName || 'Пользователь'}</div>
+                        <div class="feed-post-time">${timeStr}</div>
+                    </div>
+                    ${isMe ? `
+                        <button class="feed-post-action-btn" title="Скачать фото"
+                                onclick="openPostDownloadModal('${post.id}', event)">
+                            <i class="fa-solid fa-download"></i>
+                        </button>
+                        <button class="feed-post-action-btn" title="Удалить"
+                                onclick="deletePost('${post.id}', event)">
+                            <i class="fa-regular fa-trash-can"></i>
+                        </button>
+                    ` : `
+                        <button class="feed-post-action-btn" title="Действия"
+                                onclick="openPostDownloadModal('${post.id}', event)">
+                            <i class="fa-solid fa-download"></i>
+                        </button>
+                    `}
+                </div>
+
+                <div class="feed-post-content">
+                    <div class="feed-post-image">
+                        <img src="${post.imageData}" alt="" loading="lazy">
+                    </div>
+                    <div class="feed-post-body">
+                        <div class="feed-post-title">${post.workoutTitle || 'Тренировка'}</div>
+                        <div class="feed-post-stats">
+                            <div class="feed-post-stat">
+                                <span class="feed-post-stat-label">Время</span>
+                                <span class="feed-post-stat-value">${s.minutes || 0}</span>
+                            </div>
+                            <div class="feed-post-stat">
+                                <span class="feed-post-stat-label">Упражнений</span>
+                                <span class="feed-post-stat-value">${s.completed || 0}/${s.total || 0}</span>
+                            </div>
+                            <div class="feed-post-stat">
+                                <span class="feed-post-stat-label">Прогресс</span>
+                                <span class="feed-post-stat-value">+${s.xp || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ★★★ СКАЧИВАНИЯ + ЛАЙКИ ★★★ -->
+                <div class="feed-post-footer">
+${post.shareLink ? `
+<span class="feed-download-stat ${isPostDownloaded(post.id) ? 'downloaded' : ''}"
+      data-post-id="${post.id}"
+      title="Скачали тренировку ${post.downloads || 0} раз"
+      onclick="openPostDownloadModal('${post.id}', event)">
+    <i class="fa-solid fa-download"></i>
+    <span>${post.downloads || 0}</span>
+</span>
+` : ''}
+                    <button class="feed-like-btn ${isLiked ? 'liked' : ''}"
+                            data-post-id="${post.id}"
+                            onclick="toggleFeedLike('${post.id}', event)">
+                        <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i>
+                        <span>${likeCount}</span>
+                    </button>
+                </div>
             </div>
-        <div class="feed-post-body">
-            <div class="feed-post-title">${post.workoutTitle || 'Тренировка'}</div>
-            <div class="feed-post-stats">
-                <div class="feed-post-stat">
-                    <span class="feed-post-stat-label">Время</span>
-                    <span class="feed-post-stat-value">${s.minutes || 0}</span>
-                </div>
-                <div class="feed-post-stat">
-                    <span class="feed-post-stat-label">Упражнений</span>
-                    <span class="feed-post-stat-value">${s.completed || 0}/${s.total || 0}</span>
-                </div>
-                <div class="feed-post-stat">
-                    <span class="feed-post-stat-label">Прогресс</span>
-                    <span class="feed-post-stat-value">+${s.xp || 0}</span>
-                </div>
-            </div>
-        </div>
-        </div>
-    </div>
-`;
+        `;
     }).join('');
+}
+
+// =================== СЧЁТЧИК СКАЧИВАНИЙ ТРЕНИРОВКИ ===================
+async function incrementPostDownloads(postId) {
+    if (!postId) return;
+
+    const user = await getFirebaseUser();
+    if (!user) return;
+
+    // ★ Уже скачивал на этом устройстве — не увеличиваем повторно
+    if (isPostDownloaded(postId)) return;
+
+    try {
+        // ★ Пишем ТОЛЬКО downloads — это правило пропустит.
+        // increment(1) гарантирует условие «старое + 1».
+        await firebase.firestore()
+            .collection('posts')
+            .doc(postId)
+            .update({
+                downloads: firebase.firestore.FieldValue.increment(1)
+            });
+
+        markPostDownloaded(postId);
+
+        const post = _feedPosts.find(p => p.id === postId);
+        if (post) {
+            post.downloads = (post.downloads || 0) + 1;
+            updateFeedDownloadCount(postId, post.downloads);
+        }
+        console.log('✅ Счётчик скачиваний увеличен:', postId);
+
+    } catch (error) {
+        console.error('❌ Не удалось увеличить счётчик:', error);
+        if (error.code === 'permission-denied') {
+            showToast('⚠️ Нет прав на обновление счётчика');
+        } else {
+            showToast('⚠️ Не удалось обновить счётчик скачиваний');
+        }
+    }
+}
+
+const DOWNLOADED_POSTS_KEY = 'downloadedPostIds';
+
+function getDownloadedPosts() {
+    try {
+        const raw = JSON.parse(localStorage.getItem(DOWNLOADED_POSTS_KEY) || '[]');
+        return Array.isArray(raw) ? raw : [];
+    } catch { return []; }
+}
+function isPostDownloaded(postId) {
+    return getDownloadedPosts().includes(postId);
+}
+function markPostDownloaded(postId) {
+    const list = getDownloadedPosts();
+    if (!list.includes(postId)) {
+        list.push(postId);
+        localStorage.setItem(DOWNLOADED_POSTS_KEY, JSON.stringify(list));
+    }
+}
+
+function updateFeedDownloadCount(postId, count) {
+    const el = document.querySelector(`.feed-download-stat[data-post-id="${postId}"]`);
+    if (!el) return;
+
+    const span = el.querySelector('span');
+    if (span) span.textContent = count;
+
+    if (isPostDownloaded(postId)) {
+        el.classList.add('downloaded');
+    }
+}
+
+// =================== ЛАЙКИ В ЛЕНТЕ ===================
+window.toggleFeedLike = async function(postId, event) {
+    if (event) event.stopPropagation();
+
+    const user = await getFirebaseUser();
+    if (!user) {
+        showToast('❌ Войдите, чтобы ставить лайки');
+        return;
+    }
+
+    const post = _feedPosts.find(p => p.id === postId);
+    if (!post) return;
+
+    const likes = post.likes || [];
+    const isLiked = likes.includes(user.uid);
+
+    // ★ Оптимистичное обновление + пульс (только при постановке лайка)
+    if (isLiked) {
+        post.likes = likes.filter(id => id !== user.uid);
+    } else {
+        post.likes = [...likes, user.uid];
+    }
+    updateFeedLikeButton(postId, post.likes, user.uid, true);
+
+    try {
+        await firebase.firestore().collection('posts').doc(postId).update({
+            likes: isLiked
+                ? firebase.firestore.FieldValue.arrayRemove(user.uid)
+                : firebase.firestore.FieldValue.arrayUnion(user.uid)
+        });
+    } catch (error) {
+        console.error('❌ Ошибка лайка:', error);
+        // ★ Откат без анимации
+        post.likes = likes;
+        updateFeedLikeButton(postId, likes, user.uid, false);
+        showToast('❌ Не удалось поставить лайк');
+    }
+};
+
+function updateFeedLikeButton(postId, likes, userId, animate = false) {
+    const btn = document.querySelector(`.feed-like-btn[data-post-id="${postId}"]`);
+    if (!btn) return;
+    const isLiked = likes.includes(userId);
+    btn.classList.toggle('liked', isLiked);
+    const icon = btn.querySelector('i');
+    if (icon) icon.className = isLiked ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+    const span = btn.querySelector('span');
+    if (span) span.textContent = likes.length;
+
+    // ★ Пульс — только если явно попросили (при клике)
+    if (animate && isLiked) {
+        btn.classList.remove('like-pulse');
+        void btn.offsetWidth;                 // ★ force reflow, чтобы animation перезапустилась
+        btn.classList.add('like-pulse');
+        setTimeout(() => btn.classList.remove('like-pulse'), 450);
+    }
+}
+
+// =================== УМНЫЙ ПОИСК ПО ЛЕНТЕ ===================
+function initFeedSearch() {
+    const input = document.getElementById('feedSearchInput');
+    const btn = document.getElementById('feedSearchBtn');
+    if (!input || !btn) return;
+
+    let timer = null;
+    input.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            _feedSearchQuery = input.value.trim().toLowerCase();
+            renderFeed();
+        }, 200);
+    });
+
+    btn.addEventListener('click', () => {
+        _feedSearchQuery = input.value.trim().toLowerCase();
+        renderFeed();
+    });
+
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            _feedSearchQuery = input.value.trim().toLowerCase();
+            renderFeed();
+        }
+    });
 }
 
 async function openPostAuthorProfile(userId, event) {
@@ -20523,8 +20931,7 @@ overlay.innerHTML = `
     if (workoutBtn) {
         workoutBtn.addEventListener('click', () => {
             closeModal('postDownloadModal');
-            // Переиспользуем существующую логику добавления тренировки
-            addSharedWorkoutFromPost(post.shareLink, null);
+            addSharedWorkoutFromPost(post.shareLink, null, postId);
         });
     }
 }
@@ -20787,7 +21194,7 @@ async function deletePost(postId, event) {
 }
 window.deletePost = deletePost;
 
-async function addSharedWorkoutFromPost(encoded, event) {
+async function addSharedWorkoutFromPost(encoded, event, postId = null) {
     if (event) event.stopPropagation();
 
     if (!encoded) {
@@ -20804,28 +21211,13 @@ async function addSharedWorkoutFromPost(encoded, event) {
         return;
     }
 
-    // Проверка дубликата
-    const existing = getMyWorkouts();
-    const duplicate = existing.find(w =>
-        w.title === payload.t &&
-        Array.isArray(w.exercises) &&
-        w.exercises.length === (payload.e?.length || 0)
-    );
-
-    if (duplicate) {
-        showToast('ℹ️ Такая тренировка уже есть у вас');
-        return;
+    // ★ Сразу применяем — без промежуточной модалки «Добавить тренировку?»
+    // applySharedWorkout сам покажет showSharedWorkoutAddedModal
+    // (и учтёт случай, когда такая тренировка уже есть)
+    const ok = await applySharedWorkout(payload);
+    if (ok && postId) {
+        incrementPostDownloads(postId);
     }
-
-    // Диалог подтверждения
-    showConfirmModal(
-        'Добавить тренировку?',
-        `Тренировка «${payload.t || 'Без названия'}» будет добавлена в ваши личные.`,
-        function() {
-            applySharedWorkout(payload);
-        },
-        'Добавить'
-    );
 }
 window.addSharedWorkoutFromPost = addSharedWorkoutFromPost;
 // =================== СОЗДАНИЕ ПОСТА ===================
@@ -21123,6 +21515,8 @@ async function publishPost() {
                 minutes: minutes,
                 xp: xp
             },
+            likes: [],                              // ★
+            downloads: 0,                           // ★ новое
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
@@ -21365,11 +21759,6 @@ function finishWorkoutAndShare(completedCount, xpEarned, exercisesCount, seconds
                 openCreatePostModal({ autoSelectLatest: true });
             }, 500);
 
-            // Проверяем награду
-            setTimeout(() => {
-                checkAndGiveCommunityGoalReward(true);
-            }, 1000);
-
             // Счётчик тренировок и PREMIUM
             incrementWorkoutsCount();
             const showPremium = shouldShowPremiumOffer();
@@ -21532,15 +21921,18 @@ function renderWorkoutHistory() {
     }
 
     // ★ Пустые состояния
-    if (total === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <span class="empty-icon">📋</span>
-                <h3 class="empty-title">Нет выполненных тренировок</h3>
-                <p class="empty-text">Выполните свою первую тренировку!</p>
-            </div>`;
-        return;
-    }
+if (total === 0) {
+    container.innerHTML = `
+        <div class="empty-state">
+            <span class="empty-icon">📋</span>
+            <h3 class="empty-title">Нет выполненных тренировок</h3>
+            <p class="empty-text">Выполните свою первую тренировку!</p>
+            <button class="btn btn-primary" onclick="goToWorkoutsFromEmpty()">
+                <i class="fa-solid fa-dumbbell"></i> К тренировкам
+            </button>
+        </div>`;
+    return;
+}
 
     if (found === 0) {
         container.innerHTML = `
@@ -21891,7 +22283,7 @@ const CHANGELOG = {
 
                 '📸 <strong>Страница «Лента»</strong><br>Делись своими тренировками с друзьями и смотри, как тренируются другие. Загрузи фото после тренировки - приложение автоматически наложит статистику: время, количество упражнений и заработанный XP.<br>Вкладка «Все» показывает посты всех пользователей, вкладка «Моя» - только твои публикации. Можно скачать готовый постер с тренировкой, а если понравилась чужая - добавить её себе в личные в один клик.',
 
-                '📊 <strong>Страница «Статистика»</strong><br>Здесь собрана вся информация о твоих тренировках в одном месте. Личная статистика: общее количество тренировок, минут и упражнений, нагрузка по группам мышц, календарь активности, нагрузочный индекс по неделям и графики прогресса тела, история тренировок с фильтрами по названию, категории и периоду, выполняй ежедневные задания и получи значок месяца.<br>Мировая статистика: сколько всего минут, тренировок и упражнений сделали пользователи SportApp за всё время, сколько человек зарегистрировано и сколько сейчас онлайн, достижений сообщества где проценты показывают, у скольких пользователей есть каждый из 7 значков, общая цель где все вместе выполняют тренировки, а топ-10 самых активных получают награду и два рейтинга топ-30 пользователей по XP за всё время и рейтинг друзей, где ты соревнуешься только с теми, кого добавил.',
+                '📊 <strong>Страница «Статистика»</strong><br>Здесь собрана вся информация о твоих тренировках в одном месте. Личная статистика: общее количество тренировок, минут и упражнений, нагрузка по группам мышц, календарь активности, нагрузочный индекс по неделям и графики прогресса тела, история тренировок с фильтрами по названию, категории и периоду, выполняй ежедневные задания и получи значок месяца.<br>Мировая статистика: сколько всего минут, тренировок и упражнений сделали пользователи SportApp за всё время, сколько человек зарегистрировано и сколько сейчас онлайн, достижений сообщества где проценты показывают, у скольких пользователей есть каждый из 7 значков, и два рейтинга топ-30 пользователей по XP за всё время и рейтинг друзей, где ты соревнуешься только с теми, кого добавил.',
 
                 '💪 <strong>Страница «Тренировки»</strong><br>Выбирай из готовых тренировок в трёх категориях: Силовые, Фитнес и PREMIUM. Силовые: руки, плечи, пресс, грудь, спина, ноги, всё тело, каждая в трёх уровнях сложности. Фитнес: зарядка, кардио, растяжка, пилатес, для тех, кто хочет быть в тонусе. PREMIUM: кроссфит, ГТО, «Мужская сила», «Женское счастье».<br>Или создай свою тренировку: добавь упражнения из каталога, настрой подходы, повторения, вес и время отдыха.<br>Пригласи друга на совместную тренировку - тренируйтесь одновременно и смотрите прогресс друг друга в реальном времени.',
 
@@ -23505,7 +23897,7 @@ render() {
             ? 'Брось другу вызов — кто больше натренирует за неделю.'
             : 'По выбранным фильтрам ничего нет.';
         container.innerHTML = `
-            <div class="empty-state" style="margin-bottom:0.5rem">
+            <div class="empty-state" style="box-shadow:none; padding:1rem; margin-bottom:0.5rem">
                 <span class="empty-icon">🎯</span>
                 <h3 class="empty-title">Вызовов нет</h3>
                 <p class="empty-text">${text}</p>
@@ -23724,3 +24116,235 @@ document.addEventListener('DOMContentLoaded', () => {
         window.Challenges.render();
     });
 });
+
+window.goToWorkoutsFromEmpty = function() {
+    TabManager.workouts('ready');
+    window.navigateTo('workouts');
+};
+
+window.focusFriendSearch = function() {
+    // Убеждаемся, что мы на вкладке друзей
+    TabManager.profile('friends');
+    window.navigateTo('profile');
+
+    setTimeout(() => {
+        const input = document.getElementById('searchInput');
+        if (input) {
+            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => input.focus(), 350);
+        }
+    }, 300);
+};
+
+// =================== ОТПРАВКА ЗАЯВКИ НА PREMIUM ===================
+const PREMIUM_REQUEST_COOLDOWN_MS = 10 * 60 * 1000; // 10 минут
+
+async function submitPremiumPaymentRequest() {
+    const cfg = PREMIUM_PAYMENT_CONFIG[_premiumSelectedTariff];
+    if (!cfg) return;
+
+    // ★★★ УРОВЕНЬ 1: защита от двойного клика (3 сек) ★★★
+    if (!preventDoubleClick('premiumPaymentConfirmBtn', 3000)) {
+        showToast('⏳ Заявка уже отправляется...');
+        return;
+    }
+
+    const user = await getFirebaseUser();
+    if (!user) {
+        showToast('❌ Вы не авторизованы');
+        return;
+    }
+
+    // ★★★ ЗАЩИТА: если уже PREMIUM — не отправляем ★★★
+    if (hasPremium()) {
+        closeModal('premiumPaymentModal');
+        showToast('ℹ️ У вас уже активирован PREMIUM');
+        return;
+    }
+
+    const btn = document.getElementById('premiumPaymentConfirmBtn');
+
+    // ★★★ УРОВЕНЬ 2: блокируем кнопку на время запроса ★★★
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Отправка...';
+    }
+
+    try {
+        // ★★★ УРОВЕНЬ 3: проверяем, нет ли уже pending-заявки ★★★
+        const recentSnap = await firebase.firestore()
+            .collection('premiumRequests')
+            .where('userId', '==', user.uid)
+            .where('status', '==', 'pending')
+            .get();
+
+        const now = Date.now();
+        const hasRecent = recentSnap.docs.some(d => {
+            const ts = d.data().createdAt?.seconds * 1000 || 0;
+            return now - ts < PREMIUM_REQUEST_COOLDOWN_MS;
+        });
+
+        if (hasRecent) {
+            closeModal('premiumPaymentModal');
+            showToast('⏳ Заявка уже отправлена. Ждём активации.');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Я оплатил';
+            }
+            return;
+        }
+
+        // 1. Сохраняем заявку в Firestore
+        await firebase.firestore().collection('premiumRequests').add({
+            userId: user.uid,
+            email: user.email || '',
+            displayName: user.displayName || '',
+            tariff: _premiumSelectedTariff,
+            tariffLabel: cfg.label,
+            price: cfg.price,
+            status: 'pending',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // 2. Отправляем уведомление в VK
+        const now2 = new Date();
+        const dateStr = now2.toLocaleString('ru-RU', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+
+        const vkMessage =
+            `💳 Новая заявка на PREMIUM\n\n` +
+            `👤 Имя: ${user.displayName || 'Пользователь'}\n` +
+            `📧 Email: ${user.email || '—'}\n` +
+            `🆔 UID: ${user.uid}\n` +
+            `📦 Тариф: ${cfg.label}\n` +
+            `💰 Сумма: ${cfg.price} ₽\n` +
+            `🕐 Время: ${dateStr}`;
+
+        sendVkAdminMessage(vkMessage);
+
+        closeModal('premiumPaymentModal');
+        showToast('✅ Заявка отправлена! Активируем в течение 15 минут');
+
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Я оплатил';
+        }
+
+    } catch (e) {
+        console.error('Ошибка отправки заявки:', e);
+        showToast('❌ Не удалось отправить заявку. Напишите в поддержку.');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Я оплатил';
+        }
+    }
+}
+window.submitPremiumPaymentRequest = submitPremiumPaymentRequest;
+
+// =================== VK: УНИВЕРСАЛЬНАЯ ОТПРАВКА ===================
+const VK_ADMIN_CONFIG = {
+    accessToken: 'vk1.a.wpCQAKqGslU2sTOYFF0tmcf-sHMcCCvTVB_vgKireR3-ja-tDd5XD495bbfWebuBO9xloM04YIRuiq3FbQRyZRent8GWydI0yfvOwKWT84WfUY9uUfV5FfomyxWpS1wpYkTfMm37Ih8ElWhggH3_IiUErNGFPnmSnx6LvrkImIzm75E_5OrjFF5ec9-GHEKP_7ZZq0byF8FbTZT-B6p0Zg',
+    userId: '624264487',
+    apiVersion: '5.199'
+};
+
+async function sendVkAdminMessage(message) {
+    if (!VK_ADMIN_CONFIG.accessToken || !VK_ADMIN_CONFIG.userId) return false;
+
+    try {
+        const resp = await fetch('https://api.vk.com/method/messages.send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                user_id: VK_ADMIN_CONFIG.userId,
+                message: message,
+                access_token: VK_ADMIN_CONFIG.accessToken,
+                v: VK_ADMIN_CONFIG.apiVersion,
+                random_id: Math.floor(Math.random() * 2 ** 31)
+            })
+        });
+
+        const result = await resp.json();
+        if (result.error) {
+            console.error('❌ VK API error:', result.error);
+            return false;
+        }
+        console.log('✅ VK-уведомление отправлено');
+        return true;
+    } catch (e) {
+        console.error('❌ Не удалось отправить VK:', e);
+        return false;
+    }
+}
+window.sendVkAdminMessage = sendVkAdminMessage;
+
+// =================== АКТИВАЦИЯ PREMIUM (ТОЛЬКО ДЛЯ АДМИНА) ===================
+async function activatePremiumByEmail(email) {
+    if (!email) {
+        console.log('❌ Укажи email: activatePremiumByEmail("user@mail.ru")');
+        return;
+    }
+    try {
+        const snap = await firebase.firestore()
+            .collection('users')
+            .where('email', '==', email)
+            .limit(1)
+            .get();
+
+        if (snap.empty) {
+            console.log('❌ Пользователь не найден:', email);
+            return;
+        }
+
+        const doc = snap.docs[0];
+        await doc.ref.update({ premium: true });
+        console.log('✅ PREMIUM активирован:', email, '(uid:', doc.id + ')');
+        showToast('✅ PREMIUM активирован: ' + email);
+    } catch (e) {
+        console.error('Ошибка активации:', e);
+    }
+}
+window.activatePremiumByEmail = activatePremiumByEmail;
+
+async function activatePremiumByUid(uid) {
+    if (!uid) {
+        console.log('❌ Укажи UID: activatePremiumByUid("abc123...")');
+        return;
+    }
+    try {
+        // 1. Активируем PREMIUM
+        await firebase.firestore().collection('users').doc(uid).update({ premium: true });
+
+        // 2. Помечаем все pending-заявки этого юзера как activated
+        const snap = await firebase.firestore()
+            .collection('premiumRequests')
+            .where('userId', '==', uid)
+            .where('status', '==', 'pending')
+            .get();
+
+        const batch = firebase.firestore().batch();
+        snap.docs.forEach(d => {
+            batch.update(d.ref, {
+                status: 'activated',
+                activatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        });
+        await batch.commit();
+
+        // 3. Сбрасываем кэш профиля, если активировали себя
+        const me = firebase.auth().currentUser;
+        if (me && me.uid === uid) {
+            Cache.clearProfile(uid);
+            await loadProfile();
+        }
+
+        console.log('✅ PREMIUM активирован (uid):', uid);
+        showToast('✅ PREMIUM активирован');
+    } catch (e) {
+        console.error('Ошибка активации:', e);
+    }
+}
+window.activatePremiumByUid = activatePremiumByUid;
+
