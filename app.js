@@ -17147,7 +17147,7 @@ const PRESET_PROGRAMS = [
     },
     {
         id: 'endurance_60',
-        title: 'Железная выносливость',
+        title: 'Выносливость',
         subtitle: 'за 2 месяца',
         icon: 'cardio',
         image: 'images/program-endurance-60.png',
