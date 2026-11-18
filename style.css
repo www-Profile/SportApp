@@ -7898,3 +7898,26 @@ body.theme-dark-mode .program-workout-exercise-row {
 body.theme-dark-mode .program-workout-exercise-name {
     color: var(--text-primary);
 }
+
+
+/* ===== Страница деталей программы ===== */
+.program-detail-page { min-height: 100%; }
+.program-detail-page-header { display: flex; align-items: center; gap: 0.75rem; }
+.program-detail-page-header .dashboard-title { flex: 1; margin: 0; }
+.program-detail-back {
+    width: 2.35rem; height: 2.35rem; flex: 0 0 2.35rem;
+    border: 0; border-radius: 12px; background: var(--light);
+    color: var(--dark); font-size: 1rem; cursor: pointer;
+}
+.program-detail-page-content {
+    display: flex; flex-direction: column; gap: 0.75rem;
+    width: 100%; max-width: 720px; margin: 0 auto;
+}
+.program-detail-schedule-scroll {
+    min-height: 120px; max-height: min(62vh, 680px);
+    overflow-y: auto; margin-bottom: 0.6rem; padding: 0.5rem;
+    border-radius: 16px; background: var(--light); scrollbar-width: none;
+}
+.program-detail-schedule-scroll::-webkit-scrollbar { display: none; }
+body.theme-dark-mode .program-detail-schedule-scroll { background: var(--bg-primary); }
+.program-detail-page-actions { display: flex; gap: 0.5rem; width: 100%; }
