@@ -6465,6 +6465,7 @@ function deleteWorkout(id) {
     saveMyWorkouts(filtered);
 }
 
+
 function renderMyWorkouts() {
     const container = document.getElementById('myWorkoutsList');
     const workouts = getMyWorkouts();
@@ -6497,6 +6498,7 @@ function renderMyWorkouts() {
         </div>
     `).join('');
 }
+
 
 function handleWorkoutClick(id, event) {
     const card = event.target.closest('.item-card');
@@ -10974,6 +10976,11 @@ blockNavigation() {
             return;
         }
 
+        // Разрешаем удаление личной тренировки в режиме редактирования
+if (e.target.closest('.workout-delete')) {
+    return;
+}
+
         // ★★★ ПРОПУСКАЕМ ВСЕ КНОПКИ РЕДАКТИРОВАНИЯ ★★★
 if (e.target.closest('#editStatsBtn') ||
     e.target.closest('#editWorkoutsBtn') ||
@@ -11039,10 +11046,10 @@ initSortables() {
 let handle = (container.handle !== undefined) ? container.handle : '.section-drag';
 let filter = container.filter || null;
         
-        if (['catalogGridStrength', 'catalogGridFitness', 'catalogGridPremium', 'myWorkoutsList'].includes(container.id)) {
-            filter = '.workout-delete';
-            handle = null;
-        }
+if (['catalogGridStrength', 'catalogGridFitness', 'catalogGridPremium', 'myWorkoutsList'].includes(container.id)) {
+    filter = '.workout-delete, .workout-delete *';
+    handle = null;
+}
 
         if (container.id === 'statsSummary') {
             handle = '.stat-card';
@@ -17664,6 +17671,7 @@ const WEEK_PATTERNS = {
 
 let _newProgramDayAssignments = {};
 
+
 function getProgramWorkoutOptions() {
     const options = [];
     const seen = new Set();
@@ -17671,19 +17679,24 @@ function getProgramWorkoutOptions() {
     // Готовые тренировки
     if (typeof exercisesData !== 'undefined') {
         Object.entries(exercisesData).forEach(([parent, categories]) => {
-
-            // Premium-категории доступны только подписчикам
-if (parent === 'PREMIUM' && !hasPremium()) return;
-
             if (!categories || typeof categories !== 'object') return;
 
-            Object.entries(categories).forEach(([category, levels]) => {
-                if (!levels || typeof levels !== 'object') return;
+            Object.entries(categories).forEach(([category, categoryData]) => {
+                if (!categoryData || typeof categoryData !== 'object') return;
 
-                Object.keys(levels).forEach(level => {
+                // Определяем Premium по реальной структуре каталога
+                const isPremiumCategory =
+                    parent === 'PREMIUM' ||
+                    parent === 'Особые' ||
+                    categoryData._premium === true;
+
+                // Без Premium скрываем все премиум-категории
+                if (isPremiumCategory && !hasPremium()) return;
+
+                Object.keys(categoryData).forEach(level => {
                     if (!/^\d+\s*LVL$/i.test(level)) return;
 
-                    const key = `${category}|${level}`;
+                    const key = `${parent}|${category}|${level}`;
                     if (seen.has(key)) return;
 
                     const exercises = getExercisesForEdit(
@@ -17698,6 +17711,7 @@ if (parent === 'PREMIUM' && !hasPremium()) return;
 
                     options.push({
                         source: 'ready',
+                        parent,
                         category,
                         level,
                         title: `${category} - ${level}`,
@@ -18255,7 +18269,7 @@ function deleteProgramFromList(programId) {
 
     showConfirmModal(
         'Удалить программу?',
-        'Программа будет удалена после сохранения изменений. При отмене она восстановится.',
+        'Это действие нельзя отменить.',
         () => {
             const updatedList = getMyPrograms()
                 .filter(p => p.id !== programId);
@@ -18758,6 +18772,7 @@ function openCreateProgramModal() {
 window.openCreateProgramModal = openCreateProgramModal;
 
 
+
 function saveCustomProgram() {
     const title = document.getElementById('newProgramTitle').value.trim();
     const durationDays = parseInt(
@@ -18783,24 +18798,66 @@ function saveCustomProgram() {
         return;
     }
 
-    // Проверяем, что назначенные тренировки существуют
+    // Получаем доступные тренировки с учётом Premium
+    const availableOptions = getProgramWorkoutOptions();
+
+    // Проверяем каждое назначение
     for (const day of assignments) {
         const workout = _newProgramDayAssignments[day];
 
-        if (
-    workout.source === 'ready' &&
-    !hasPremium() &&
-    !getProgramWorkoutOptions().some(option =>
-        option.source === 'ready' &&
-        option.category === workout.category &&
-        option.level === workout.level
-    )
-) {
-    showToast('🔒 Нужен Premium');
-    return;
-}
+        if (!workout) continue;
 
-        if (workout.source === 'personal') {
+        // Проверяем готовые тренировки
+        if (workout.source === 'ready') {
+            const isAvailable = availableOptions.some(option =>
+                option.source === 'ready' &&
+                option.category === workout.category &&
+                option.level === workout.level
+            );
+
+            if (!isAvailable) {
+                // Проверяем, относится ли тренировка к Premium
+                let isPremiumCategory = false;
+
+                for (const [parent, categories] of Object.entries(exercisesData)) {
+                    const categoryData = categories?.[workout.category];
+
+                    if (
+                        categoryData &&
+                        (
+                            parent === 'PREMIUM' ||
+                            parent === 'Особые' ||
+                            categoryData._premium === true
+                        )
+                    ) {
+                        isPremiumCategory = true;
+                        break;
+                    }
+                }
+
+                if (isPremiumCategory && !hasPremium()) {
+                    showToast('🔒 Нужен Premium');
+                } else {
+                    showToast('⚠️ Тренировка недоступна');
+                }
+
+                return;
+            }
+
+            const exercises = getExercisesForEdit(
+                workout.category,
+                workout.level,
+                false
+            );
+
+            if (!Array.isArray(exercises) || !exercises.length) {
+                showToast('⚠️ Тренировка недоступна');
+                return;
+            }
+        }
+
+        // Проверяем личные тренировки
+        else if (workout.source === 'personal') {
             const personalWorkout = getWorkoutById(workout.workoutId);
 
             if (!personalWorkout || !personalWorkout.exercises?.length) {
@@ -18809,17 +18866,9 @@ function saveCustomProgram() {
             }
         }
 
-        if (workout.source === 'ready') {
-            const exercises = getExercisesForEdit(
-                workout.category,
-                workout.level,
-                false
-            );
-
-            if (!exercises.length) {
-                showToast('⚠️ Тренировка недоступна');
-                return;
-            }
+        else {
+            showToast('⚠️ Неверная тренировка');
+            return;
         }
     }
 
@@ -18832,6 +18881,7 @@ function saveCustomProgram() {
     );
 
     const list = getMyPrograms();
+
     const existingIndex = _editingCustomProgramId
         ? list.findIndex(p => p.id === _editingCustomProgramId)
         : -1;
@@ -18893,7 +18943,6 @@ function saveCustomProgram() {
     );
 
     if (existingProgram) {
-        // Обновляем открытую страницу программы
         openProgramDetail(program.id);
     } else {
         switchProgramTab('my');
@@ -23329,7 +23378,7 @@ window.PWA = PWA;
 // =================== МОДАЛКА: ЧТО НОВОГО ===================
 const CHANGELOG = {
     // ★★★ ТЕКУЩАЯ ВЕРСИЯ — меняй при выпуске обновления ★★★
-    CURRENT_VERSION: '1.1.0',
+    CURRENT_VERSION: '1.2.0',
 
     STORAGE_KEY: 'changelogSeenVersion',
 
@@ -23337,6 +23386,18 @@ const CHANGELOG = {
     // Порядок: от новых к старым
     // ★★★ ИСТОРИЯ ВЕРСИЙ — от новых к старым ★★★
     VERSIONS: [
+{
+    version: '1.2.0',
+    date: '18 ноября 2026',
+    title: 'Программы тренировок',
+    changes: [
+        '📅 <strong>Готовые программы</strong> - выбирай готовые планы тренировок с расписанием, тренировочными днями и днями отдыха. Следи за прогрессом и отмечай выполненные дни программы.',
+
+        '⚙️ <strong>Создание личных программ</strong> - создавай собственные программы с нуля. Настраивай продолжительность, количество тренировочных дней и расписание. Назначай на каждый день готовые или свои тренировки, планируй отдых и редактируй программу под себя.',
+
+        '🛠️ <strong>Исправления и улучшения</strong> - обновлён интерфейс программ, улучшено отображение прогресса, управление личными тренировками и работа расписания. Исправлены ошибки и улучшена стабильность приложения.'
+    ]
+},
         {
             version: '1.1.0',
             date: '12 октября 2026',
