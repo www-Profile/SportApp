@@ -9424,14 +9424,11 @@ let isToastShowing = false;
  * Показать тост. Если сейчас показывается другой — встаём в очередь.
  */
 function formatToastMessage(message) {
-    const raw = String(message ?? '').trim();
-    const leadingEmoji = raw.match(/^\p{Extended_Pictographic}(?:\uFE0F|\uFE0E)?/u);
-    const emoji = leadingEmoji ? leadingEmoji[0] : '💪';
-    const body = (leadingEmoji ? raw.slice(leadingEmoji[0].length) : raw)
-        .replace(/^\s+/, '')
-        .replace(/\s+/g, ' ');
-    const words = body.split(' ').filter(Boolean).slice(0, 3);
-    return words.length ? `${emoji} ${words.join(' ')}` : emoji;
+    const raw = String(message ?? '').trim().replace(/\\s+/g, ' ');
+    if (!raw) return '💪';
+    const leadingEmoji = raw.match(/^\\p{Extended_Pictographic}(?:\\uFE0F|\\uFE0E)?/u);
+    if (leadingEmoji) return raw;
+    return `💪 ${raw}`;
 }
 
 function showToast(message, duration = 3000) {
@@ -18028,8 +18025,8 @@ if (isCustom) {
         ? getProgramWorkoutCount(program)
         : generateProgramSchedule(program.durationDays, program.workoutsPerWeek, program.category, program.weekPattern, program.id).filter(d => d.type === 'workout').length;
     subEl.innerHTML =
-        '<i class="fa-solid fa-calendar"></i> ' + program.durationDays + ' дн. - ' +
-        '<i class="fa-solid fa-dumbbell"></i> ' + totalProgramWorkouts + ' трен. - ' +
+        '<i class="fa-solid fa-calendar"></i> ' + program.durationDays + ' дн. · ' +
+        '<i class="fa-solid fa-dumbbell"></i> ' + totalProgramWorkouts + ' трен. · ' +
         '<i class="fa-solid fa-gauge-high"></i> ' + (program.difficulty || 'Своя');
 
     // ── Прогресс ──
@@ -18098,7 +18095,7 @@ if (d.type === 'rest') {
             <div class="program-tl-dot"></div>
             <div class="program-tl-body">
                 <span class="program-tl-day">День ${d.day}</span>
-                <span class="program-tl-sep-dot">-</span>
+                <span class="program-tl-sep-dot">·</span>
                 <span class="program-tl-cat italic">Отдых</span>
             </div>
         </div>`;
@@ -18166,22 +18163,28 @@ window.openProgramDetail = openProgramDetail;
 function startProgramDay(programId, day, category, event) {
     if (event) event.stopPropagation();
 
-    closeModal('programDetailModal');
-
-    // Для программы «Всё тело» запускаем заранее составленную тренировку,
-    // а не случайный набор упражнений из общего выбора категории.
-    if (typeof buildProgramWorkout === 'function') {
-        const program = PRESET_PROGRAMS.find(item => item.id === programId);
-        const workout = buildProgramWorkout(programId, day);
-        if (program && workout) {
-            _pendingProgramDay = { programId, day, category: program.category };
-            startTrainingSession(workout.exercises, workout.title, program.category, workout.icon);
-            return;
-        }
+    const program = PRESET_PROGRAMS.find(item => item.id === programId);
+    if (!program) {
+        showToast('⚠️ Программа не найдена');
+        return;
     }
 
-    _pendingProgramDay = { programId, day, category };
-    window.navigateTo('level-select', { category: category });
+    if (typeof buildProgramWorkout !== 'function') {
+        showToast('⚠️ Не загружены тренировки');
+        console.error('[SportApp] programs-data.js не загрузил buildProgramWorkout');
+        return;
+    }
+
+    const workout = buildProgramWorkout(programId, day);
+    if (!workout || !Array.isArray(workout.exercises) || workout.exercises.length < 8) {
+        showToast('⚠️ Не удалось загрузить тренировку');
+        console.error('[SportApp] Не удалось собрать тренировку программы:', programId, day, workout);
+        return;
+    }
+
+    closeModal('programDetailModal');
+    _pendingProgramDay = { programId, day, category: program.category };
+    startTrainingSession(workout.exercises, workout.title, program.category, workout.icon);
 }
 window.startProgramDay = startProgramDay;
 
