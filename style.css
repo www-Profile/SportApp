@@ -2600,13 +2600,17 @@ body.theme-dark-mode .nav-item-active { color: var(--accent); }
     font-size: 0.95rem;
     font-weight: 500;
     z-index: 3000;
-    max-width: 90%;
+    max-width: 90vw;
+    width: max-content;
+    box-sizing: border-box;
     text-align: center;
     opacity: 0;
     pointer-events: none;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+    overflow: visible;
+    text-overflow: clip;
 
     box-shadow:
         0 8px 24px rgba(15, 23, 42, 0.25),
