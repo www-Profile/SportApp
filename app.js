@@ -4685,7 +4685,6 @@ function renderExerciseGallery(exercise, containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    // При повторном рендере очищаем предыдущий таймер автопереключения.
     if (container._galleryTimer) {
         clearInterval(container._galleryTimer);
         container._galleryTimer = null;
@@ -4697,57 +4696,105 @@ function renderExerciseGallery(exercise, containerId) {
     const images = Array.isArray(exercise?.images) && exercise.images.length
         ? exercise.images
         : (Array.isArray(catalogExercise?.images) ? catalogExercise.images : []);
-    const validImages = images.filter(src => typeof src === 'string' && src.trim() && !src.startsWith('*'));
+    const sources = images.filter(src => typeof src === 'string' && src.trim() && !src.startsWith('*'));
 
     container.innerHTML = '';
-    if (!validImages.length) {
+    if (!sources.length) {
         container.innerHTML = '<span class="session-bg-text">Фото будет добавлено позже</span>';
         return;
     }
 
-    const track = document.createElement('div');
-    track.className = 'exercise-image-track';
-    const slides = [];
+    // Один и тот же img-элемент и единый холст для всех кадров:
+    // это исключает смещение из-за разных размеров и прозрачных полей PNG.
+    const imageElement = document.createElement('img');
+    imageElement.className = 'exercise-gallery-image';
+    imageElement.alt = exercise?.name || 'Техника выполнения упражнения';
+    imageElement.draggable = false;
+    container.appendChild(imageElement);
+
+    const normalizedFrames = [];
     let currentIndex = 0;
+    let readyCount = 0;
 
-    function showImage(index) {
-        if (!slides.length) return;
-        currentIndex = (index + slides.length) % slides.length;
-        track.scrollLeft = slides[currentIndex].offsetLeft;
-    }
+    function normalizeTransparentImage(img) {
+        const sourceCanvas = document.createElement('canvas');
+        sourceCanvas.width = img.naturalWidth;
+        sourceCanvas.height = img.naturalHeight;
+        const sourceContext = sourceCanvas.getContext('2d', { willReadFrequently: true });
+        sourceContext.drawImage(img, 0, 0);
 
-    validImages.forEach((src, index) => {
-        const image = document.createElement('img');
-        image.className = 'exercise-gallery-image';
-        image.src = src;
-        image.alt = exercise?.name || 'Техника выполнения упражнения';
-        image.loading = index === 0 ? 'eager' : 'lazy';
-        image.onerror = function() {
-            const slideIndex = slides.indexOf(image);
-            if (slideIndex < 0) return;
-            image.remove();
-            slides.splice(slideIndex, 1);
-            if (!slides.length) {
-                if (container._galleryTimer) clearInterval(container._galleryTimer);
-                container._galleryTimer = null;
-                container.innerHTML = '<span class="session-bg-text">Фото будет добавлено позже</span>';
-                return;
+        const pixels = sourceContext.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height).data;
+        let minX = sourceCanvas.width, minY = sourceCanvas.height, maxX = -1, maxY = -1;
+        for (let y = 0; y < sourceCanvas.height; y++) {
+            for (let x = 0; x < sourceCanvas.width; x++) {
+                if (pixels[(y * sourceCanvas.width + x) * 4 + 3] > 16) {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
             }
-            currentIndex = currentIndex % slides.length;
-            showImage(currentIndex);
-        };
-        track.appendChild(image);
-        slides.push(image);
-    });
+        }
 
-    container.appendChild(track);
+        const output = document.createElement('canvas');
+        output.width = 1000;
+        output.height = 1000;
+        const context = output.getContext('2d');
+        if (maxX < minX || maxY < minY) {
+            context.drawImage(img, 0, 0, output.width, output.height);
+            return output.toDataURL('image/png');
+        }
 
-    // Фотографии сменяются автоматически, без анимации и элементов управления.
-    if (slides.length > 1) {
-        container._galleryTimer = setInterval(() => {
-            showImage(currentIndex + 1);
-        }, 1000);
+        const cropWidth = maxX - minX + 1;
+        const cropHeight = maxY - minY + 1;
+        const scale = Math.min(900 / cropWidth, 940 / cropHeight);
+        const drawWidth = cropWidth * scale;
+        const drawHeight = cropHeight * scale;
+        const drawX = (output.width - drawWidth) / 2;
+        const drawY = (output.height - drawHeight) / 2;
+        context.drawImage(sourceCanvas, minX, minY, cropWidth, cropHeight,
+            drawX, drawY, drawWidth, drawHeight);
+        return output.toDataURL('image/png');
     }
+
+    function showFrame(index) {
+        if (!normalizedFrames.length) return;
+        currentIndex = (index + normalizedFrames.length) % normalizedFrames.length;
+        imageElement.src = normalizedFrames[currentIndex];
+    }
+
+    sources.forEach((src, index) => {
+        const preload = new Image();
+        preload.onload = function() {
+            try {
+                normalizedFrames[index] = normalizeTransparentImage(preload);
+            } catch (error) {
+                normalizedFrames[index] = src;
+            }
+            readyCount++;
+            if (index === 0 || !imageElement.src) showFrame(index);
+            if (readyCount === sources.length && normalizedFrames.length > 1) {
+                container._galleryTimer = setInterval(() => showFrame(currentIndex + 1), 1000);
+            }
+        };
+        preload.onerror = function() {
+            normalizedFrames[index] = null;
+            readyCount++;
+            if (readyCount === sources.length) {
+                const usable = normalizedFrames.filter(Boolean);
+                if (!usable.length) {
+                    container.innerHTML = '<span class="session-bg-text">Фото будет добавлено позже</span>';
+                    return;
+                }
+                normalizedFrames.splice(0, normalizedFrames.length, ...usable);
+                showFrame(0);
+                if (normalizedFrames.length > 1) {
+                    container._galleryTimer = setInterval(() => showFrame(currentIndex + 1), 1000);
+                }
+            }
+        };
+        preload.src = src;
+    });
 }
 function renderSessionExercise() {
     if (isResting) {
