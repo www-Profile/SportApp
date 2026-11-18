@@ -7829,3 +7829,68 @@ body.theme-dark-mode .program-tl-item.rest .program-tl-day,
 body.theme-dark-mode .program-tl-item.rest .program-tl-cat {
     color: var(--text-secondary);
 }
+
+/* =================== СТАТИСТИКА ТРЕНИРОВКИ ПРОГРАММЫ =================== */
+.program-tl-stats-btn {
+    background: var(--accent-light);
+    color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+    font-weight: 700;
+}
+.program-workout-stats-modal {
+    width: 95%;
+    max-width: 460px;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+.program-workout-stats-body {
+    overflow-y: auto;
+    min-height: 0;
+    text-align: left;
+}
+.program-workout-stats-date {
+    color: var(--slate);
+    font-size: 0.75rem;
+    margin-bottom: 0.55rem;
+}
+.program-workout-exercise-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+.program-workout-exercise-row {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr) auto 18px;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.55rem 0.6rem;
+    background: var(--light);
+    border: 1px solid var(--light-grey);
+    border-radius: 12px;
+    font-size: 0.75rem;
+}
+.program-workout-exercise-number,
+.program-workout-exercise-status {
+    color: var(--accent);
+    font-weight: 700;
+    text-align: center;
+}
+.program-workout-exercise-name {
+    color: var(--dark);
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.program-workout-exercise-value {
+    color: var(--slate);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+body.theme-dark-mode .program-workout-exercise-row {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+body.theme-dark-mode .program-workout-exercise-name {
+    color: var(--text-primary);
+}
