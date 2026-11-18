@@ -400,7 +400,7 @@ const EXERCISES_CATALOG = [
     { name: 'Выпады с прыжком на левую ногу', images: getExercisePhotoSlots('Выпады с прыжком на левую ногу', 'Женское счастье'), category: 'Женское счастье', sets: 4, reps: 15, weight: 0, icon: 'woman', equipment: 'none' },
     { name: 'Румынская тяга с гантелями', images: getExercisePhotoSlots('Румынская тяга с гантелями', 'Женское счастье'), category: 'Женское счастье', sets: 4, reps: 15, weight: 0, icon: 'woman', equipment: 'dumbbells' },
     { name: 'Боковые выпады с гантелью на правую ногу', images: getExercisePhotoSlots('Боковые выпады с гантелью на правую ногу', 'Женское счастье'), category: 'Женское счастье', sets: 4, reps: 15, weight: 0, icon: 'woman', equipment: 'dumbbells' },
-    { name: 'Боковые выпады с гантелью на левую ногу', images: getExercisePhotoSlots('Боковые выпады с гантелью на левую ногу', 'Женское счастье'), category: 'Женское счастье', sets: 4, reps: 15, weight: 0, icon: 'woman', equipment: 'dumbbells' },,
+    { name: 'Боковые выпады с гантелью на левую ногу', images: getExercisePhotoSlots('Боковые выпады с гантелью на левую ногу', 'Женское счастье'), category: 'Женское счастье', sets: 4, reps: 15, weight: 0, icon: 'woman', equipment: 'dumbbells' },
 
     // ===== ДОПОЛНИТЕЛЬНЫЕ УПРАЖНЕНИЯ ДЛЯ ГОТОВЫХ ПРОГРАММ =====
     { name: 'Альпинист', images: getExercisePhotoSlots('Альпинист', 'Кардио'), category: 'Кардио', sets: 3, reps: 20, weight: 0, icon: 'cardio', equipment: 'none' },
