@@ -7962,8 +7962,11 @@ body.theme-dark-mode .program-detail-schedule-scroll { background: var(--bg-seco
 .program-create-modal {
     max-width: 460px;
     max-height: 88vh;
+    max-height: 88dvh;
     overflow-y: auto;
+    overscroll-behavior-y: contain;
     text-align: left;
+    box-sizing: border-box;
 }
 
 .program-builder-heading {
@@ -7997,8 +8000,8 @@ body.theme-dark-mode .program-detail-schedule-scroll { background: var(--bg-seco
     display: flex;
     flex-direction: column;
     gap: 0.45rem;
-    max-height: 38vh;
-    overflow-y: auto;
+    max-height: none;
+    overflow: visible;
     padding-right: 2px;
 }
 
@@ -8044,9 +8047,13 @@ body.theme-dark-mode .program-detail-schedule-scroll { background: var(--bg-seco
 .program-create-actions {
     display: flex;
     gap: 0.5rem;
-    position: sticky;
-    bottom: 0;
-    background: none;
+    position: static;
+    bottom: auto;
+    z-index: auto;
+    background: transparent;
+    padding: 0;
+    margin-top: 1rem;
+    padding-bottom: 0.25rem;
 }
 
 /* Значки личной программы */
