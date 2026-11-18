@@ -17494,7 +17494,7 @@ const PRESET_PROGRAMS = [
         workoutsPerWeek: 4,
         difficulty: 'Средний',
         isPremium: true,
-        description: '30-дневная программа на кубики. 5 тренировок в неделю с акцентом на прямые и косые мышцы живота.'
+        description: '4 тренировки в неделю: верхний и нижний пресс, косые мышцы, стабилизация корпуса, короткое кардио и растяжка.'
     },
     {
         id: 'cut_60',
@@ -17508,7 +17508,7 @@ const PRESET_PROGRAMS = [
         workoutsPerWeek: 5,
         difficulty: 'Средний',
         isPremium: true,
-        description: 'Высокоинтенсивная программа для сжигания жира. 2 месяца чередования кардио и силовых, 6 тренировок в неделю. Не для новичков.'
+        description: '5 тренировок в неделю: кардио, силовые на всё тело и интервальные комплексы. Снижение жировой массы зависит также от питания и общего энергобаланса.'
     },
     {
         id: 'back_30',
@@ -17522,7 +17522,7 @@ const PRESET_PROGRAMS = [
         workoutsPerWeek: 3,
         difficulty: 'Средний',
         isPremium: true,
-        description: '3 тренировки в неделю на спину и широчайшие. Подтягивания, тяги, гиперэкстензия. Нужен турник.'
+        description: '3 тренировки в неделю на широчайшие, середину спины и задние дельты. Тяги с гантелями, упражнения для разгибателей спины и корпуса. Нужны гантели и коврик.'
     },
     {
         id: 'arms_30',
@@ -17536,7 +17536,7 @@ const PRESET_PROGRAMS = [
         workoutsPerWeek: 3,
         difficulty: 'Средний',
         isPremium: true,
-        description: '3 тренировки в неделю на бицепс и трицепс. Отжимания, сгибания, разгибания — всё для объёма и силы рук.'
+        description: '3 тренировки в неделю на бицепс, трицепс и плечевой пояс. Постепенно усложняются сгибания, разгибания и жимовые движения. Нужны гантели.'
     },
 
     // ★★★ НОВЫЕ ПРОГРАММЫ ★★★
@@ -17553,7 +17553,7 @@ const PRESET_PROGRAMS = [
     weekPattern: [true, false, true, false, true, false, false],
     difficulty: 'Средний',
     isPremium: false,
-    description: 'Бесплатная программа на 90 дней: три тренировки в неделю. Понедельник — лёгкая тренировка груди, плеч и трицепса; среда — средняя нагрузка на ноги, ягодицы и пресс; пятница — самая объёмная тренировка спины, бицепса и корпуса. Нагрузка растёт каждые три недели. Нужны гантели и коврик.'
+    description: 'Бесплатная программа на 90 дней - три тренировки в неделю. Грудь, плечи и трицепс; ноги, ягодицы и пресс; спина, бицепс и корпус. Каждую неделю постепенно растут повторения и время удержания, каждые две недели добавляются подходы. Нужны гантели и коврик.'
 },
     {
         id: 'legs_30',
@@ -17567,7 +17567,7 @@ const PRESET_PROGRAMS = [
         workoutsPerWeek: 3,
         difficulty: 'Средний',
         isPremium: true,
-        description: '3 тренировки в неделю на ноги и ягодицы. Приседания, выпады, подъёмы — всё для силы и объёма нижней части тела.'
+        description: '3 тренировки в неделю на квадрицепсы, заднюю поверхность бедра, ягодицы и икры. Приседания, выпады, тяговые движения и ягодичные упражнения. Нужны гантели и коврик.'
     },
     {
         id: 'endurance_60',
@@ -17581,7 +17581,7 @@ const PRESET_PROGRAMS = [
         workoutsPerWeek: 4,
         difficulty: 'Средний',
         isPremium: true,
-        description: '4 тренировки в неделю на выносливость и работу сердца. Интервальное кардио, кроссфит-элементы и функциональные тренировки. 5 занятий в неделю.'
+        description: '4 тренировки в неделю: аэробная работа, силовая выносливость, интервалы и восстановительное кардио. Нагрузка постепенно растёт, а восстановительные дни остаются в расписании.'
     },
     {
         id: 'flexibility_60',
@@ -17595,7 +17595,7 @@ const PRESET_PROGRAMS = [
         workoutsPerWeek: 5,
         difficulty: 'Низкий',
         isPremium: true,
-        description: '2-месячная программа на гибкость и растяжку. Мягкие ежедневные занятия, растяжка позвоночника, пилатес. Подходит для любого уровня.'
+        description: '5 занятий в неделю на мобильность спины, плеч, бёдер и тазобедренных суставов. Начинаем с мягкой амплитуды и постепенно увеличиваем время удержания. Без резкой боли и форсирования шпагата.'
     }
 ];
 
@@ -18098,7 +18098,7 @@ if (d.type === 'rest') {
             <div class="program-tl-dot"></div>
             <div class="program-tl-body">
                 <span class="program-tl-day">День ${d.day}</span>
-                <span class="program-tl-sep-dot">·</span>
+                <span class="program-tl-sep-dot">-</span>
                 <span class="program-tl-cat italic">Отдых</span>
             </div>
         </div>`;
@@ -18126,7 +18126,7 @@ if (isCompleted) {
                         <div class="program-tl-dot"></div>
                         <div class="program-tl-body">
                             <span class="program-tl-day">День ${d.day}</span>
-                            <span class="program-tl-sep-dot">·</span>
+                            <span class="program-tl-sep-dot">-</span>
                             <span class="program-tl-cat">${d.category}</span>
                         </div>
                         <button class="program-tl-btn"
@@ -18143,7 +18143,7 @@ if (isCompleted) {
                     <div class="program-tl-dot"></div>
                     <div class="program-tl-body">
                         <span class="program-tl-day">День ${d.day}</span>
-                        <span class="program-tl-sep-dot">·</span>
+                        <span class="program-tl-sep-dot">-</span>
                         <span class="program-tl-cat">${d.category}</span>
                     </div>
                 </div>`;
