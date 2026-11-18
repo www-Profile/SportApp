@@ -409,7 +409,7 @@ const EXERCISES_CATALOG = [
     { name: 'Джампинг джек', images: getExercisePhotoSlots('Джампинг джек', 'Кардио'), category: 'Кардио', sets: 3, reps: 20, weight: 0, icon: 'cardio', equipment: 'none' },
     { name: 'Ходьба на месте', images: getExercisePhotoSlots('Ходьба на месте', 'Кардио'), category: 'Кардио', sets: 2, reps: '40 сек', weight: 0, icon: 'cardio', equipment: 'none' },
     { name: 'Шаги в сторону', images: getExercisePhotoSlots('Шаги в сторону', 'Кардио'), category: 'Кардио', sets: 2, reps: '30 сек', weight: 0, icon: 'cardio', equipment: 'none' },
-    { name: 'Повороты корпуса стоя', images: getExercisePhotoSlots('Повороты корпуса стоя', 'Растяжка'), category: 'Растяжка', sets: 2, reps: 20, weight: 0, icon: 'stretching', equipment: 'none' },,
+    { name: 'Повороты корпуса стоя', images: getExercisePhotoSlots('Повороты корпуса стоя', 'Растяжка'), category: 'Растяжка', sets: 2, reps: 20, weight: 0, icon: 'stretching', equipment: 'none' },
     { name: 'Концентрированные сгибания', images: getExercisePhotoSlots('Концентрированные сгибания', 'Руки'), category: 'Руки', sets: 3, reps: 10, weight: 0, icon: 'bodybuilding', equipment: 'dumbbells' },
     { name: 'Планка на одной руке', images: getExercisePhotoSlots('Планка на одной руке', 'Пресс'), category: 'Пресс', sets: 2, reps: '15 сек', weight: 0, icon: 'press', equipment: 'none' },
 ];
