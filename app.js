@@ -9425,11 +9425,11 @@ let isToastShowing = false;
  */
 function formatToastMessage(message) {
     const raw = String(message ?? '').trim();
-    const leadingEmoji = raw.match(/^\\p{Extended_Pictographic}(?:\\uFE0F|\\uFE0E)?/u);
+    const leadingEmoji = raw.match(/^\p{Extended_Pictographic}(?:\uFE0F|\uFE0E)?/u);
     const emoji = leadingEmoji ? leadingEmoji[0] : '💪';
     const body = (leadingEmoji ? raw.slice(leadingEmoji[0].length) : raw)
-        .replace(/^\\s+/, '')
-        .replace(/\\s+/g, ' ');
+        .replace(/^\s+/, '')
+        .replace(/\s+/g, ' ');
     const words = body.split(' ').filter(Boolean).slice(0, 3);
     return words.length ? `${emoji} ${words.join(' ')}` : emoji;
 }
