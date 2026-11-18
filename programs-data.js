@@ -1,8 +1,9 @@
 // ============================================================
 // PROGRAM WORKOUTS — полноценные планы готовых программ SportApp
 // Загружается после exercises-catalog.js и до app.js.
-// Прогрессия: каждую неделю растут повторения/время удержания,
-// каждые 2–3 недели добавляется подход, затем меняется вариант.
+// Прогрессия: каждую неделю добавляется упражнение (с 5 до 9 за первые 5 недель),
+// одновременно растут повторения/время удержания; каждые 2 недели добавляется подход,
+// затем усложняются варианты упражнений.
 // ============================================================
 
 const PROGRAM_WORKOUTS = {
@@ -290,7 +291,13 @@ function buildProgramWorkout(programId, dayNumber) {
     const weekNumber = Math.ceil(dayNumber / 7);
     const phase = weekNumber <= 2 ? 0 : weekNumber <= 4 ? 1 : weekNumber <= 7 ? 2 : 3;
     const workoutItems = [...dayPlan.exercises, ...(dayPlan.extraExercises || [])];
-    const exercises = workoutItems.map(item => {
+
+    // Не выдаём весь объём с первой недели: добавляем по одному упражнению
+    // каждую неделю, пока тренировка не достигнет полного запланированного состава.
+    const exerciseCount = Math.min(workoutItems.length, 5 + weekNumber - 1);
+    const progressiveItems = workoutItems.slice(0, exerciseCount);
+
+    const exercises = progressiveItems.map(item => {
         const variant = Array.isArray(item.variants)
             ? item.variants[Math.min(phase, item.variants.length - 1)]
             : item.name;
@@ -299,10 +306,13 @@ function buildProgramWorkout(programId, dayNumber) {
             console.warn('[SportApp] Не найдено упражнение программы:', variant);
             return null;
         }
+
+        // Подход добавляется каждые две недели, с ограничением по объёму.
         const sets = Math.min(item.maxSets || 4, item.sets + Math.floor((weekNumber - 1) / 2));
         let reps = item.reps;
         if (typeof reps === 'number') {
-            reps = Math.min(item.maxReps || (item.reps >= 20 ? item.reps + 10 : 20), reps + Math.floor((weekNumber - 1) * (item.increment || 1.5)));
+            const maxReps = item.maxReps || (item.reps >= 20 ? item.reps + 10 : 20);
+            reps = Math.min(maxReps, item.reps + Math.floor((weekNumber - 1) * (item.increment || 1.5)));
         } else if (typeof reps === 'string' && /сек/.test(reps)) {
             const seconds = parseInt(reps, 10) || 15;
             reps = Math.min(item.maxSeconds || 50, seconds + (weekNumber - 1) * 3) + ' сек';
