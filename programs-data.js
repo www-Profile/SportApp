@@ -72,8 +72,8 @@ const PROGRAM_WORKOUTS = {
         ]
     },
     back_30: {
-        durationDays: 30, workoutsPerWeek: 4,
-        weekPattern: [true, false, true, false, true, false, true],
+        durationDays: 30, workoutsPerWeek: 3,
+        weekPattern: [true, false, true, false, true, false, false],
         weeklyPlan: [
             { title: 'Широчайшие и середина спины', label: 'Широчайшие', exercises: [
                 ex('Тяга гантелей к поясу в наклоне', 10, 2), ex('Тяга гантели к поясу', 10, 2),
@@ -99,8 +99,8 @@ const PROGRAM_WORKOUTS = {
         ]
     },
     arms_30: {
-        durationDays: 30, workoutsPerWeek: 4,
-        weekPattern: [true, false, true, false, true, false, true],
+        durationDays: 30, workoutsPerWeek: 3,
+        weekPattern: [true, false, true, false, true, false, false],
         weeklyPlan: [
             { title: 'Бицепс и предплечья', label: 'Бицепс', exercises: [
                 ex('Сгибание рук с гантелями стоя', 10, 2), ex('Молотковые сгибания', 10, 2),
@@ -153,8 +153,8 @@ const PROGRAM_WORKOUTS = {
         ]
     },
     legs_30: {
-        durationDays: 30, workoutsPerWeek: 4,
-        weekPattern: [true, false, true, false, true, false, true],
+        durationDays: 30, workoutsPerWeek: 3,
+        weekPattern: [true, false, true, false, true, false, false],
         weeklyPlan: [
             { title: 'Квадрицепсы и ягодицы', label: 'Квадрицепсы и ягодицы', exercises: [
                 ex('Приседания без веса', 12, 2, { variants:['Приседания без веса','Приседания с гантелями','Приседания с гантелями глубокие'] }),
