@@ -251,6 +251,9 @@ const DAILY_PROGRESS_KEY = 'sportapp_daily_progress';
 // =================== ПРОГРЕСС ПРОГРАММ ===================
 const PROGRAM_PROGRESS_KEY = 'sportapp_program_progress';
 let _pendingProgramDay = null;   // { programId, day, category }
+let _lastCompletedProgramDay = null;
+let _activeProgramDetailId = null;
+let _programDetailReturnTab = 'ready';
 
 function getAllProgramProgress() {
     try {
@@ -3352,6 +3355,7 @@ const NAV_SECTION_MAP = {
     'feed':                'feed',      // ← ДОБАВИТЬ
     'workouts':            'workouts',
     'programs': 'workouts',
+    'program-detail': 'workouts',
     'workout-detail':      'workouts',
     'level-select':        'workouts',
     'workout-edit':        'workouts',
@@ -11328,6 +11332,7 @@ window.addEventListener('load', function() {
 // ===================СТРАНИЦА ФИНИШ ===================
 function showFinishPage(exercisesCount, completedCount, seconds, xpEarned) {
     // Сохраняем статистику именно этого дня программы.
+    _lastCompletedProgramDay = null;
     if (_pendingProgramDay) {
         const { programId, day } = _pendingProgramDay;
         if (completedCount > 0) {
@@ -11349,6 +11354,7 @@ function showFinishPage(exercisesCount, completedCount, seconds, xpEarned) {
             };
             saveProgramProgress(programId, progress);
             completeProgramDay(programId, day);
+            _lastCompletedProgramDay = { programId, day };
         }
         _pendingProgramDay = null;
     }    // ★★★ ЗАПОЛНЯЕМ СТАТИСТИКУ ★★★
@@ -11390,6 +11396,7 @@ if (shareBtn) {
                 sessionCategory = '';
                 sessionWorkoutIcon = null;
 
+                _lastCompletedProgramDay = null;
                 window.navigateTo('workouts');
                 return;
             }
@@ -11401,10 +11408,12 @@ if (shareBtn) {
 
             const btn = this;
             btn.disabled = true;
+            const completedProgramReturn = _lastCompletedProgramDay;
+            _lastCompletedProgramDay = null;
 
             // ★★★ УВЕЛИЧИВАЕМ СЧЁТЧИК ТРЕНИРОВОК ★★★
             incrementWorkoutsCount();
-            const showPremium = shouldShowPremiumOffer();
+            const showPremium = !completedProgramReturn && shouldShowPremiumOffer();
 
             // ★★★ XP ИЗ UI ★★★
             const xpText = document.getElementById('finishXp').textContent;
@@ -11483,8 +11492,14 @@ if (shareBtn) {
                     sessionCategory = '';
                     sessionWorkoutIcon = null;
 
-                    // Переход на тренировки
-                    window.navigateTo('workouts');
+                    // После программной тренировки возвращаемся к её расписанию
+                    // и открываем статистику только что завершённого дня.
+                    if (completedProgramReturn) {
+                        openProgramDetail(completedProgramReturn.programId);
+                        openProgramWorkoutStats(completedProgramReturn.programId, completedProgramReturn.day);
+                    } else {
+                        window.navigateTo('workouts');
+                    }
 
                     // ★★★ ПОКАЗЫВАЕМ PREMIUM ★★★
                     if (showPremium) {
@@ -17969,6 +17984,11 @@ function deleteProgramFromList(programId) {
 // =================== ДЕТАЛИ ПРОГРАММЫ ===================
 
 function openProgramDetail(programId) {
+    const programsPage = document.getElementById('page-programs');
+    if (programsPage && programsPage.classList.contains('page-active')) {
+        const activeTab = document.querySelector('#page-programs .tab-btn-active');
+        if (activeTab && activeTab.dataset.programTab) _programDetailReturnTab = activeTab.dataset.programTab;
+    }
     let program = PRESET_PROGRAMS.find(p => p.id === programId);
     let isCustom = false;
 
@@ -17988,8 +18008,9 @@ function openProgramDetail(programId) {
         return;
     }
 
+    _activeProgramDetailId = programId;
+
     // ── Иконка и заголовок ──
-// ── Иконка и заголовок ──
 const catIconMap = {
     'Пресс': 'press', 'Ноги': 'legs', 'Ягодицы': 'woman',
     'Руки': 'bodybuilding', 'Плечи': 'shoulder', 'Спина': 'back',
@@ -18084,14 +18105,8 @@ const schedule = generateProgramSchedule(
             const isCurrent = d.day === currentDayNumber;
 
 if (d.type === 'rest') {
-    const restIsDone = currentDayNumber === null
-        ? true                          // программа завершена — все дни «пройдены»
-        : d.day < currentDayNumber;     // день уже позади → выполнен
-
-    const restClass = restIsDone ? 'done' : 'future';
-
     scheduleHtml += `
-        <div class="program-tl-item rest ${restClass}">
+        <div class="program-tl-item rest">
             <div class="program-tl-dot"></div>
             <div class="program-tl-body">
                 <span class="program-tl-day">День ${d.day}</span>
@@ -18156,9 +18171,16 @@ if (isCompleted) {
     startBtn.className = 'btn btn-primary';
     startBtn.onclick = () => startProgram(programId);
 
-    openModal('programDetailModal');
+    window.navigateTo('program-detail');
 }
 window.openProgramDetail = openProgramDetail;
+
+function backFromProgramDetail() {
+    const tab = _programDetailReturnTab === 'my' ? 'my' : 'ready';
+    window.navigateTo('programs');
+    switchProgramTab(tab);
+}
+window.backFromProgramDetail = backFromProgramDetail;
 
 function startProgramDay(programId, day, category, event) {
     if (event) event.stopPropagation();
@@ -18187,14 +18209,12 @@ function startProgramDay(programId, day, category, event) {
         return;
     }
 
-    closeModal('programDetailModal');
     _pendingProgramDay = { programId, day, category: program.category };
     startTrainingSession(workout.exercises, workout.title, program.category, workout.icon);
 }
 window.startProgramDay = startProgramDay;
 
 function startProgram(programId) {
-    closeModal('programDetailModal');
 
     let program = PRESET_PROGRAMS.find(p => p.id === programId);
     if (!program) program = getMyPrograms().find(p => p.id === programId);
@@ -18323,7 +18343,6 @@ function saveCustomProgram() {
 window.saveCustomProgram = saveCustomProgram;
 
 function deleteCustomProgram(programId) {
-    closeModal('programDetailModal');
     setTimeout(() => {
         showConfirmModal(
             'Удалить программу?',
