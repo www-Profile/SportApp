@@ -17645,16 +17645,18 @@ function updateProgramDaysCount() {
 }
 
 function generateProgramSchedule(durationDays, workoutsPerWeek, category, weekPattern = null, programId = null) {
+    const programPlan = typeof PROGRAM_WORKOUTS !== 'undefined'
+        ? PROGRAM_WORKOUTS[programId]
+        : null;
     let pattern;
     if (Array.isArray(weekPattern) && weekPattern.length === 7) {
         pattern = weekPattern.map(isTraining => isTraining ? 'workout' : 'rest');
+    } else if (Array.isArray(programPlan?.weekPattern) && programPlan.weekPattern.length === 7) {
+        pattern = programPlan.weekPattern.map(isTraining => isTraining ? 'workout' : 'rest');
     } else {
         pattern = WEEK_PATTERNS[workoutsPerWeek] || WEEK_PATTERNS[3];
     }
 
-    const programPlan = typeof PROGRAM_WORKOUTS !== 'undefined'
-        ? PROGRAM_WORKOUTS[programId]
-        : null;
     const schedule = [];
     for (let i = 0; i < durationDays; i++) {
         const type = pattern[i % 7];
