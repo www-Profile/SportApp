@@ -4743,8 +4743,9 @@ function renderExerciseGallery(exercise, containerId) {
         dot.className = 'exercise-gallery-dot' + (index === 0 ? ' is-active' : '');
         dot.setAttribute('aria-label', 'Фото ' + (index + 1));
         dot.addEventListener('click', () => {
-            const target = slides[index];
-            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+            const currentIndex = Array.from(dots.children).indexOf(dot);
+            const target = slides[currentIndex];
+            if (target) track.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
         });
         dots.appendChild(dot);
     });
