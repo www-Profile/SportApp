@@ -8048,3 +8048,34 @@ body.theme-dark-mode .program-detail-schedule-scroll { background: var(--bg-seco
     bottom: 0;
     background: none;
 }
+
+/* Значки личной программы */
+#newProgramIconPicker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+#newProgramIconPicker .icon-option {
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+#newProgramIconPicker .icon-option img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
+#newProgramIconPicker .icon-option-active {
+    border-color: var(--accent);
+    background: var(--accent-light);
+}
+
+/* Кнопка редактирования личной программы */
+#editCustomProgramBtn {
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+}

@@ -622,14 +622,24 @@
             <div class="program-detail-schedule-scroll">
                 <div id="programDetailSchedule" class="program-schedule"></div>
             </div>
-            <div class="program-detail-page-actions">
-                <button class="btn btn-secondary" onclick="backFromProgramDetail()" style="flex:1;">
-                    <i class="fa-solid fa-arrow-left"></i> Назад
-                </button>
-                <button class="btn btn-primary" id="programDetailStartBtn" onclick="startProgram()" style="flex:1;">
-                    <i class="fa-solid fa-play"></i> Начать
-                </button>
-            </div>
+<div class="program-detail-page-actions">
+    <button class="btn btn-secondary" onclick="backFromProgramDetail()" style="flex:1;">
+        <i class="fa-solid fa-arrow-left"></i> Назад
+    </button>
+
+    <button class="btn btn-primary" id="programDetailStartBtn"
+            onclick="startProgram()" style="flex:1;">
+        <i class="fa-solid fa-play"></i> Начать
+    </button>
+</div>
+
+<button
+    class="btn btn-secondary"
+    id="editCustomProgramBtn"
+    onclick="editCustomProgram(_activeProgramDetailId)"
+    style="width:100%; margin-top:0.65rem; display:none;">
+    <i class="fa-regular fa-pen-to-square"></i> Редактировать программу
+</button>
         </section>
     </main>
 </div>
@@ -648,7 +658,9 @@
 <div id="createProgramModal" class="modal-overlay" style="display:none;">
     <div class="modal-content program-create-modal">
 
-        <div class="modal-title">Новая программа</div>
+<div class="modal-title" id="createProgramModalTitle" style="text-align: center;">
+    Новая программа
+</div>
 
         <div class="form-group" style="text-align:left;">
             <label class="form-label">Название программы</label>
@@ -660,6 +672,83 @@
                 placeholder="Например, Мой путь к прессу"
             />
         </div>
+
+        <div class="form-group" style="text-align:left;">
+    <label class="form-label">Значок программы</label>
+
+    <div class="icon-picker" id="newProgramIconPicker">
+        <div class="icon-option icon-option-active"
+             data-icon="bodybuilding"
+             onclick="selectProgramIcon('bodybuilding')">
+            <img src="images/bodybuilding.png" alt="">
+        </div>
+
+        <div class="icon-option" data-icon="press"
+             onclick="selectProgramIcon('press')">
+            <img src="images/press.png" alt="">
+        </div>
+
+        <div class="icon-option" data-icon="breast"
+             onclick="selectProgramIcon('breast')">
+            <img src="images/breast.png" alt="">
+        </div>
+
+        <div class="icon-option" data-icon="back"
+             onclick="selectProgramIcon('back')">
+            <img src="images/back.png" alt="">
+        </div>
+
+        <div class="icon-option" data-icon="legs"
+             onclick="selectProgramIcon('legs')">
+            <img src="images/legs.png" alt="">
+        </div>
+
+        <div class="icon-option" data-icon="shoulder"
+             onclick="selectProgramIcon('shoulder')">
+            <img src="images/shoulder.png" alt="">
+        </div>
+
+        <div class="icon-option" data-icon="cardio"
+             onclick="selectProgramIcon('cardio')">
+            <img src="images/cardio.png" alt="">
+        </div>
+
+        <div class="icon-option" data-icon="stretching"
+             onclick="selectProgramIcon('stretching')">
+            <img src="images/stretching.png" alt="">
+        </div>
+
+        <div class="icon-option" data-icon="WholeBody"
+             onclick="selectProgramIcon('WholeBody')">
+            <img src="images/WholeBody.png" alt="">
+        </div>
+
+        <div class="icon-option" data-icon="charging"
+             onclick="selectProgramIcon('charging')">
+            <img src="images/charging.png" alt="">
+        </div>
+
+        <div class="icon-option" data-icon="Pilates"
+             onclick="selectProgramIcon('Pilates')">
+            <img src="images/Pilates.png" alt="">
+        </div>
+
+        <div class="icon-option" data-icon="crossfit"
+             onclick="selectProgramIcon('crossfit')">
+            <img src="images/crossfit.png" alt="">
+        </div>
+
+        <div class="icon-option" data-icon="men"
+             onclick="selectProgramIcon('men')">
+            <img src="images/men.png" alt="">
+        </div>
+
+        <div class="icon-option" data-icon="woman"
+             onclick="selectProgramIcon('woman')">
+            <img src="images/woman.png" alt="">
+        </div>
+    </div>
+</div>
 
         <div class="form-group" style="text-align:left;">
             <label class="form-label">Продолжительность</label>
@@ -710,12 +799,9 @@
                 Отмена
             </button>
 
-            <button
-                class="btn btn-primary"
-                onclick="saveCustomProgram()"
-                style="flex:1;">
-                Создать
-            </button>
+<button class="btn btn-primary" style="flex:1;" id="saveCustomProgramBtn" onclick="saveCustomProgram()">
+    Создать
+</button>
         </div>
 
     </div>

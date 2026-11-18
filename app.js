@@ -11166,20 +11166,47 @@ window.myProgramsEditor = new PageEditor({
         { id: 'myProgramsList', dataAttr: 'programId', filter: '.program-delete', handle: null }
     ],
     defaultLayout: { myProgramsList: [] },
-    onEnable:  () => renderMyPrograms(),
-    onDisable: () => renderMyPrograms(),
-    onSave: (layout) => {
-        const order = layout.myProgramsList || [];
-        const list = getMyPrograms();
-        const byId = {};
-        list.forEach(p => byId[p.id] = p);
-        const reordered = order.map(id => byId[id]).filter(Boolean);
-        // на всякий случай добавляем всё, чего не было в layout
-        list.forEach(p => {
-            if (!order.includes(p.id)) reordered.push(p);
-        });
-        saveMyPrograms(reordered);
+onEnable: () => {
+    // Сохраняем исходный список до начала редактирования
+    _myProgramsEditBackup = JSON.parse(
+        JSON.stringify(getMyPrograms())
+    );
+
+    renderMyPrograms();
+},
+
+onDisable: () => {
+    // Если резервная копия осталась - значит нажали «Отмена»
+    if (_myProgramsEditBackup) {
+        saveMyPrograms(_myProgramsEditBackup);
+        _myProgramsEditBackup = null;
     }
+
+    renderMyPrograms();
+},
+
+onSave: (layout) => {
+    const order = layout.myProgramsList || [];
+    const list = getMyPrograms();
+    const byId = {};
+
+    list.forEach(p => byId[p.id] = p);
+
+    const reordered = order
+        .map(id => byId[id])
+        .filter(Boolean);
+
+    list.forEach(p => {
+        if (!order.includes(p.id)) {
+            reordered.push(p);
+        }
+    });
+
+    saveMyPrograms(reordered);
+
+    // Удаление теперь окончательно сохранено
+    _myProgramsEditBackup = null;
+}
 });
 
 // =================== РЕДАКТОР «ГОТОВЫЕ ПРОГРАММЫ» ===================
@@ -17632,6 +17659,10 @@ function getProgramWorkoutOptions() {
     // Готовые тренировки
     if (typeof exercisesData !== 'undefined') {
         Object.entries(exercisesData).forEach(([parent, categories]) => {
+
+            // Premium-категории доступны только подписчикам
+if (parent === 'PREMIUM' && !hasPremium()) return;
+
             if (!categories || typeof categories !== 'object') return;
 
             Object.entries(categories).forEach(([category, levels]) => {
@@ -17767,14 +17798,43 @@ function renderProgramScheduleBuilder() {
     ).join('');
 
     // Восстанавливаем выбранные тренировки
-    container.querySelectorAll('[data-program-day]').forEach(select => {
-        const day = Number(select.dataset.programDay);
-        const assignment = _newProgramDayAssignments[day];
+container.querySelectorAll('[data-program-day]').forEach(select => {
+    const day = Number(select.dataset.programDay);
+    const assignment = _newProgramDayAssignments[day];
 
-        if (!assignment) return;
+    if (!assignment) return;
 
-        select.value = encodeURIComponent(JSON.stringify(assignment));
+    const options = Array.from(select.options);
+
+    const matchingOption = options.find(option => {
+        if (!option.value) return false;
+
+        try {
+            const item = JSON.parse(decodeURIComponent(option.value));
+
+            if (item.source !== assignment.source) return false;
+
+            if (item.source === 'ready') {
+                return (
+                    item.category === assignment.category &&
+                    item.level === assignment.level
+                );
+            }
+
+            if (item.source === 'personal') {
+                return item.workoutId === assignment.workoutId;
+            }
+
+            return false;
+        } catch {
+            return false;
+        }
     });
+
+    if (matchingOption) {
+        select.value = matchingOption.value;
+    }
+});
 
     updateProgramDaysCount();
 }
@@ -18122,7 +18182,7 @@ container.innerHTML = `
             'Грудь': 'breast', 'Кардио': 'cardio', 'Гибкость': 'stretching',
             'Всё тело': 'WholeBody'
         };
-        const icon = catIconMap[p.category] || 'WholeBody';
+        const icon = p.icon || catIconMap[p.category] || 'WholeBody';
 
         // ★ Прогресс программы
         const schedule = generateProgramSchedule(p.durationDays, p.workoutsPerWeek, p.category, p.weekPattern, p.id);
@@ -18174,13 +18234,23 @@ function handleProgramClick(programId, event) {
 }
 
 function deleteProgramFromList(programId) {
+    if (!window.myProgramsEditor?.isEditing) return;
+
+    const list = getMyPrograms();
+    const program = list.find(p => p.id === programId);
+
+    if (!program) return;
+
     showConfirmModal(
         'Удалить программу?',
-        'Все настройки программы будут удалены. Это действие нельзя отменить.',
+        'Программа будет удалена после сохранения изменений. При отмене она восстановится.',
         () => {
-            const list = getMyPrograms().filter(p => p.id !== programId);
-            saveMyPrograms(list);
+            const updatedList = getMyPrograms()
+                .filter(p => p.id !== programId);
+
+            saveMyPrograms(updatedList);
             renderMyPrograms();
+
             showToast('🗑️ Программа удалена');
         },
         'Удалить'
@@ -18229,7 +18299,7 @@ const emoji = program.emoji || PROGRAM_EMOJI[program.id] || '🏆';
 
 if (isCustom) {
     // ★ Своя программа — иконка категории (как в блоке), фон оставляем
-    const catIcon = catIconMap[program.category] || 'WholeBody';
+    const catIcon = program.icon || catIconMap[program.category] || 'WholeBody';
     iconEl.style.background = '';        // сброс → возьмётся accent-light из CSS
     iconEl.innerHTML = `<img src="images/${catIcon}.png" alt="" class="program-detail-cat-icon">`;
 
@@ -18391,6 +18461,12 @@ if (isCompleted) {
     startBtn.innerHTML = '<i class="fa-solid fa-play"></i> Начать';
     startBtn.className = 'btn btn-primary';
     startBtn.onclick = () => startProgram(programId);
+
+    const editProgramBtn = document.getElementById('editCustomProgramBtn');
+
+if (editProgramBtn) {
+    editProgramBtn.style.display = isCustom ? 'flex' : 'none';
+}
 
     window.navigateTo('program-detail');
 }
@@ -18568,15 +18644,96 @@ function openProgramWorkoutStats(programId, day, event) {
 window.openProgramWorkoutStats = openProgramWorkoutStats;
 
 // ─── Создание своей программы ───
+let _editingCustomProgramId = null;
+let _newProgramIcon = 'bodybuilding';
+let _myProgramsEditBackup = null;
+
+function selectProgramIcon(icon) {
+    _newProgramIcon = icon;
+
+    document.querySelectorAll('#newProgramIconPicker .icon-option')
+        .forEach(el => {
+            el.classList.toggle(
+                'icon-option-active',
+                el.dataset.icon === icon
+            );
+        });
+}
+
+window.selectProgramIcon = selectProgramIcon;
+
+
+function editCustomProgram(programId) {
+    const program = getMyPrograms().find(p => p.id === programId);
+
+    if (!program) {
+        showToast('⚠️ Программа не найдена');
+        return;
+    }
+
+    _editingCustomProgramId = programId;
+    _newProgramIcon = program.icon || 'bodybuilding';
+
+    // Заголовок и кнопка
+    document.getElementById('createProgramModalTitle').textContent =
+        'Редактирование программы';
+
+    document.getElementById('saveCustomProgramBtn').textContent =
+        'Сохранить';
+
+    // Заполняем основные данные
+    document.getElementById('newProgramTitle').value =
+        program.title || '';
+
+    document.getElementById('newProgramDuration').value =
+        String(program.durationDays || 30);
+
+    document.getElementById('newProgramCategory').value =
+        program.category || 'Пресс';
+
+    document.getElementById('newProgramTitle').classList.remove('error');
+
+    // Восстанавливаем назначения тренировок по дням
+    _newProgramDayAssignments = {};
+
+    (program.dayWorkouts || []).forEach((workout, index) => {
+        if (workout) {
+            _newProgramDayAssignments[index + 1] = { ...workout };
+        }
+    });
+
+    selectProgramIcon(_newProgramIcon);
+
+    renderProgramScheduleBuilder();
+
+    document.getElementById('newProgramDuration').onchange =
+        renderProgramScheduleBuilder;
+
+    openModal('createProgramModal');
+}
+
+window.editCustomProgram = editCustomProgram;
+
 
 function openCreateProgramModal() {
+    _editingCustomProgramId = null;
+    _newProgramIcon = 'bodybuilding';
+    _newProgramDayAssignments = {};
+
+    // Заголовок и кнопка
+    document.getElementById('createProgramModalTitle').textContent =
+        'Новая программа';
+
+    document.getElementById('saveCustomProgramBtn').textContent =
+        'Создать';
+
     document.getElementById('newProgramTitle').value = '';
     document.getElementById('newProgramDuration').value = '30';
     document.getElementById('newProgramCategory').value = 'Пресс';
 
     document.getElementById('newProgramTitle').classList.remove('error');
 
-    _newProgramDayAssignments = {};
+    selectProgramIcon(_newProgramIcon);
 
     renderProgramScheduleBuilder();
 
@@ -18614,9 +18771,22 @@ function saveCustomProgram() {
         return;
     }
 
-    // Проверяем, что все назначенные тренировки существуют
+    // Проверяем, что назначенные тренировки существуют
     for (const day of assignments) {
         const workout = _newProgramDayAssignments[day];
+
+        if (
+    workout.source === 'ready' &&
+    !hasPremium() &&
+    !getProgramWorkoutOptions().some(option =>
+        option.source === 'ready' &&
+        option.category === workout.category &&
+        option.level === workout.level
+    )
+) {
+    showToast('🔒 Нужен Premium');
+    return;
+}
 
         if (workout.source === 'personal') {
             const personalWorkout = getWorkoutById(workout.workoutId);
@@ -18649,33 +18819,74 @@ function saveCustomProgram() {
         }
     );
 
+    const list = getMyPrograms();
+    const existingIndex = _editingCustomProgramId
+        ? list.findIndex(p => p.id === _editingCustomProgramId)
+        : -1;
+
+    if (_editingCustomProgramId && existingIndex === -1) {
+        showToast('⚠️ Программа не найдена');
+        return;
+    }
+
+    const existingProgram = existingIndex >= 0
+        ? list[existingIndex]
+        : null;
+
     const program = {
-        id: 'myprog_' + Date.now(),
+        ...(existingProgram || {}),
+        id: existingProgram
+            ? existingProgram.id
+            : 'myprog_' + Date.now(),
+
         title,
+        icon: _newProgramIcon,
         category,
         durationDays,
         dayWorkouts,
-        workoutsPerWeek: Math.ceil(assignments.length / (durationDays / 7)),
-        weekPattern: Array.from({ length: 7 }, (_, index) =>
-            Boolean(dayWorkouts[index])
+
+        workoutsPerWeek: Math.ceil(
+            assignments.length / (durationDays / 7)
         ),
-        createdAt: Date.now(),
+
+        weekPattern: Array.from(
+            { length: 7 },
+            (_, index) => Boolean(dayWorkouts[index])
+        ),
+
+        createdAt: existingProgram
+            ? existingProgram.createdAt
+            : Date.now(),
+
         isCustom: true
     };
 
-    const list = getMyPrograms();
-    list.push(program);
+    if (existingIndex >= 0) {
+        list[existingIndex] = program;
+    } else {
+        list.push(program);
+    }
 
     saveMyPrograms(list);
 
     closeModal('createProgramModal');
 
     _newProgramDayAssignments = {};
+    _editingCustomProgramId = null;
 
-    showToast('✅ Программа создана');
+    showToast(
+        existingProgram
+            ? '✅ Программа обновлена'
+            : '✅ Программа создана'
+    );
 
-    switchProgramTab('my');
-    renderMyPrograms();
+    if (existingProgram) {
+        // Обновляем открытую страницу программы
+        openProgramDetail(program.id);
+    } else {
+        switchProgramTab('my');
+        renderMyPrograms();
+    }
 }
 
 window.saveCustomProgram = saveCustomProgram;
