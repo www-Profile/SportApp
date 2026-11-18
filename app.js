@@ -6468,18 +6468,21 @@ function deleteWorkout(id) {
 function renderMyWorkouts() {
     const container = document.getElementById('myWorkoutsList');
     const workouts = getMyWorkouts();
-if (workouts.length === 0) {
-    container.innerHTML = `
-        <div class="empty-state">
-            <span class="empty-icon">📋</span>
-            <h3 class="empty-title">Нет своих тренировок</h3>
-            <p class="empty-text">Создайте свою первую тренировку!</p>
-            <button class="btn btn-primary" onclick="createNewWorkout()">
-                <i class="fa-solid fa-plus"></i> Создать тренировку
-            </button>
-        </div>`;
-    return;
-}
+    const isEditing = !!(window.workoutsEditor && window.workoutsEditor.isEditing);
+
+    if (workouts.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-icon">📋</span>
+                <h3 class="empty-title">Нет своих тренировок</h3>
+                <p class="empty-text">Создайте свою первую тренировку!</p>
+                <button class="btn btn-primary" onclick="createNewWorkout()">
+                    <i class="fa-solid fa-plus"></i> Создать тренировку
+                </button>
+            </div>`;
+        return;
+    }
+
     container.innerHTML = workouts.map(w => `
         <div class="item-card" data-workout-id="${w._id}" onclick="handleWorkoutClick('${w._id}', event)">
             ${w.icon ? `<div class="item-icon"><img src="images/${w.icon}.png"></div>` : ''}
@@ -6487,7 +6490,10 @@ if (workouts.length === 0) {
                 <h3 class="item-title">${w.title}</h3>
                 <p class="item-desc">${w.exercises?.length || 0} ${declOfNum(w.exercises?.length || 0, ['упражнение', 'упражнения', 'упражнений'])}</p>
             </div>
-            <button class="item-action workout-delete" onclick="event.stopPropagation(); deleteCustomWorkout('${w._id}')"><i class="fa-regular fa-trash-can"></i></button>
+            ${isEditing
+                ? `<button class="item-action workout-delete" onclick="event.stopPropagation(); deleteCustomWorkout('${w._id}')"><i class="fa-regular fa-trash-can"></i></button>`
+                : `<button class="item-action"><i class="fa-solid fa-chevron-right"></i></button>`
+            }
         </div>
     `).join('');
 }
@@ -11151,7 +11157,13 @@ window.workoutsEditor = new PageEditor({
         { id: 'catalogGridPremium', dataAttr: 'category' },
         { id: 'myWorkoutsList', dataAttr: 'workoutId', filter: '.workout-delete' }
     ],
-    defaultLayout: getDefaultWorkoutsLayout()
+    defaultLayout: getDefaultWorkoutsLayout(),
+    onEnable: () => {
+        renderMyWorkouts();
+    },
+    onDisable: () => {
+        renderMyWorkouts();
+    }
 });
 
 // =================== РЕДАКТОР «МОИ ПРОГРАММЫ» ===================
