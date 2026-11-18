@@ -320,8 +320,8 @@ function buildProgramWorkout(programId, dayNumber) {
         return { ...catalogExercise, sets, reps, programWeek: weekNumber };
     }).filter(Boolean);
 
-    if (exercises.length < 8) {
-        console.error('[SportApp] В тренировке меньше 8 упражнений:', programId, dayNumber, exercises.length);
+    if (exercises.length < 5) {
+        console.error('[SportApp] В тренировке меньше 5 упражнений:', programId, dayNumber, exercises.length);
         return null;
     }
     return { title: dayPlan.title, category: program.category || 'Всё тело', icon: program.icon || 'WholeBody', exercises };
