@@ -4715,6 +4715,7 @@ function renderExerciseGallery(exercise, containerId) {
     const normalizedFrames = [];
     let currentIndex = 0;
     let readyCount = 0;
+    let finalized = false;
 
     function normalizeTransparentImage(img) {
         const sourceCanvas = document.createElement('canvas');
@@ -4763,6 +4764,21 @@ function renderExerciseGallery(exercise, containerId) {
         imageElement.src = normalizedFrames[currentIndex];
     }
 
+    function finishPreloading() {
+        if (finalized || readyCount !== sources.length) return;
+        finalized = true;
+        const usableFrames = normalizedFrames.filter(Boolean);
+        if (!usableFrames.length) {
+            container.innerHTML = '<span class="session-bg-text">Фото будет добавлено позже</span>';
+            return;
+        }
+        normalizedFrames.splice(0, normalizedFrames.length, ...usableFrames);
+        showFrame(0);
+        if (normalizedFrames.length > 1) {
+            container._galleryTimer = setInterval(() => showFrame(currentIndex + 1), 1000);
+        }
+    }
+
     sources.forEach((src, index) => {
         const preload = new Image();
         preload.onload = function() {
@@ -4772,26 +4788,12 @@ function renderExerciseGallery(exercise, containerId) {
                 normalizedFrames[index] = src;
             }
             readyCount++;
-            if (index === 0 || !imageElement.src) showFrame(index);
-            if (readyCount === sources.length && normalizedFrames.length > 1) {
-                container._galleryTimer = setInterval(() => showFrame(currentIndex + 1), 1000);
-            }
+            finishPreloading();
         };
         preload.onerror = function() {
             normalizedFrames[index] = null;
             readyCount++;
-            if (readyCount === sources.length) {
-                const usable = normalizedFrames.filter(Boolean);
-                if (!usable.length) {
-                    container.innerHTML = '<span class="session-bg-text">Фото будет добавлено позже</span>';
-                    return;
-                }
-                normalizedFrames.splice(0, normalizedFrames.length, ...usable);
-                showFrame(0);
-                if (normalizedFrames.length > 1) {
-                    container._galleryTimer = setInterval(() => showFrame(currentIndex + 1), 1000);
-                }
-            }
+            finishPreloading();
         };
         preload.src = src;
     });
