@@ -18165,7 +18165,12 @@ function startProgramDay(programId, day, category, event) {
 
     const program = PRESET_PROGRAMS.find(item => item.id === programId);
     if (!program) {
-        showToast('⚠️ Программа не найдена');
+        const customProgram = typeof getMyPrograms === 'function'
+            ? getMyPrograms().find(item => item.id === programId)
+            : null;
+        showToast(customProgram
+            ? '⚠️ В программе нет плана'
+            : '⚠️ Программа не найдена');
         return;
     }
 
