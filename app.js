@@ -17620,67 +17620,273 @@ const WEEK_PATTERNS = {
     6: ['workout', 'workout', 'workout', 'rest', 'workout', 'workout', 'workout']
 };
 
-// ★ Паттерн недели для новой программы: 7 boolean (Пн…Вс)
-// true = тренировка, false = отдых
-let _newProgramWeekPattern = [false, true, false, true, false, true, false]; // Пн,Ср,Пт
 
-const WEEK_DAY_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+// =================== КОНСТРУКТОР ЛИЧНЫХ ПРОГРАММ ===================
 
-function renderProgramWeekGrid() {
-    const grid = document.getElementById('newProgramWeekGrid');
-    if (!grid) return;
+let _newProgramDayAssignments = {};
 
-    grid.innerHTML = WEEK_DAY_SHORT.map((label, day) => {
-        const isTraining = _newProgramWeekPattern[day];
-        return `<button type="button"
-                        class="program-week-day${isTraining ? ' active' : ''}"
-                        data-day="${day}">
-                    ${label}
-                </button>`;
-    }).join('');
+function getProgramWorkoutOptions() {
+    const options = [];
+    const seen = new Set();
+
+    // Готовые тренировки
+    if (typeof exercisesData !== 'undefined') {
+        Object.entries(exercisesData).forEach(([parent, categories]) => {
+            if (!categories || typeof categories !== 'object') return;
+
+            Object.entries(categories).forEach(([category, levels]) => {
+                if (!levels || typeof levels !== 'object') return;
+
+                Object.keys(levels).forEach(level => {
+                    if (!/^\d+\s*LVL$/i.test(level)) return;
+
+                    const key = `${category}|${level}`;
+                    if (seen.has(key)) return;
+
+                    const exercises = getExercisesForEdit(
+                        category,
+                        level,
+                        false
+                    );
+
+                    if (!Array.isArray(exercises) || !exercises.length) return;
+
+                    seen.add(key);
+
+                    options.push({
+                        source: 'ready',
+                        category,
+                        level,
+                        title: `${category} - ${level}`,
+                        count: exercises.length
+                    });
+                });
+            });
+        });
+    }
+
+    // Личные тренировки
+    if (typeof getMyWorkouts === 'function') {
+        getMyWorkouts().forEach(workout => {
+            if (!workout._id || !workout.exercises?.length) return;
+
+            options.push({
+                source: 'personal',
+                workoutId: workout._id,
+                title: workout.title,
+                icon: workout.icon || null,
+                count: workout.exercises.length
+            });
+        });
+    }
+
+    return options;
+}
+
+function renderProgramScheduleBuilder() {
+    const container = document.getElementById('newProgramSchedule');
+    const duration = parseInt(
+        document.getElementById('newProgramDuration').value
+    );
+
+    if (!container || !duration) return;
+
+    const options = getProgramWorkoutOptions();
+
+    // Удаляем назначения дней, которые вышли за новую длительность
+    Object.keys(_newProgramDayAssignments).forEach(day => {
+        if (Number(day) > duration) {
+            delete _newProgramDayAssignments[day];
+        }
+    });
+
+    const readyOptions = options.filter(o => o.source === 'ready');
+    const personalOptions = options.filter(o => o.source === 'personal');
+
+    const optionsHtml = `
+        <option value="">Отдых</option>
+
+        ${readyOptions.length ? `
+            <optgroup label="Готовые тренировки">
+                ${readyOptions.map(o => {
+                    const value = encodeURIComponent(JSON.stringify(o));
+                    return `
+                        <option value="${value}">
+                            ${o.title} · ${o.count} упр.
+                        </option>`;
+                }).join('')}
+            </optgroup>
+        ` : ''}
+
+        ${personalOptions.length ? `
+            <optgroup label="Мои тренировки">
+                ${personalOptions.map(o => {
+                    const value = encodeURIComponent(JSON.stringify(o));
+                    return `
+                        <option value="${value}">
+                            ${o.title} · ${o.count} упр.
+                        </option>`;
+                }).join('')}
+            </optgroup>
+        ` : ''}
+    `;
+
+    container.innerHTML = Array.from(
+        { length: duration },
+        (_, index) => {
+            const day = index + 1;
+            const assignment = _newProgramDayAssignments[day];
+
+            let selectedValue = '';
+
+            if (assignment) {
+                selectedValue = encodeURIComponent(
+                    JSON.stringify(assignment)
+                );
+            }
+
+            return `
+                <div class="program-builder-day">
+                    <div class="program-builder-day-number">
+                        <span>День ${day}</span>
+                        <span class="program-builder-day-status"
+                              id="programDayStatus${day}">
+                            ${assignment ? 'Тренировка' : 'Отдых'}
+                        </span>
+                    </div>
+
+                    <select
+                        class="form-select program-builder-select"
+                        data-program-day="${day}"
+                        onchange="updateProgramDayAssignment(this)">
+                        ${optionsHtml}
+                    </select>
+                </div>
+            `;
+        }
+    ).join('');
+
+    // Восстанавливаем выбранные тренировки
+    container.querySelectorAll('[data-program-day]').forEach(select => {
+        const day = Number(select.dataset.programDay);
+        const assignment = _newProgramDayAssignments[day];
+
+        if (!assignment) return;
+
+        select.value = encodeURIComponent(JSON.stringify(assignment));
+    });
 
     updateProgramDaysCount();
+}
 
-    grid.querySelectorAll('.program-week-day').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const day = parseInt(this.dataset.day);
-            _newProgramWeekPattern[day] = !_newProgramWeekPattern[day];
-            renderProgramWeekGrid();
-        });
-    });
+function updateProgramDayAssignment(select) {
+    const day = Number(select.dataset.programDay);
+
+    if (!select.value) {
+        delete _newProgramDayAssignments[day];
+    } else {
+        try {
+            _newProgramDayAssignments[day] = JSON.parse(
+                decodeURIComponent(select.value)
+            );
+        } catch (error) {
+            console.error('Ошибка выбора тренировки:', error);
+            delete _newProgramDayAssignments[day];
+        }
+    }
+
+    const status = document.getElementById(`programDayStatus${day}`);
+
+    if (status) {
+        status.textContent = select.value ? 'Тренировка' : 'Отдых';
+    }
+
+    updateProgramDaysCount();
 }
 
 function updateProgramDaysCount() {
-    const count = _newProgramWeekPattern.filter(Boolean).length;
-    const el = document.getElementById('newProgramDaysCount');
-    if (el) el.textContent = count;
+    const count = Object.keys(_newProgramDayAssignments).length;
+
+    const counter = document.getElementById('newProgramDaysCount');
+    const summary = document.getElementById('newProgramSummary');
+
+    if (counter) counter.textContent = count;
+
+    if (summary) {
+        summary.textContent = count
+            ? `Назначено тренировок: ${count}`
+            : 'Выбери хотя бы одну тренировку';
+    }
 }
 
-function generateProgramSchedule(durationDays, workoutsPerWeek, category, weekPattern = null, programId = null) {
+
+function generateProgramSchedule(
+    durationDays,
+    workoutsPerWeek,
+    category,
+    weekPattern = null,
+    programId = null
+) {
+    const customProgram = typeof getMyPrograms === 'function'
+        ? getMyPrograms().find(p => p.id === programId)
+        : null;
+
+    // Личные программы с индивидуальным расписанием
+    if (customProgram && Array.isArray(customProgram.dayWorkouts)) {
+        return Array.from({ length: durationDays }, (_, index) => {
+            const assignment = customProgram.dayWorkouts[index] || null;
+
+            return {
+                day: index + 1,
+                type: assignment ? 'workout' : 'rest',
+                category: assignment
+                    ? (assignment.category || category)
+                    : null,
+                workout: assignment
+            };
+        });
+    }
+
+    // Существующая логика готовых программ
     const programPlan = typeof PROGRAM_WORKOUTS !== 'undefined'
         ? PROGRAM_WORKOUTS[programId]
         : null;
+
     let pattern;
+
     if (Array.isArray(weekPattern) && weekPattern.length === 7) {
-        pattern = weekPattern.map(isTraining => isTraining ? 'workout' : 'rest');
-    } else if (Array.isArray(programPlan?.weekPattern) && programPlan.weekPattern.length === 7) {
-        pattern = programPlan.weekPattern.map(isTraining => isTraining ? 'workout' : 'rest');
+        pattern = weekPattern.map(isTraining =>
+            isTraining ? 'workout' : 'rest'
+        );
+    } else if (
+        Array.isArray(programPlan?.weekPattern) &&
+        programPlan.weekPattern.length === 7
+    ) {
+        pattern = programPlan.weekPattern.map(isTraining =>
+            isTraining ? 'workout' : 'rest'
+        );
     } else {
         pattern = WEEK_PATTERNS[workoutsPerWeek] || WEEK_PATTERNS[3];
     }
 
     const schedule = [];
+
     for (let i = 0; i < durationDays; i++) {
         const type = pattern[i % 7];
         const dayPlan = programPlan?.weeklyPlan?.[i % 7] || null;
+
         schedule.push({
             day: i + 1,
             type,
-            category: type === 'workout' ? (dayPlan?.label || category) : null
+            category: type === 'workout'
+                ? (dayPlan?.label || category)
+                : null
         });
     }
+
     return schedule;
 }
+
 
 // ─── Карусель: карточки программ ───
 // ★ Эмодзи для карточек карусели (отдельно от PNG-иконок списка)
@@ -18105,8 +18311,23 @@ const schedule = generateProgramSchedule(
             const isCurrent = d.day === currentDayNumber;
 
 if (d.type === 'rest') {
+    const previousWorkout = [...schedule]
+        .reverse()
+        .find(day => day.day < d.day && day.type === 'workout');
+
+    const lastCompletedWorkoutDay = Math.max(
+        0,
+        ...schedule
+            .filter(day => day.type === 'workout' && completedDays.includes(day.day))
+            .map(day => day.day)
+    );
+
+    const restCompleted = (
+        previousWorkout && completedDays.includes(previousWorkout.day)
+    ) || d.day < lastCompletedWorkoutDay;
+
     scheduleHtml += `
-        <div class="program-tl-item rest">
+        <div class="program-tl-item rest ${restCompleted ? 'rest-completed' : ''}">
             <div class="program-tl-dot"></div>
             <div class="program-tl-body">
                 <span class="program-tl-day">День ${d.day}</span>
@@ -18182,37 +18403,103 @@ function backFromProgramDetail() {
 }
 window.backFromProgramDetail = backFromProgramDetail;
 
+
 function startProgramDay(programId, day, category, event) {
     if (event) event.stopPropagation();
 
-    const program = PRESET_PROGRAMS.find(item => item.id === programId);
+    const presetProgram = PRESET_PROGRAMS.find(
+        item => item.id === programId
+    );
+
+    const customProgram = !presetProgram
+        ? getMyPrograms().find(item => item.id === programId)
+        : null;
+
+    const program = presetProgram || customProgram;
+
     if (!program) {
-        const customProgram = typeof getMyPrograms === 'function'
-            ? getMyPrograms().find(item => item.id === programId)
-            : null;
-        showToast(customProgram
-            ? '⚠️ В программе нет плана'
-            : '⚠️ Программа не найдена');
+        showToast('⚠️ Программа не найдена');
         return;
     }
 
-    if (typeof buildProgramWorkout !== 'function') {
-        showToast('⚠️ Не загружены тренировки');
-        console.error('[SportApp] programs-data.js не загрузил buildProgramWorkout');
-        return;
+    let workout = null;
+
+    // Личная программа
+    if (customProgram) {
+        const assignment = customProgram.dayWorkouts?.[day - 1];
+
+        if (!assignment) {
+            showToast('⚠️ День отдыха');
+            return;
+        }
+
+        if (assignment.source === 'personal') {
+            const personalWorkout = getWorkoutById(assignment.workoutId);
+
+            if (!personalWorkout || !personalWorkout.exercises?.length) {
+                showToast('⚠️ Тренировка не найдена');
+                return;
+            }
+
+            workout = {
+                title: personalWorkout.title,
+                icon: personalWorkout.icon || null,
+                exercises: JSON.parse(
+                    JSON.stringify(personalWorkout.exercises)
+                )
+            };
+        }
+
+        if (assignment.source === 'ready') {
+            const exercises = getExercisesForEdit(
+                assignment.category,
+                assignment.level,
+                false
+            );
+
+            if (!exercises.length) {
+                showToast('⚠️ Тренировка недоступна');
+                return;
+            }
+
+            workout = {
+                title: assignment.title,
+                icon: null,
+                exercises
+            };
+        }
+    } else {
+        // Готовая программа
+        if (typeof buildProgramWorkout !== 'function') {
+            showToast('⚠️ Не загружены тренировки');
+            return;
+        }
+
+        workout = buildProgramWorkout(programId, day);
     }
 
-    const workout = buildProgramWorkout(programId, day);
-    if (!workout || !Array.isArray(workout.exercises) || workout.exercises.length < 5) {
+    if (!workout || !Array.isArray(workout.exercises) ||
+        workout.exercises.length === 0) {
         showToast('⚠️ Не удалось загрузить тренировку');
-        console.error('[SportApp] Не удалось собрать тренировку программы:', programId, day, workout);
         return;
     }
 
-    _pendingProgramDay = { programId, day, category: program.category };
-    startTrainingSession(workout.exercises, workout.title, program.category, workout.icon);
+    _pendingProgramDay = {
+        programId,
+        day,
+        category: program.category
+    };
+
+    startTrainingSession(
+        workout.exercises,
+        workout.title,
+        program.category,
+        workout.icon
+    );
 }
+
 window.startProgramDay = startProgramDay;
+
 
 function startProgram(programId) {
 
@@ -18281,26 +18568,32 @@ function openProgramWorkoutStats(programId, day, event) {
 window.openProgramWorkoutStats = openProgramWorkoutStats;
 
 // ─── Создание своей программы ───
+
 function openCreateProgramModal() {
     document.getElementById('newProgramTitle').value = '';
     document.getElementById('newProgramDuration').value = '30';
     document.getElementById('newProgramCategory').value = 'Пресс';
+
     document.getElementById('newProgramTitle').classList.remove('error');
 
-    // ★ Сброс паттерна недели (Пн, Ср, Пт по умолчанию)
-    _newProgramWeekPattern = [false, true, false, true, false, true, false];
+    _newProgramDayAssignments = {};
 
-    // Рендерим сетку + перерисовываем при смене длительности
-    renderProgramWeekGrid();
-    document.getElementById('newProgramDuration').onchange = renderProgramWeekGrid;
+    renderProgramScheduleBuilder();
+
+    document.getElementById('newProgramDuration').onchange =
+        renderProgramScheduleBuilder;
 
     openModal('createProgramModal');
 }
+
 window.openCreateProgramModal = openCreateProgramModal;
+
 
 function saveCustomProgram() {
     const title = document.getElementById('newProgramTitle').value.trim();
-    const durationDays = parseInt(document.getElementById('newProgramDuration').value);
+    const durationDays = parseInt(
+        document.getElementById('newProgramDuration').value
+    );
     const category = document.getElementById('newProgramCategory').value;
     const titleInput = document.getElementById('newProgramTitle');
 
@@ -18308,39 +18601,85 @@ function saveCustomProgram() {
 
     if (!title || title.length < 3) {
         titleInput.classList.add('error');
-        showToast('⚠️ Введите название (мин. 3 символа)');
+        showToast('⚠️ Введите название');
         return;
     }
 
-    // ★ Проверяем, что выбраны дни тренировок
-    const workoutsPerWeek = _newProgramWeekPattern.filter(Boolean).length;
-    if (workoutsPerWeek === 0) {
-        showToast('⚠️ Выберите хотя бы один день тренировки');
+    const assignments = Object.keys(_newProgramDayAssignments)
+        .map(Number)
+        .filter(day => day >= 1 && day <= durationDays);
+
+    if (!assignments.length) {
+        showToast('⚠️ Добавьте тренировку');
         return;
     }
+
+    // Проверяем, что все назначенные тренировки существуют
+    for (const day of assignments) {
+        const workout = _newProgramDayAssignments[day];
+
+        if (workout.source === 'personal') {
+            const personalWorkout = getWorkoutById(workout.workoutId);
+
+            if (!personalWorkout || !personalWorkout.exercises?.length) {
+                showToast('⚠️ Тренировка не найдена');
+                return;
+            }
+        }
+
+        if (workout.source === 'ready') {
+            const exercises = getExercisesForEdit(
+                workout.category,
+                workout.level,
+                false
+            );
+
+            if (!exercises.length) {
+                showToast('⚠️ Тренировка недоступна');
+                return;
+            }
+        }
+    }
+
+    const dayWorkouts = Array.from(
+        { length: durationDays },
+        (_, index) => {
+            const assignment = _newProgramDayAssignments[index + 1];
+            return assignment ? { ...assignment } : null;
+        }
+    );
 
     const program = {
         id: 'myprog_' + Date.now(),
-        title: title,
-        category: category,
-        durationDays: durationDays,
-        workoutsPerWeek: workoutsPerWeek,
-        weekPattern: [..._newProgramWeekPattern],   // ★ сохраняем паттерн
+        title,
+        category,
+        durationDays,
+        dayWorkouts,
+        workoutsPerWeek: Math.ceil(assignments.length / (durationDays / 7)),
+        weekPattern: Array.from({ length: 7 }, (_, index) =>
+            Boolean(dayWorkouts[index])
+        ),
         createdAt: Date.now(),
         isCustom: true
     };
 
     const list = getMyPrograms();
     list.push(program);
+
     saveMyPrograms(list);
 
     closeModal('createProgramModal');
+
+    _newProgramDayAssignments = {};
+
     showToast('✅ Программа создана');
 
     switchProgramTab('my');
     renderMyPrograms();
 }
+
 window.saveCustomProgram = saveCustomProgram;
+
 
 function deleteCustomProgram(programId) {
     setTimeout(() => {

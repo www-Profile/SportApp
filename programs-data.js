@@ -269,17 +269,30 @@ function ex(name, reps, sets, options = {}) {
     return { name, reps, sets, ...options };
 }
 
+
 function getProgramWorkoutCount(program) {
     if (!program) return 0;
-    const pattern = Array.isArray(program.weekPattern) && program.weekPattern.length === 7
+
+    // Личные программы с назначениями на конкретные дни
+    if (Array.isArray(program.dayWorkouts)) {
+        return program.dayWorkouts.filter(Boolean).length;
+    }
+
+    const pattern = Array.isArray(program.weekPattern) &&
+        program.weekPattern.length === 7
         ? program.weekPattern
-        : (PROGRAM_WORKOUTS[program.id]?.weekPattern || [true, false, true, false, true, false, false]);
+        : (PROGRAM_WORKOUTS[program.id]?.weekPattern ||
+            [true, false, true, false, true, false, false]);
+
     let count = 0;
+
     for (let day = 0; day < program.durationDays; day++) {
         if (pattern[day % 7]) count++;
     }
+
     return count;
 }
+
 
 function buildProgramWorkout(programId, dayNumber) {
     const program = PROGRAM_WORKOUTS[programId];
