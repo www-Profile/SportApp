@@ -11330,10 +11330,27 @@ window.addEventListener('load', function() {
 
 // ===================СТРАНИЦА ФИНИШ ===================
 function showFinishPage(exercisesCount, completedCount, seconds, xpEarned) {
-    // ★ Отмечаем день программы выполненным
+    // Сохраняем статистику именно этого дня программы.
     if (_pendingProgramDay) {
         const { programId, day } = _pendingProgramDay;
         if (completedCount > 0) {
+            const progress = getProgramProgress(programId);
+            progress.workoutStats = progress.workoutStats || {};
+            progress.workoutStats[day] = {
+                title: sessionWorkoutTitle || 'Тренировка',
+                date: new Date().toISOString(),
+                durationSeconds: seconds,
+                completedCount,
+                totalCount: exercisesCount,
+                xpEarned,
+                exercises: (sessionExercises || []).map((exercise, index) => ({
+                    name: exercise.name,
+                    sets: exercise.sets,
+                    reps: exercise.reps,
+                    completed: sessionCompleted.has(index)
+                }))
+            };
+            saveProgramProgress(programId, progress);
             completeProgramDay(programId, day);
         }
         _pendingProgramDay = null;
@@ -17474,10 +17491,10 @@ const PRESET_PROGRAMS = [
         emoji: '🔥',
         category: 'Пресс',
         durationDays: 30,
-        workoutsPerWeek: 5,
+        workoutsPerWeek: 4,
         difficulty: 'Средний',
         isPremium: true,
-        description: '30-дневный интенсив на кубики. 5 тренировок в неделю с акцентом на прямые и косые мышцы живота.'
+        description: '30-дневная программа на кубики. 5 тренировок в неделю с акцентом на прямые и косые мышцы живота.'
     },
     {
         id: 'cut_60',
@@ -17488,8 +17505,8 @@ const PRESET_PROGRAMS = [
         emoji: '💧',
         category: 'Кардио',
         durationDays: 60,
-        workoutsPerWeek: 6,
-        difficulty: 'Высокий',
+        workoutsPerWeek: 5,
+        difficulty: 'Средний',
         isPremium: true,
         description: 'Высокоинтенсивная программа для сжигания жира. 2 месяца чередования кардио и силовых, 6 тренировок в неделю. Не для новичков.'
     },
@@ -17502,10 +17519,10 @@ const PRESET_PROGRAMS = [
         emoji: '🦾',
         category: 'Спина',
         durationDays: 30,
-        workoutsPerWeek: 4,
-        difficulty: 'Высокий',
+        workoutsPerWeek: 3,
+        difficulty: 'Средний',
         isPremium: true,
-        description: '4 тренировки в неделю на спину и широчайшие. Подтягивания, тяги, гиперэкстензия. Нужен турник.'
+        description: '3 тренировки в неделю на спину и широчайшие. Подтягивания, тяги, гиперэкстензия. Нужен турник.'
     },
     {
         id: 'arms_30',
@@ -17516,10 +17533,10 @@ const PRESET_PROGRAMS = [
         emoji: '💪',
         category: 'Руки',
         durationDays: 30,
-        workoutsPerWeek: 5,
+        workoutsPerWeek: 3,
         difficulty: 'Средний',
         isPremium: true,
-        description: 'Месячная программа на бицепс и трицепс. Отжимания, сгибания, разгибания — всё для объёма и силы рук.'
+        description: '3 тренировки в неделю на бицепс и трицепс. Отжимания, сгибания, разгибания — всё для объёма и силы рук.'
     },
 
     // ★★★ НОВЫЕ ПРОГРАММЫ ★★★
@@ -17547,10 +17564,10 @@ const PRESET_PROGRAMS = [
         emoji: '🦵',
         category: 'Ноги',
         durationDays: 30,
-        workoutsPerWeek: 4,
+        workoutsPerWeek: 3,
         difficulty: 'Средний',
         isPremium: true,
-        description: 'Месячная программа на ноги и ягодицы. Приседания, выпады, подъёмы — всё для силы и объёма нижней части тела.'
+        description: '3 тренировки в неделю на ноги и ягодицы. Приседания, выпады, подъёмы — всё для силы и объёма нижней части тела.'
     },
     {
         id: 'endurance_60',
@@ -17561,10 +17578,10 @@ const PRESET_PROGRAMS = [
         emoji: '🏃',
         category: 'Кардио',
         durationDays: 60,
-        workoutsPerWeek: 5,
-        difficulty: 'Высокий',
+        workoutsPerWeek: 4,
+        difficulty: 'Средний',
         isPremium: true,
-        description: '2-месячная программа на выносливость и работу сердца. Интервальное кардио, кроссфит-элементы и функциональные тренировки. 5 занятий в неделю.'
+        description: '4 тренировки в неделю на выносливость и работу сердца. Интервальное кардио, кроссфит-элементы и функциональные тренировки. 5 занятий в неделю.'
     },
     {
         id: 'flexibility_60',
@@ -17819,7 +17836,7 @@ function renderReadyPrograms() {
 
 // ─── Карточка готовой программы (вынесено, чтобы не дублировать разметку) ───
 function buildProgramCardHTML(p) {
-    const totalWorkouts = Math.floor(p.durationDays / 7 * p.workoutsPerWeek);
+    const totalWorkouts = typeof getProgramWorkoutCount === 'function' ? getProgramWorkoutCount(p) : generateProgramSchedule(p.durationDays, p.workoutsPerWeek, p.category, p.weekPattern, p.id).filter(d => d.type === 'workout').length;
 
     // ★ Фото с fallback на эмодзи
     const photoHtml = p.image
@@ -17888,7 +17905,7 @@ container.innerHTML = `
         const icon = catIconMap[p.category] || 'WholeBody';
 
         // ★ Прогресс программы
-        const schedule = generateProgramSchedule(p.durationDays, p.workoutsPerWeek, p.category, p.weekPattern);
+        const schedule = generateProgramSchedule(p.durationDays, p.workoutsPerWeek, p.category, p.weekPattern, p.id);
         const totalWorkouts = schedule.filter(d => d.type === 'workout').length;
         const progress = getProgramProgress(p.id);
         const completedCount = (progress.completedDays || []).length;
@@ -18005,10 +18022,13 @@ if (isCustom) {
     document.getElementById('programDetailTitle').textContent = program.title;
 
     const subEl = document.getElementById('programDetailSubtitle');
-    const daysLabel = program.subtitle || `${program.durationDays} дней`;
+    const totalProgramWorkouts = typeof getProgramWorkoutCount === 'function'
+        ? getProgramWorkoutCount(program)
+        : generateProgramSchedule(program.durationDays, program.workoutsPerWeek, program.category, program.weekPattern, program.id).filter(d => d.type === 'workout').length;
     subEl.innerHTML =
-        `<i class="fa-solid fa-calendar"></i> ${daysLabel} · ` +
-        `<i class="fa-solid fa-tag"></i> ${program.category}`;
+        '<i class="fa-solid fa-calendar"></i> ' + program.durationDays + ' дн. - ' +
+        '<i class="fa-solid fa-dumbbell"></i> ' + totalProgramWorkouts + ' трен. - ' +
+        '<i class="fa-solid fa-gauge-high"></i> ' + (program.difficulty || 'Своя');
 
     // ── Прогресс ──
     const progress = getProgramProgress(programId);
@@ -18089,9 +18109,11 @@ if (isCompleted) {
             <div class="program-tl-dot"></div>
             <div class="program-tl-body">
                 <span class="program-tl-day">День ${d.day}</span>
-                <span class="program-tl-sep-dot">·</span>
+                <span class="program-tl-sep-dot">-</span>
                 <span class="program-tl-cat">${d.category}</span>
             </div>
+            <button class="program-tl-btn program-tl-stats-btn"
+                    onclick="openProgramWorkoutStats('${programId}', ${d.day}, event)">Статистика</button>
         </div>`;
     return;
 }
@@ -18193,6 +18215,40 @@ const schedule = generateProgramSchedule(
     }, 300);
 }
 window.startProgram = startProgram;
+
+
+ // ─── Статистика отдельной тренировки из программы ───
+function openProgramWorkoutStats(programId, day, event) {
+    if (event) event.stopPropagation();
+    const progress = getProgramProgress(programId);
+    const stats = progress.workoutStats && progress.workoutStats[day];
+    const modal = document.getElementById('programWorkoutStatsModal');
+    if (!modal) return;
+    document.getElementById('programWorkoutStatsTitle').textContent = stats?.title || ('Тренировка - день ' + day);
+    const dateText = stats?.date ? new Date(stats.date).toLocaleDateString('ru-RU') : 'Дата не сохранена';
+    const duration = stats?.durationSeconds || 0;
+    const completed = stats?.completedCount || 0;
+    const total = stats?.totalCount || 0;
+    const xp = Number(stats?.xpEarned || 0).toFixed(1);
+    document.getElementById('programWorkoutStatsBody').innerHTML = stats ? `
+        <div class="program-workout-stats-date">${dateText}</div>
+        <div class="finish-stats">
+            <div class="finish-stat-item"><span class="finish-stat-label">Время</span><span class="finish-stat-value">${formatTime(duration)}</span></div>
+            <div class="finish-stat-item"><span class="finish-stat-label">Упражнения</span><span class="finish-stat-value">${completed}/${total}</span></div>
+            <div class="finish-stat-item"><span class="finish-stat-label">Опыт</span><span class="finish-stat-value">+${xp}</span></div>
+        </div>
+        <div class="program-workout-exercise-list">
+            ${(stats.exercises || []).map((exercise, index) => `
+                <div class="program-workout-exercise-row">
+                    <span class="program-workout-exercise-number">${index + 1}</span>
+                    <span class="program-workout-exercise-name">${exercise.name || 'Упражнение'}</span>
+                    <span class="program-workout-exercise-value">${exercise.sets || 0} × ${exercise.reps || '-'}</span>
+                    <span class="program-workout-exercise-status">${exercise.completed ? '✓' : '–'}</span>
+                </div>`).join('')}
+        </div>` : '<div class="empty-state"><p class="empty-text">Подробная статистика этого занятия ещё не сохранена. Она будет доступна для тренировок, завершённых после обновления.</p></div>';
+    openModal('programWorkoutStatsModal');
+}
+window.openProgramWorkoutStats = openProgramWorkoutStats;
 
 // ─── Создание своей программы ───
 function openCreateProgramModal() {
