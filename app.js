@@ -17509,10 +17509,11 @@ const PRESET_PROGRAMS = [
     emoji: '🏋️',
     category: 'Всё тело',
     durationDays: 90,
-    workoutsPerWeek: 4,
+    workoutsPerWeek: 3,
+    weekPattern: [true, false, true, false, true, false, false],
     difficulty: 'Средний',
-    isPremium: false,   // ← ★ единственное изменение
-    description: 'Комплексная 3-месячная программа на всё тело. Равномерная проработка всех групп мышц, 4 тренировки в неделю. Идеально для гармоничного развития.'
+    isPremium: false,
+    description: 'Бесплатная программа на 90 дней: три разные тренировки в неделю. Понедельник — грудь, плечи и трицепс; среда — ноги, ягодицы и пресс; пятница — спина, бицепс и корпус. Нагрузка постепенно растёт.'
 },
     {
         id: 'legs_30',
@@ -17603,8 +17604,7 @@ function updateProgramDaysCount() {
     if (el) el.textContent = count;
 }
 
-function generateProgramSchedule(durationDays, workoutsPerWeek, category, weekPattern = null) {
-    // ★ Если передан паттерн недели — используем его
+function generateProgramSchedule(durationDays, workoutsPerWeek, category, weekPattern = null, programId = null) {
     let pattern;
     if (Array.isArray(weekPattern) && weekPattern.length === 7) {
         pattern = weekPattern.map(isTraining => isTraining ? 'workout' : 'rest');
@@ -17612,13 +17612,17 @@ function generateProgramSchedule(durationDays, workoutsPerWeek, category, weekPa
         pattern = WEEK_PATTERNS[workoutsPerWeek] || WEEK_PATTERNS[3];
     }
 
+    const programPlan = typeof PROGRAM_WORKOUTS !== 'undefined'
+        ? PROGRAM_WORKOUTS[programId]
+        : null;
     const schedule = [];
     for (let i = 0; i < durationDays; i++) {
         const type = pattern[i % 7];
+        const dayPlan = programPlan?.weeklyPlan?.[i % 7] || null;
         schedule.push({
             day: i + 1,
-            type: type,
-            category: type === 'workout' ? category : null
+            type,
+            category: type === 'workout' ? (dayPlan?.label || category) : null
         });
     }
     return schedule;
@@ -17991,7 +17995,8 @@ const schedule = generateProgramSchedule(
     program.durationDays,
     program.workoutsPerWeek,
     program.category,
-    program.weekPattern   // ★ для старых программ = undefined → fallback
+    program.weekPattern,
+    program.id
 );
 
     // текущий день = первый невыполненный workout
@@ -18114,9 +18119,21 @@ window.openProgramDetail = openProgramDetail;
 function startProgramDay(programId, day, category, event) {
     if (event) event.stopPropagation();
 
-    _pendingProgramDay = { programId, day, category };
-
     closeModal('programDetailModal');
+
+    // Для программы «Всё тело» запускаем заранее составленную тренировку,
+    // а не случайный набор упражнений из общего выбора категории.
+    if (typeof buildProgramWorkout === 'function') {
+        const program = PRESET_PROGRAMS.find(item => item.id === programId);
+        const workout = buildProgramWorkout(programId, day);
+        if (program && workout) {
+            _pendingProgramDay = { programId, day, category: program.category };
+            startTrainingSession(workout.exercises, workout.title, program.category, workout.icon);
+            return;
+        }
+    }
+
+    _pendingProgramDay = { programId, day, category };
     window.navigateTo('level-select', { category: category });
 }
 window.startProgramDay = startProgramDay;
