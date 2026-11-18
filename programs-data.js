@@ -301,7 +301,7 @@ function buildProgramWorkout(programId, dayNumber) {
         const sets = Math.min(item.maxSets || 4, item.sets + Math.floor((weekNumber - 1) / 2));
         let reps = item.reps;
         if (typeof reps === 'number') {
-            reps = Math.min(Math.max(item.reps, item.maxReps || 24), reps + Math.floor((weekNumber - 1) * (item.increment || 1.5)));
+            reps = Math.min(Math.max(item.reps + 12, item.maxReps || 36), reps + Math.floor((weekNumber - 1) * (item.increment || 1.5)));
         } else if (typeof reps === 'string' && /сек/.test(reps)) {
             const seconds = parseInt(reps, 10) || 15;
             reps = Math.min(item.maxSeconds || 50, seconds + (weekNumber - 1) * 3) + ' сек';
