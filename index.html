@@ -31,7 +31,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
     <!-- ★ Локальные стили — С ?v= для сброса кэша -->
-    <link rel="stylesheet" href="style.css?v=20261012">
+    <link rel="stylesheet" href="style.css?v=20261118-programs">
 </head>
 <body class="theme-red">
     <!-- ===== СТРАНИЦА: ТРЕНИРОВКИ ===== -->
@@ -624,6 +624,15 @@
         <i class="fa-solid fa-play"></i> Начать
     </button>
 </div>
+    </div>
+</div>
+
+<!-- ===== МОДАЛКА: СТАТИСТИКА ТРЕНИРОВКИ ПРОГРАММЫ ===== -->
+<div id="programWorkoutStatsModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content program-workout-stats-modal">
+        <div class="modal-title" id="programWorkoutStatsTitle">Статистика тренировки</div>
+        <div id="programWorkoutStatsBody" class="program-workout-stats-body"></div>
+        <button class="btn btn-primary" onclick="closeModal('programWorkoutStatsModal')">Закрыть</button>
     </div>
 </div>
 
