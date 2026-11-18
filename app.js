@@ -5201,6 +5201,7 @@ exerciseTimerInterval = setInterval(() => {
                 sessionCompletedSets[key] = 0;
             }
             sessionCompletedSets[key] = sessionCompletedSets[key] + 1;
+            savePersonalTrainingSession();
             
             console.log('✅ Подход завершён! sessionCompletedSets:', sessionCompletedSets);
             
