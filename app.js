@@ -18181,7 +18181,7 @@ function startProgramDay(programId, day, category, event) {
     }
 
     const workout = buildProgramWorkout(programId, day);
-    if (!workout || !Array.isArray(workout.exercises) || workout.exercises.length < 8) {
+    if (!workout || !Array.isArray(workout.exercises) || workout.exercises.length < 5) {
         showToast('⚠️ Не удалось загрузить тренировку');
         console.error('[SportApp] Не удалось собрать тренировку программы:', programId, day, workout);
         return;
