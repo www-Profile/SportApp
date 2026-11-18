@@ -18152,7 +18152,8 @@ const schedule = generateProgramSchedule(
     program.durationDays,
     program.workoutsPerWeek,
     program.category,
-    program.weekPattern   // ★ для старых программ = undefined → fallback
+    program.weekPattern,
+    program.id
 );
 
     const nextDay = schedule.find(d =>
