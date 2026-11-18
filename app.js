@@ -4691,9 +4691,9 @@ function renderExerciseGallery(exercise, containerId) {
     const images = Array.isArray(exercise?.images) && exercise.images.length
         ? exercise.images
         : (Array.isArray(catalogExercise?.images) ? catalogExercise.images : []);
+    const validImages = images.filter(src => typeof src === 'string' && src.trim() && !src.startsWith('*'));
 
     container.innerHTML = '';
-    const validImages = images.filter(src => typeof src === 'string' && src.trim() && !src.startsWith('*'));
     if (!validImages.length) {
         container.innerHTML = '<span class="session-bg-text">Фото будет добавлено позже</span>';
         return;
@@ -4701,9 +4701,22 @@ function renderExerciseGallery(exercise, containerId) {
 
     const track = document.createElement('div');
     track.className = 'exercise-image-track';
-    let loadedCount = 0;
-    let failedCount = 0;
+    const controls = document.createElement('div');
+    controls.className = 'exercise-gallery-controls';
+    const prev = document.createElement('button');
+    prev.type = 'button';
+    prev.className = 'exercise-gallery-arrow exercise-gallery-prev';
+    prev.setAttribute('aria-label', 'Предыдущее фото');
+    prev.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
+    const next = document.createElement('button');
+    next.type = 'button';
+    next.className = 'exercise-gallery-arrow exercise-gallery-next';
+    next.setAttribute('aria-label', 'Следующее фото');
+    next.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+    const dots = document.createElement('div');
+    dots.className = 'exercise-gallery-dots';
 
+    const slides = [];
     validImages.forEach((src, index) => {
         const image = document.createElement('img');
         image.className = 'exercise-gallery-image';
@@ -4711,21 +4724,48 @@ function renderExerciseGallery(exercise, containerId) {
         image.alt = exercise?.name || 'Техника выполнения упражнения';
         image.loading = index === 0 ? 'eager' : 'lazy';
         image.onerror = function() {
-            this.remove();
-            failedCount++;
-            if (failedCount === validImages.length && loadedCount === 0) {
+            const slideIndex = slides.indexOf(image);
+            image.remove();
+            const dot = dots.children[slideIndex];
+            if (dot) dot.remove();
+            slides.splice(slideIndex, 1);
+            if (!slides.length) {
                 container.innerHTML = '<span class="session-bg-text">Фото будет добавлено позже</span>';
+                return;
             }
-        };
-        image.onload = function() {
-            loadedCount++;
+            updateGallery();
         };
         track.appendChild(image);
+        slides.push(image);
+
+        const dot = document.createElement('button');
+        dot.type = 'button';
+        dot.className = 'exercise-gallery-dot' + (index === 0 ? ' is-active' : '');
+        dot.setAttribute('aria-label', 'Фото ' + (index + 1));
+        dot.addEventListener('click', () => {
+            const target = slides[index];
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+        });
+        dots.appendChild(dot);
     });
 
-    container.appendChild(track);
-}
+    function updateGallery() {
+        const index = Math.max(0, Math.min(slides.length - 1, Math.round(track.scrollLeft / track.clientWidth)));
+        Array.from(dots.children).forEach((dot, i) => dot.classList.toggle('is-active', i === index));
+        prev.disabled = index === 0;
+        next.disabled = index === slides.length - 1;
+        dots.style.display = slides.length > 1 ? 'flex' : 'none';
+        prev.style.display = slides.length > 1 ? 'flex' : 'none';
+        next.style.display = slides.length > 1 ? 'flex' : 'none';
+    }
 
+    prev.addEventListener('click', () => track.scrollBy({ left: -track.clientWidth, behavior: 'smooth' }));
+    next.addEventListener('click', () => track.scrollBy({ left: track.clientWidth, behavior: 'smooth' }));
+    track.addEventListener('scroll', updateGallery, { passive: true });
+    controls.append(prev, next);
+    container.append(track, controls, dots);
+    requestAnimationFrame(updateGallery);
+}
 function renderSessionExercise() {
     if (isResting) {
         updateRestUI();
