@@ -2,7 +2,7 @@
 // sw.js — Service Worker для SportApp
 // ============================================================
 
-const CACHE_VERSION = 'sportapp-v3';   // ← поменял версию, чтобы старый кэш сбросился
+const CACHE_VERSION = 'sportapp-v4';   // ← поменял версию, чтобы старый кэш сбросился
 const CACHE_STATIC = `${CACHE_VERSION}-static`;
 
 const PRECACHE_URLS = [
@@ -12,6 +12,7 @@ const PRECACHE_URLS = [
     './app.js',
     './firebase-config.js',
     './exercises-catalog.js',
+    './programs-data.js',
     './manifest.json'
 ];
 
