@@ -4218,6 +4218,16 @@ function startRest() {
 }
 
 function updateRestUI() {
+    // Во время отдыха фото упражнения не показываем и не переключаем.
+    const exerciseGallery = document.getElementById('sessionExerciseGallery');
+    if (exerciseGallery) {
+        if (exerciseGallery._galleryTimer) {
+            clearInterval(exerciseGallery._galleryTimer);
+            exerciseGallery._galleryTimer = null;
+        }
+        exerciseGallery.style.display = 'none';
+    }
+
     // Скрываем кнопку редактирования
     document.getElementById('sessionEditBtn').style.display = 'none';
     
@@ -4684,6 +4694,7 @@ function startTrainingSession(exercises, title, category, workoutIcon) {
 function renderExerciseGallery(exercise, containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
+    container.style.display = 'flex';
 
     if (container._galleryTimer) {
         clearInterval(container._galleryTimer);
@@ -9412,7 +9423,19 @@ let isToastShowing = false;
 /**
  * Показать тост. Если сейчас показывается другой — встаём в очередь.
  */
+function formatToastMessage(message) {
+    const raw = String(message ?? '').trim();
+    const leadingEmoji = raw.match(/^\\p{Extended_Pictographic}(?:\\uFE0F|\\uFE0E)?/u);
+    const emoji = leadingEmoji ? leadingEmoji[0] : '💪';
+    const body = (leadingEmoji ? raw.slice(leadingEmoji[0].length) : raw)
+        .replace(/^\\s+/, '')
+        .replace(/\\s+/g, ' ');
+    const words = body.split(' ').filter(Boolean).slice(0, 3);
+    return words.length ? `${emoji} ${words.join(' ')}` : emoji;
+}
+
 function showToast(message, duration = 3000) {
+    message = formatToastMessage(message);
     // ★★★ НЕ ПОКАЗЫВАЕМ ТОСТЫ НА ЭКРАНАХ АВТОРИЗАЦИИ ★★★
     const forbiddenPages = [
         'page-hero',
