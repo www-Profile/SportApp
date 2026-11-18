@@ -2059,78 +2059,28 @@ body.theme-dark-mode .btn-submit-arrow {
     height: 100%;
     min-height: 120px;
     display: flex;
-    flex-direction: column;
-    align-items: stretch;
+    align-items: center;
     justify-content: center;
     overflow: hidden;
+    /* Нейтральная светлая подложка одинакова в светлой и тёмной темах. */
+    background: #eeeeeb;
+    border-radius: 14px;
 }
-.exercise-image-track {
-    display: flex;
-    flex: 1;
-    width: 100%;
-    min-height: 0;
-    overflow: hidden;
-    scroll-snap-type: none;
-    scroll-behavior: auto;
-}
-.exercise-image-track::-webkit-scrollbar { display: none; }
 .exercise-gallery-image {
-    flex: 0 0 100%;
+    display: block;
     width: 100%;
     height: 100%;
     min-height: 120px;
     object-fit: contain;
+    object-position: center center;
+    user-select: none;
+    -webkit-user-drag: none;
 }
-.exercise-gallery-controls {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 0.65rem;
-    pointer-events: none;
-    z-index: 4;
-}
-.exercise-gallery-arrow {
-    width: 36px;
-    height: 36px;
-    border: 0;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(20, 20, 20, 0.48);
-    color: #fff;
-    cursor: pointer;
-    pointer-events: auto;
-}
-.exercise-gallery-arrow:disabled { opacity: 0.25; cursor: default; }
-.exercise-gallery-dots {
-    position: absolute;
-    z-index: 5;
-    bottom: 0.65rem;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: 7px;
-}
-.exercise-gallery-dot {
-    width: 7px;
-    height: 7px;
-    padding: 0;
-    border: 0;
-    border-radius: 50%;
-    background: rgba(100, 100, 100, 0.35);
-    cursor: pointer;
-}
-.exercise-gallery-dot.is-active { background: var(--accent); transform: scale(1.2); }
 .session-exercise-gallery > .session-bg-text {
     width: 100%;
     text-align: center;
+    color: #555;
 }
-
-
 .session-close-btn {
     position: absolute;
     top: 0rem;
