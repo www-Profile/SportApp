@@ -2069,12 +2069,9 @@ body.theme-dark-mode .btn-submit-arrow {
     flex: 1;
     width: 100%;
     min-height: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-x: contain;
+    overflow: hidden;
+    scroll-snap-type: none;
+    scroll-behavior: auto;
 }
 .exercise-image-track::-webkit-scrollbar { display: none; }
 .exercise-gallery-image {
@@ -2083,7 +2080,6 @@ body.theme-dark-mode .btn-submit-arrow {
     height: 100%;
     min-height: 120px;
     object-fit: contain;
-    scroll-snap-align: start;
 }
 .exercise-gallery-controls {
     position: absolute;
