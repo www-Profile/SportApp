@@ -9424,9 +9424,9 @@ let isToastShowing = false;
  * Показать тост. Если сейчас показывается другой — встаём в очередь.
  */
 function formatToastMessage(message) {
-    const raw = String(message ?? '').trim().replace(/\\s+/g, ' ');
+    const raw = String(message ?? '').trim().replace(/\s+/g, ' ');
     if (!raw) return '💪';
-    const leadingEmoji = raw.match(/^\\p{Extended_Pictographic}(?:\\uFE0F|\\uFE0E)?/u);
+    const leadingEmoji = raw.match(/^\p{Extended_Pictographic}(?:\uFE0F|\uFE0E)?/u);
     if (leadingEmoji) return raw;
     return `💪 ${raw}`;
 }
