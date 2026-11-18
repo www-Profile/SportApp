@@ -4680,6 +4680,52 @@ function startTrainingSession(exercises, title, category, workoutIcon) {
     startSessionTimer();
 }
 
+// Отображение галереи упражнения. Если файл отсутствует, показываем понятную заглушку.
+function renderExerciseGallery(exercise, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const catalogExercise = typeof EXERCISES_CATALOG !== 'undefined'
+        ? EXERCISES_CATALOG.find(item => item.name === exercise?.name)
+        : null;
+    const images = Array.isArray(exercise?.images) && exercise.images.length
+        ? exercise.images
+        : (Array.isArray(catalogExercise?.images) ? catalogExercise.images : []);
+
+    container.innerHTML = '';
+    const validImages = images.filter(src => typeof src === 'string' && src.trim() && !src.startsWith('*'));
+    if (!validImages.length) {
+        container.innerHTML = '<span class="session-bg-text">Фото будет добавлено позже</span>';
+        return;
+    }
+
+    const track = document.createElement('div');
+    track.className = 'exercise-image-track';
+    let loadedCount = 0;
+    let failedCount = 0;
+
+    validImages.forEach((src, index) => {
+        const image = document.createElement('img');
+        image.className = 'exercise-gallery-image';
+        image.src = src;
+        image.alt = exercise?.name || 'Техника выполнения упражнения';
+        image.loading = index === 0 ? 'eager' : 'lazy';
+        image.onerror = function() {
+            this.remove();
+            failedCount++;
+            if (failedCount === validImages.length && loadedCount === 0) {
+                container.innerHTML = '<span class="session-bg-text">Фото будет добавлено позже</span>';
+            }
+        };
+        image.onload = function() {
+            loadedCount++;
+        };
+        track.appendChild(image);
+    });
+
+    container.appendChild(track);
+}
+
 function renderSessionExercise() {
     if (isResting) {
         updateRestUI();
@@ -4689,6 +4735,7 @@ function renderSessionExercise() {
     if (!ex) return;
     
     document.getElementById('sessionExerciseName').textContent = ex.name;
+    renderExerciseGallery(ex, 'sessionExerciseGallery');
     
     const repsStr = String(ex.reps || '');
     const isSeconds = isTimeBased(repsStr);
@@ -8956,10 +9003,12 @@ function addExerciseFromList(name, sets, reps) {
     const repsDisplay = isSeconds ? `${repsValue} секунд` : `${repsValue}`;
     
     let icon = null;
-    let weight = 0; // ← ДОБАВЛЯЕМ ПЕРЕМЕННУЮ ДЛЯ ВЕСА
+    let weight = 0;
+    let images = []; // ← ДОБАВЛЯЕМ ПЕРЕМЕННУЮ ДЛЯ ВЕСА
     
     if (typeof EXERCISES_CATALOG !== 'undefined') {
         const found = EXERCISES_CATALOG.find(e => e.name === name);
+        if (found) images = Array.isArray(found.images) ? [...found.images] : [];
         if (found && found.icon) {
             icon = found.icon;
             weight = found.weight || 0; // ← ПОЛУЧАЕМ ВЕС ИЗ КАТАЛОГА
@@ -8992,7 +9041,8 @@ function addExerciseFromList(name, sets, reps) {
         sets: parseInt(sets) || 3, 
         reps: repsDisplay,
         icon: icon,
-        weight: weight  // ← СОХРАНЯЕМ ВЕС
+        weight: weight,
+        images: images // Пути к фотографиям из каталога
     });
     
     showToast('✅ Упражнение добавлено');
@@ -15058,6 +15108,7 @@ function startTaskSession(taskId) {
     const detailsEl = document.getElementById('taskExerciseDetails');
     
     if (nameEl) nameEl.textContent = task.name;
+    renderExerciseGallery(task, 'taskExerciseGallery');
     if (detailsEl) {
         const detailsText = isSeconds ? `${target} секунд` : `${target} повторений`;
         detailsEl.textContent = detailsText;
