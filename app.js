@@ -1504,6 +1504,7 @@ finishTrainingSession = async function() {
         console.log('📊 [finishTrainingSession] Обычная тренировка: total=' + total + ', completed=' + completed + ', xp=' + xpEarned);
 
         // ★★★ ВСЕГДА ПОКАЗЫВАЕМ СТРАНИЦУ ФИНИША, ДАЖЕ ПРИ 0 УПРАЖНЕНИЙ ★★★
+        clearStoredPersonalTraining();
         showFinishPage(total, completed, sessionSeconds, xpEarned);
         console.log('✅ [finishTrainingSession] Обычная тренировка завершена');
 
@@ -3285,6 +3286,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ===================НАВИГАЦИЯ ===================
 window.navigateTo = function(page, params) {
+    const activeTrainingPage = document.getElementById('page-training-session');
+    if (page !== 'training-session' && activeTrainingPage && activeTrainingPage.classList.contains('page-active') && !currentSessionId && sessionExercises.length) {
+        savePersonalTrainingSession();
+        if (sessionTimerInterval) { clearInterval(sessionTimerInterval); sessionTimerInterval = null; }
+        if (restTimerInterval) { clearInterval(restTimerInterval); restTimerInterval = null; }
+        if (exerciseTimerInterval) { clearInterval(exerciseTimerInterval); exerciseTimerInterval = null; }
+    }
     // Проверки на блокировки
     if (isEditingWorkout) {
         const allowedPages = ['exercise-list', 'workout-edit', 'workout-detail'];
@@ -4203,7 +4211,9 @@ function startRest() {
     }
     isResting = true;
     restSeconds = sessionRestSeconds || 30;  // ← ИСПОЛЬЗУЕМ ГЛОБАЛЬНУЮ ПЕРЕМЕННУЮ
+    restEndsAt = Date.now() + restSeconds * 1000;
     updateRestUI();
+    savePersonalTrainingSession();
     startRestTimer();
 }
 
@@ -4255,8 +4265,10 @@ function updateRestUI() {
 
 // Запуск таймера отдыха
 function startRestTimer() {
+    if (!restEndsAt) restEndsAt = Date.now() + (restSeconds || 1) * 1000;
+    if (restTimerInterval) clearInterval(restTimerInterval);
     restTimerInterval = setInterval(() => {
-        restSeconds--;
+        restSeconds = Math.max(0, Math.ceil((restEndsAt - Date.now()) / 1000));
         const restTimer = document.getElementById('sessionRestTimer');
         if (restTimer) {
             restTimer.textContent = formatTime(restSeconds);
@@ -4267,6 +4279,7 @@ function startRestTimer() {
             soundCountdown.play().catch(() => {});
         }
         
+        savePersonalTrainingSession();
         if (restSeconds <= 0) {
             finishRest();
         }
@@ -4274,6 +4287,7 @@ function startRestTimer() {
 }
 
 function finishRest() {
+    restEndsAt = null;
     if (restTimerInterval) {
         clearInterval(restTimerInterval);
         restTimerInterval = null;
@@ -4307,9 +4321,11 @@ function finishRest() {
     renderSessionProgress();
     updateSessionButtons();
     document.getElementById('sessionEditBtn').style.display = 'block';
+    savePersonalTrainingSession();
 }
 
 function skipRest() {
+    restEndsAt = null;
     if (restTimerInterval) {
         clearInterval(restTimerInterval);
         restTimerInterval = null;
@@ -4342,6 +4358,7 @@ function skipRest() {
     renderSessionProgress();
     updateSessionButtons();
     document.getElementById('sessionEditBtn').style.display = 'block';
+    savePersonalTrainingSession();
 }
 
 // ===================СТРАНИЦА ТРЕНИРОВКИ СЕССИЯ ===================
@@ -4356,7 +4373,227 @@ let sessionWorkoutTitle = '';
 let sessionCategory = '';
 let sessionWorkoutIcon = null;
 
+
+/* =================== ВОССТАНОВЛЕНИЕ ЛИЧНОЙ ТРЕНИРОВКИ =================== */
+const PERSONAL_TRAINING_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+let personalSessionStartedAt = null;
+let personalSessionRestoreInProgress = false;
+let restEndsAt = null;
+
+function getPersonalTrainingStorageKey() {
+    const user = typeof firebase !== 'undefined' && firebase.auth ? firebase.auth().currentUser : null;
+    return user ? 'sportapp_active_personal_training_v1_' + user.uid : null;
+}
+
+function getStoredPersonalTraining() {
+    const key = getPersonalTrainingStorageKey();
+    if (!key) return null;
+    try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        const startedAt = Number(data.startedAt || 0);
+        if (!startedAt || Date.now() - startedAt > PERSONAL_TRAINING_TTL_MS) {
+            localStorage.removeItem(key);
+            return null;
+        }
+        return data;
+    } catch (error) {
+        console.warn('Не удалось прочитать сохранённую тренировку:', error);
+        return null;
+    }
+}
+
+function savePersonalTrainingSession() {
+    if (personalSessionRestoreInProgress || currentSessionId || !sessionExercises.length || !personalSessionStartedAt) return false;
+    const key = getPersonalTrainingStorageKey();
+    if (!key) return false;
+
+    const snapshot = {
+        version: 1,
+        startedAt: personalSessionStartedAt,
+        savedAt: Date.now(),
+        title: sessionWorkoutTitle,
+        category: sessionCategory,
+        workoutIcon: sessionWorkoutIcon,
+        exercises: sessionExercises,
+        currentIndex: sessionCurrentIndex,
+        completed: Array.from(sessionCompleted || []),
+        skipped: Array.from(sessionSkipped || []),
+        completedSets: sessionCompletedSets || {},
+        seconds: sessionSeconds || 0,
+        restSeconds: restSeconds || 30,
+        sessionRestSeconds: sessionRestSeconds || 30,
+        isResting: !!isResting,
+        restEndsAt: restEndsAt,
+        isSessionPaused: !!isSessionPaused,
+        exerciseTimeLeft: exerciseTimeLeft || 0,
+        exerciseTotalTime: exerciseTotalTime || 0,
+        exerciseCurrentSet: exerciseCurrentSet || 0,
+        exerciseTotalSets: exerciseTotalSets || 0,
+        isTimedExercise: !!isTimedExercise,
+        exerciseTimerWasRunning: !!(isExerciseTimerRunning || window._resumeExerciseTimerAfterPause)
+    };
+
+    try {
+        localStorage.setItem(key, JSON.stringify(snapshot));
+        return true;
+    } catch (error) {
+        console.warn('Не удалось сохранить прогресс тренировки:', error);
+        return false;
+    }
+}
+
+function clearStoredPersonalTraining() {
+    const key = getPersonalTrainingStorageKey();
+    if (key) {
+        try { localStorage.removeItem(key); } catch (error) {
+            console.warn('Не удалось удалить сохранённую тренировку:', error);
+        }
+    }
+    personalSessionStartedAt = null;
+    restEndsAt = null;
+}
+
+function showResumePersonalTrainingPrompt() {
+    const saved = getStoredPersonalTraining();
+    if (!saved) return;
+
+    const title = document.getElementById('resumePersonalTrainingTitle');
+    const details = document.getElementById('resumePersonalTrainingDetails');
+    if (title) title.textContent = saved.title || 'Незавершённая тренировка';
+    if (details) {
+        const completedCount = Array.isArray(saved.completed) ? saved.completed.length : 0;
+        const totalCount = Array.isArray(saved.exercises) ? saved.exercises.length : 0;
+        const minutes = Math.floor((Number(saved.seconds) || 0) / 60);
+        details.textContent = completedCount + ' из ' + totalCount + ' упражнений выполнено · ' + minutes + ' мин';
+    }
+    openModal('resumePersonalTrainingModal');
+}
+
+function cancelStoredPersonalTraining() {
+    closeModal('resumePersonalTrainingModal');
+    showConfirmModal(
+        'Отменить тренировку?',
+        'Весь прогресс этой тренировки будет потерян. Она не попадёт в историю, статистику и рейтинг, XP начислены не будут.',
+        function() {
+            stopSessionTimer();
+            clearStoredPersonalTraining();
+            sessionExercises = [];
+            sessionCurrentIndex = 0;
+            sessionCompleted = new Set();
+            sessionSkipped = new Set();
+            sessionCompletedSets = {};
+            sessionSeconds = 0;
+            sessionWorkoutTitle = '';
+            sessionCategory = '';
+            sessionWorkoutIcon = null;
+            isResting = false;
+            isExerciseTimerRunning = false;
+            isSessionPaused = false;
+            window._resumeExerciseTimerAfterPause = false;
+            showToast('Тренировка отменена');
+        },
+        'Да, отменить'
+    );
+}
+
+function restorePersonalTrainingSession(snapshot) {
+    if (!snapshot || !Array.isArray(snapshot.exercises) || !snapshot.exercises.length) return;
+    personalSessionRestoreInProgress = true;
+
+    try {
+        sessionExercises = snapshot.exercises;
+        sessionCurrentIndex = Math.max(0, Math.min(Number(snapshot.currentIndex) || 0, sessionExercises.length - 1));
+        sessionCompleted = new Set(snapshot.completed || []);
+        sessionSkipped = new Set(snapshot.skipped || []);
+        sessionCompletedSets = snapshot.completedSets || {};
+        sessionSeconds = Number(snapshot.seconds) || 0;
+        sessionWorkoutTitle = snapshot.title || 'Тренировка';
+        sessionCategory = snapshot.category || 'Без категории';
+        sessionWorkoutIcon = snapshot.workoutIcon || null;
+        personalSessionStartedAt = Number(snapshot.startedAt) || Date.now();
+        sessionRestSeconds = Number(snapshot.sessionRestSeconds) || 30;
+        restSeconds = Number(snapshot.restSeconds) || 30;
+        restEndsAt = Number(snapshot.restEndsAt) || null;
+        isResting = !!snapshot.isResting;
+        isSessionPaused = false;
+        isExerciseTimerRunning = false;
+        window._resumeExerciseTimerAfterPause = false;
+        _isFromSession = false;
+        _currentTrainingIndex = null;
+
+        window.navigateTo('training-session');
+        renderSessionExercise();
+
+        if (isResting && restEndsAt) {
+            restSeconds = Math.max(0, Math.ceil((restEndsAt - Date.now()) / 1000));
+            if (restSeconds <= 0) {
+                finishRest();
+            } else {
+                updateRestUI();
+                startRestTimer();
+            }
+        } else {
+            isResting = false;
+            restEndsAt = null;
+            if (isTimedExercise) {
+                exerciseTimeLeft = Math.max(0, Number(snapshot.exerciseTimeLeft) || 0);
+                exerciseTotalTime = Number(snapshot.exerciseTotalTime) || exerciseTotalTime;
+                exerciseCurrentSet = Number(snapshot.exerciseCurrentSet) || exerciseCurrentSet;
+                exerciseTotalSets = Number(snapshot.exerciseTotalSets) || exerciseTotalSets;
+                const setCurrent = document.getElementById('sessionSetCurrent');
+                if (setCurrent) setCurrent.textContent = exerciseCurrentSet;
+                updateExerciseTimerDisplay();
+            }
+        }
+
+        renderSessionProgress();
+        updateSessionButtons();
+        updateSessionTimerDisplay();
+        startSessionTimer();
+
+        if (snapshot.isSessionPaused) {
+            isSessionPaused = true;
+            window._resumeExerciseTimerAfterPause = !!snapshot.exerciseTimerWasRunning;
+            const overlay = document.getElementById('sessionPauseOverlay');
+            if (overlay) overlay.classList.add('visible');
+            updatePauseOverlayTime();
+        } else if (snapshot.exerciseTimerWasRunning && !isResting && isTimedExercise) {
+            isExerciseTimerRunning = true;
+            startExerciseTimer();
+        }
+
+        savePersonalTrainingSession();
+        showToast('Тренировка восстановлена');
+    } catch (error) {
+        console.error('Ошибка восстановления тренировки:', error);
+        showToast('Не удалось восстановить тренировку');
+    } finally {
+        personalSessionRestoreInProgress = false;
+    }
+}
+
+document.getElementById('resumePersonalTrainingBtn')?.addEventListener('click', function() {
+    const saved = getStoredPersonalTraining();
+    closeModal('resumePersonalTrainingModal');
+    if (saved) restorePersonalTrainingSession(saved);
+});
+document.getElementById('cancelPersonalTrainingBtn')?.addEventListener('click', cancelStoredPersonalTraining);
+
+window.addEventListener('pagehide', savePersonalTrainingSession);
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'hidden') savePersonalTrainingSession();
+});
+/* =================== /ВОССТАНОВЛЕНИЕ ЛИЧНОЙ ТРЕНИРОВКИ =================== */
+
 function startTrainingSession(exercises, title, category, workoutIcon) {
+    const existingPersonalSession = getStoredPersonalTraining();
+    if (existingPersonalSession && !personalSessionRestoreInProgress) {
+        showResumePersonalTrainingPrompt();
+        showToast('Сначала продолжите или отмените предыдущую тренировку');
+        return;
+    }
     // ★ Если программа была выбрана, но категория не та — сбрасываем
     if (_pendingProgramDay && _pendingProgramDay.category !== category) {
         _pendingProgramDay = null;
@@ -4395,6 +4632,8 @@ function startTrainingSession(exercises, title, category, workoutIcon) {
     sessionSkipped = new Set();
     sessionCompletedSets = {};
     sessionSeconds = 0;
+    personalSessionStartedAt = Date.now();
+    restEndsAt = null;
     sessionWorkoutTitle = title;
     sessionCategory = category || 'Без категории';
     sessionWorkoutIcon = workoutIcon || null;
@@ -4437,6 +4676,7 @@ function startTrainingSession(exercises, title, category, workoutIcon) {
     renderSessionExercise();
     renderSessionProgress();
     updateSessionButtons();
+    savePersonalTrainingSession();
     startSessionTimer();
 }
 
@@ -4568,6 +4808,7 @@ function renderSessionProgress() {
         }
         container.appendChild(dash);
     }
+    savePersonalTrainingSession();
 }
 
 function updateSessionButtons() {
@@ -4806,6 +5047,7 @@ function startSessionTimer() {
         if (isSessionPaused) return;      // ← не считаем, пока пауза
         sessionSeconds++;
         updateSessionTimerDisplay();
+        savePersonalTrainingSession();
     }, 1000);
 }
 
@@ -4937,6 +5179,7 @@ function startExerciseTimer() {
 exerciseTimerInterval = setInterval(() => {
     exerciseTimeLeft--;
     updateExerciseTimerDisplay();
+    savePersonalTrainingSession();
     
     if (exerciseTimeLeft === 3) {
         soundCountdown.currentTime = 0;
@@ -5030,6 +5273,8 @@ function adjustRestTime(seconds) {
     
     // Обновляем время
     restSeconds = newTime;
+    restEndsAt = Date.now() + restSeconds * 1000;
+    savePersonalTrainingSession();
     
     // Обновляем отображение таймера
     const restTimer = document.getElementById('sessionRestTimer');
@@ -5078,10 +5323,21 @@ document.getElementById('exitContinueBtn')?.addEventListener('click', function()
 
 document.getElementById('exitFinishBtn')?.addEventListener('click', function() {
     closeModal('sessionExitModal');
-    stopSessionTimer();
-    
-    // ★★★ ОБЫЧНАЯ ТРЕНИРОВКА — ВЫЗЫВАЕМ ФИНИШ ★★★
-    finishTrainingSession();
+
+    // Для совместной тренировки оставляем прежнюю логику.
+    if (currentSessionId && sessionData) {
+        stopSessionTimer();
+        finishTrainingSession();
+        return;
+    }
+
+    // Личная тренировка сохраняется, но не засчитывается как завершённая.
+    savePersonalTrainingSession();
+    if (sessionTimerInterval) { clearInterval(sessionTimerInterval); sessionTimerInterval = null; }
+    if (restTimerInterval) { clearInterval(restTimerInterval); restTimerInterval = null; }
+    if (exerciseTimerInterval) { clearInterval(exerciseTimerInterval); exerciseTimerInterval = null; }
+    window.navigateTo('workouts');
+    showToast('Прогресс тренировки сохранён');
 });
 
 // ===================БЫСТРОЕ РЕДАКТИРОВАНИЕ УПРАЖНЕНИЯ ===================
@@ -7763,6 +8019,9 @@ function enterApp() {
     // Переходим на страницу тренировок
     window.navigateTo('workouts');
     document.getElementById('bottomNav').style.display = 'block';
+
+    // Проверяем сохранённую тренировку только после входа в основной интерфейс.
+    setTimeout(showResumePersonalTrainingPrompt, 700);
 
     refreshNotificationData();
 
@@ -21660,6 +21919,7 @@ function resumeSession() {
  * открывает модалку создания поста в ленте с уже выбранной тренировкой.
  */
 function finishWorkoutAndShare(completedCount, xpEarned, exercisesCount, seconds) {
+    if (!currentSessionId) clearStoredPersonalTraining();
     if (completedCount === 0) {
         showToast('⚠️ Выполнено 0 упражнений.');
         sessionExercises = [];
