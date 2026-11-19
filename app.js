@@ -23634,6 +23634,16 @@ function closeChangelogModal() {
 window.CHANGELOG = CHANGELOG;
 window.closeChangelogModal = closeChangelogModal;
 
+// Открыть историю обновлений из номера версии в настройках профиля
+function openVersionChangelog() {
+    const versionEl = document.getElementById('profileAppVersion');
+    if (versionEl) versionEl.textContent = CHANGELOG.CURRENT_VERSION;
+
+    CHANGELOG.render();
+    openModal('changelogModal');
+}
+window.openVersionChangelog = openVersionChangelog;
+
 // =================== FCM: PUSH-УВЕДОМЛЕНИЯ ===================
 const FCM = {
     messaging: null,
