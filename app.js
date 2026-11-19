@@ -16865,64 +16865,57 @@ function openMuscleGroupsModal(type = 'muscles') {
 // Экспорт в window для вызова из консоли и из HTML
 window.openMuscleGroupsModal = openMuscleGroupsModal;
 
+
 function openMusclesHintModal() {
     const modal = document.getElementById('musclesHintModal');
     const content = modal?.querySelector('.modal-content');
-
     if (!modal || !content) return;
 
+    // Получаем текущее упражнение (или null, если в периоде отдыха)
     const exercise = !isResting
-        ? sessionExercises?.[sessionCurrentIndex]
+        ? sessionExercises?.[sessionCurrentIndex] || null
         : null;
-
     const exerciseName = exercise?.name || 'Упражнение';
 
-    const normalizeName = value => String(value || '')
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, ' ');
+    // Ищем описание в текущем упражнении или в каталоге
+    let description = exercise?.description || '';
+    if (!description && Array.isArray(EXERCISES_CATALOG)) {
+        // Сравниваем имена без учёта регистра и лишних пробелов
+        const normalize = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+        const match = EXERCISES_CATALOG.find(item =>
+            normalize(item.name) === normalize(exerciseName)
+        );
+        description = match?.description || '';
+    }
+    if (!description) {
+        description = 'Описание пока не добавлено';
+    }
 
-    const catalogExercise = typeof EXERCISES_CATALOG !== 'undefined'
-        ? EXERCISES_CATALOG.find(item =>
-            normalizeName(item.name) === normalizeName(exerciseName)
-        )
-        : null;
-
-    const description =
-        exercise?.description ||
-        catalogExercise?.description ||
-        'Описание пока не добавлено';
-
+    // Формируем содержимое модалки
     content.innerHTML = `
         <div class="modal-title">Информация</div>
-
         <div class="muscles-hint-image">
             <img src="images/muscles-hint.png" alt="Цвета мышц">
         </div>
-
-        <div class="modal-title" style="margin-top: 1rem;">
-            ${escapeHtml(exerciseName)}
-        </div>
-
-        <div class="modal-text" style="text-align: left; line-height: 1.5;">
-            ${escapeHtml(description)}
-        </div>
-
-        <button class="btn btn-primary"
-                onclick="closeModal('musclesHintModal')">
-            Понятно
-        </button>
+        <div class="modal-title" style="margin-top: 1rem;" id="musclesHintCurrentName"></div>
+        <div class="modal-text" style="text-align: left; line-height: 1.5;" id="musclesHintCurrentDescription"></div>
+        <button class="btn btn-primary" onclick="closeModal('musclesHintModal')">Понятно</button>
     `;
 
-    localStorage.setItem('musclesHintSeen', 'true');
+    // Вставляем текстовые значения в созданные элементы
+    content.querySelector('#musclesHintCurrentName').textContent = exerciseName;
+    content.querySelector('#musclesHintCurrentDescription').textContent = description;
 
+    // Отмечаем, что подсказка уже была показана
+    localStorage.setItem('musclesHintSeen', 'true');
+    // Делаем кнопку компактной (иконка вместо текста)
     document.querySelectorAll('.session-muscles-hint').forEach(btn => {
         btn.classList.add('compact');
     });
 
+    // Открываем модалку (модальные окна в проекте, судя по всему, открываются через эту функцию)
     openModal('musclesHintModal');
 }
-
 window.openMusclesHintModal = openMusclesHintModal;
 
 function updateMusclesHintState() {
