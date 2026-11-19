@@ -4272,17 +4272,6 @@ function updateRestUI() {
             title.style.fontWeight = '600';
             hint.appendChild(title);
 
-            const description = getSessionExerciseDescription(nextEx);
-            if (description) {
-                const descriptionEl = document.createElement('div');
-                descriptionEl.textContent = description;
-                descriptionEl.style.marginTop = '6px';
-                descriptionEl.style.fontWeight = '400';
-                descriptionEl.style.lineHeight = '1.4';
-                hint.appendChild(descriptionEl);
-            } else {
-                console.warn('[SportApp] Не найдено описание следующего упражнения:', nextEx.name);
-            }
         } else {
             hint.textContent = 'Это было последнее упражнение';
         }
@@ -23487,7 +23476,7 @@ window.PWA = PWA;
 // =================== МОДАЛКА: ЧТО НОВОГО ===================
 const CHANGELOG = {
     // ★★★ ТЕКУЩАЯ ВЕРСИЯ — меняй при выпуске обновления ★★★
-    CURRENT_VERSION: '1.2.0',
+    CURRENT_VERSION: '1.2.1',
 
     STORAGE_KEY: 'changelogSeenVersion',
 
@@ -23495,6 +23484,15 @@ const CHANGELOG = {
     // Порядок: от новых к старым
     // ★★★ ИСТОРИЯ ВЕРСИЙ — от новых к старым ★★★
     VERSIONS: [
+{
+    version: '1.2.1',
+    date: '19 ноября 2026',
+    title: 'Улучшения описаний упражнений',
+    changes: [
+        '📝 <strong>Описания упражнений</strong> - исправлен поиск инструкций по выполнению упражнений в тренировках и в информационной модалке.',
+        '⏱️ <strong>Отдых между подходами</strong> - во время отдыха отображается только название следующего упражнения.'
+    ]
+},
 {
     version: '1.2.0',
     date: '18 ноября 2026',
