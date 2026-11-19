@@ -16865,24 +16865,27 @@ function openMuscleGroupsModal(type = 'muscles') {
 // Экспорт в window для вызова из консоли и из HTML
 window.openMuscleGroupsModal = openMuscleGroupsModal;
 
-
-
 function openMusclesHintModal() {
     const modal = document.getElementById('musclesHintModal');
     const content = modal?.querySelector('.modal-content');
 
     if (!modal || !content) return;
 
-    // Текущее упражнение
     const exercise = !isResting
         ? sessionExercises?.[sessionCurrentIndex]
         : null;
 
     const exerciseName = exercise?.name || 'Упражнение';
 
-    // Ищем описание в упражнении или каталоге
+    const normalizeName = value => String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' ');
+
     const catalogExercise = typeof EXERCISES_CATALOG !== 'undefined'
-        ? EXERCISES_CATALOG.find(item => item.name === exerciseName)
+        ? EXERCISES_CATALOG.find(item =>
+            normalizeName(item.name) === normalizeName(exerciseName)
+        )
         : null;
 
     const description =
@@ -16890,7 +16893,6 @@ function openMusclesHintModal() {
         catalogExercise?.description ||
         'Описание пока не добавлено';
 
-    // Содержимое модалки
     content.innerHTML = `
         <div class="modal-title">Информация</div>
 
@@ -16912,10 +16914,8 @@ function openMusclesHintModal() {
         </button>
     `;
 
-    // Запоминаем первый просмотр
     localStorage.setItem('musclesHintSeen', 'true');
 
-    // Превращаем кнопку в компактную иконку
     document.querySelectorAll('.session-muscles-hint').forEach(btn => {
         btn.classList.add('compact');
     });
@@ -16924,7 +16924,6 @@ function openMusclesHintModal() {
 }
 
 window.openMusclesHintModal = openMusclesHintModal;
-
 
 function updateMusclesHintState() {
     const seen = localStorage.getItem('musclesHintSeen') === 'true';
