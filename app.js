@@ -16865,39 +16865,78 @@ function openMuscleGroupsModal(type = 'muscles') {
 // Экспорт в window для вызова из консоли и из HTML
 window.openMuscleGroupsModal = openMuscleGroupsModal;
 
-/**
- * Открыть модалку «Что значит цвет мышц?»
- */
+
+
 function openMusclesHintModal() {
-    // ★ Запоминаем, что пользователь уже видел подсказку
+    const modal = document.getElementById('musclesHintModal');
+    const content = modal?.querySelector('.modal-content');
+
+    if (!modal || !content) return;
+
+    // Текущее упражнение
+    const exercise = !isResting
+        ? sessionExercises?.[sessionCurrentIndex]
+        : null;
+
+    const exerciseName = exercise?.name || 'Упражнение';
+
+    // Ищем описание в упражнении или каталоге
+    const catalogExercise = typeof EXERCISES_CATALOG !== 'undefined'
+        ? EXERCISES_CATALOG.find(item => item.name === exerciseName)
+        : null;
+
+    const description =
+        exercise?.description ||
+        catalogExercise?.description ||
+        'Описание пока не добавлено';
+
+    // Содержимое модалки
+    content.innerHTML = `
+        <div class="modal-title">Информация</div>
+
+        <div class="muscles-hint-image">
+            <img src="images/muscles-hint.png" alt="Цвета мышц">
+        </div>
+
+        <div class="modal-title" style="margin-top: 1rem;">
+            ${escapeHtml(exerciseName)}
+        </div>
+
+        <div class="modal-text" style="text-align: left; line-height: 1.5;">
+            ${escapeHtml(description)}
+        </div>
+
+        <button class="btn btn-primary"
+                onclick="closeModal('musclesHintModal')">
+            Понятно
+        </button>
+    `;
+
+    // Запоминаем первый просмотр
     localStorage.setItem('musclesHintSeen', 'true');
 
-    // ★ Прячем текст у всех таких плашек на странице
-    //   (на случай если их несколько или перерисовка)
+    // Превращаем кнопку в компактную иконку
     document.querySelectorAll('.session-muscles-hint').forEach(btn => {
         btn.classList.add('compact');
     });
 
     openModal('musclesHintModal');
 }
+
 window.openMusclesHintModal = openMusclesHintModal;
 
-/**
- * Обновить вид плашки в зависимости от того,
- * видел ли пользователь подсказку раньше.
- * Вызывается при старте тренировки.
- */
+
 function updateMusclesHintState() {
     const seen = localStorage.getItem('musclesHintSeen') === 'true';
+
     document.querySelectorAll('.session-muscles-hint').forEach(btn => {
-        if (seen) {
-            btn.classList.add('compact');
-        } else {
-            btn.classList.remove('compact');
-        }
+        btn.classList.toggle('compact', seen);
     });
 }
+
 window.updateMusclesHintState = updateMusclesHintState;
+
+
 
 // =================== ИНВЕНТАРЬ (МОДАЛКА В НАСТРОЙКАХ) ===================
 
