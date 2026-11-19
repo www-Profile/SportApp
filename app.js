@@ -16902,7 +16902,11 @@ function getSessionExerciseDescription(exercise) {
         exercise.instructions,
         exercise.technique,
         exercise.howTo
-    ].find(value => typeof value === 'string' && value.trim());
+    ].find(value =>
+        typeof value === 'string' &&
+        value.trim() &&
+        value.trim() !== 'Описание пока не добавлено'
+    );
 
     if (directDescription) return directDescription.trim();
 
