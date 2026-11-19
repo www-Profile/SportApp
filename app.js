@@ -4260,20 +4260,33 @@ function updateRestUI() {
         restControls.classList.add('visible');
     }
 
-    // ★★★ ПОКАЗЫВАЕМ СЛЕДУЮЩЕЕ УПРАЖНЕНИЕ ★★★
+    // Во время отдыха показываем не только название, но и технику следующего упражнения.
     const hint = document.getElementById('sessionNextExerciseHint');
     if (hint) {
-        // Следующее упражнение — это sessionCurrentIndex + 1,
-        // потому что во время отдыха индекс ещё не сдвинут
-        const nextEx = sessionExercises[sessionCurrentIndex + 1];
+        const nextEx = sessionExercises?.[sessionCurrentIndex + 1] || null;
+        hint.replaceChildren();
+
         if (nextEx) {
-            hint.innerHTML = `Далее: <span>${nextEx.name}</span>`;
-            hint.style.display = 'block';
+            const title = document.createElement('div');
+            title.textContent = 'Далее: ' + (nextEx.name || 'Следующее упражнение');
+            title.style.fontWeight = '600';
+            hint.appendChild(title);
+
+            const description = getSessionExerciseDescription(nextEx);
+            if (description) {
+                const descriptionEl = document.createElement('div');
+                descriptionEl.textContent = description;
+                descriptionEl.style.marginTop = '6px';
+                descriptionEl.style.fontWeight = '400';
+                descriptionEl.style.lineHeight = '1.4';
+                hint.appendChild(descriptionEl);
+            } else {
+                console.warn('[SportApp] Не найдено описание следующего упражнения:', nextEx.name);
+            }
         } else {
-            // Следующего нет — это было последнее упражнение
-            hint.innerHTML = `Это было последнее упражнение`;
-            hint.style.display = 'block';
+            hint.textContent = 'Это было последнее упражнение';
         }
+        hint.style.display = 'block';
     }
 }
 
@@ -16866,32 +16879,99 @@ function openMuscleGroupsModal(type = 'muscles') {
 window.openMuscleGroupsModal = openMuscleGroupsModal;
 
 
+// Нормализуем названия: разные варианты формулировки одного упражнения
+// должны находить одну и ту же запись каталога.
+function normalizeExerciseLookupName(value) {
+    return String(value || '')
+        .toLowerCase()
+        .replace(/ё/g, 'е')
+        .replace(/[«»"'’]/g, '')
+        .replace(/[^a-zа-я0-9]+/gi, ' ')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .replace(/\bс коленей\b/g, 'от коленей')
+        .replace(/\bна коленях\b/g, 'от коленей');
+}
+
+function getSessionExerciseDescription(exercise) {
+    if (!exercise) return '';
+
+    // В личных и готовых тренировках описание может уже быть в объекте.
+    const directDescription = [
+        exercise.description,
+        exercise.instructions,
+        exercise.technique,
+        exercise.howTo
+    ].find(value => typeof value === 'string' && value.trim());
+
+    if (directDescription) return directDescription.trim();
+
+    if (typeof EXERCISES_CATALOG === 'undefined' || !Array.isArray(EXERCISES_CATALOG)) {
+        console.error('[SportApp] EXERCISES_CATALOG недоступен');
+        return '';
+    }
+
+    const targetName = normalizeExerciseLookupName(exercise.name);
+    const catalog = EXERCISES_CATALOG;
+
+    // 1. Точное совпадение после нормализации названия.
+    let match = catalog.find(item =>
+        normalizeExerciseLookupName(item?.name) === targetName &&
+        typeof item?.description === 'string' && item.description.trim()
+    );
+
+    // 2. Если название в тренировке отличается, пробуем совпадение по изображениям.
+    if (!match && Array.isArray(exercise.images) && exercise.images.length) {
+        const imageSet = new Set(exercise.images.filter(Boolean));
+        match = catalog.find(item =>
+            Array.isArray(item?.images) &&
+            item.images.some(src => imageSet.has(src)) &&
+            typeof item?.description === 'string' && item.description.trim()
+        );
+    }
+
+    // 3. Последний безопасный вариант - сравнить значимые слова названия.
+    if (!match && targetName) {
+        const targetWords = targetName.split(' ').filter(word => word.length > 2);
+        let bestScore = 0;
+        for (const item of catalog) {
+            if (typeof item?.description !== 'string' || !item.description.trim()) continue;
+            const candidate = normalizeExerciseLookupName(item.name);
+            const words = candidate.split(' ').filter(word => word.length > 2);
+            const common = targetWords.filter(word => words.includes(word)).length;
+            const score = common / Math.max(targetWords.length, words.length, 1);
+            if (score > bestScore) {
+                bestScore = score;
+                match = item;
+            }
+        }
+        if (bestScore < 0.6) match = null;
+    }
+
+    return typeof match?.description === 'string' ? match.description.trim() : '';
+}
+
+function getExerciseForMusclesHint() {
+    if (!Array.isArray(sessionExercises)) return null;
+
+    // Во время отдыха индекс ещё указывает на только что выполненное упражнение.
+    // Поэтому описание должно относиться к следующему элементу массива.
+    const index = isResting ? sessionCurrentIndex + 1 : sessionCurrentIndex;
+    return sessionExercises[index] || null;
+}
+
 function openMusclesHintModal() {
     const modal = document.getElementById('musclesHintModal');
     const content = modal?.querySelector('.modal-content');
-    if (!modal || !content) return;
-
-    // Получаем текущее упражнение (или null, если в периоде отдыха)
-    const exercise = !isResting
-        ? sessionExercises?.[sessionCurrentIndex] || null
-        : null;
-    const exerciseName = exercise?.name || 'Упражнение';
-
-    // Ищем описание в текущем упражнении или в каталоге
-    let description = exercise?.description || '';
-    if (!description && Array.isArray(EXERCISES_CATALOG)) {
-        // Сравниваем имена без учёта регистра и лишних пробелов
-        const normalize = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
-        const match = EXERCISES_CATALOG.find(item =>
-            normalize(item.name) === normalize(exerciseName)
-        );
-        description = match?.description || '';
-    }
-    if (!description) {
-        description = 'Описание пока не добавлено';
+    if (!modal || !content) {
+        console.error('[SportApp] Не найдена модалка musclesHintModal');
+        return;
     }
 
-    // Формируем содержимое модалки
+    const exercise = getExerciseForMusclesHint();
+    const exerciseName = exercise?.name || (isResting ? 'Следующее упражнение' : 'Упражнение');
+    const description = getSessionExerciseDescription(exercise) || 'Описание пока не добавлено';
+
     content.innerHTML = `
         <div class="modal-title">Информация</div>
         <div class="muscles-hint-image">
@@ -16902,19 +16982,13 @@ function openMusclesHintModal() {
         <button class="btn btn-primary" onclick="closeModal('musclesHintModal')">Понятно</button>
     `;
 
-    // Вставляем текстовые значения в созданные элементы
     content.querySelector('#musclesHintCurrentName').textContent = exerciseName;
     content.querySelector('#musclesHintCurrentDescription').textContent = description;
 
-    // Отмечаем, что подсказка уже была показана
     localStorage.setItem('musclesHintSeen', 'true');
-    // Делаем кнопку компактной (иконка вместо текста)
-    document.querySelectorAll('.session-muscles-hint').forEach(btn => {
-        btn.classList.add('compact');
-    });
+    document.querySelectorAll('.session-muscles-hint').forEach(btn => btn.classList.add('compact'));
 
-    // Открываем модалку (модальные окна в проекте, судя по всему, открываются через эту функцию)
-    openModal('musclesHintModal');
+    window.openModal('musclesHintModal');
 }
 window.openMusclesHintModal = openMusclesHintModal;
 
