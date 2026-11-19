@@ -8086,3 +8086,23 @@ body.theme-dark-mode .program-detail-schedule-scroll { background: var(--bg-seco
     align-items: center;
     gap: 0.5rem;
 }
+
+/* Номер версии приложения в настройках профиля */
+.profile-app-version {
+    display: block;
+    margin: 0.75rem auto 0.25rem;
+    padding: 0.2rem 0.5rem;
+    border: 0;
+    background: transparent;
+    color: var(--slate);
+    font-size: 0.68rem;
+    font-weight: 500;
+    line-height: 1.4;
+    cursor: pointer;
+    opacity: 0.75;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.profile-app-version:active {
+    opacity: 1;
+}
