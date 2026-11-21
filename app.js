@@ -21705,21 +21705,12 @@ if (displayPosts.length === 0) {
                         <div class="feed-post-name">${post.userName || 'Пользователь'}</div>
                         <div class="feed-post-time">${timeStr}</div>
                     </div>
-                    ${isMe ? `
-                        <button class="feed-post-action-btn" title="Скачать фото"
-                                onclick="openPostDownloadModal('${post.id}', event)">
-                            <i class="fa-solid fa-download"></i>
-                        </button>
-                        <button class="feed-post-action-btn" title="Удалить"
-                                onclick="deletePost('${post.id}', event)">
-                            <i class="fa-regular fa-trash-can"></i>
-                        </button>
-                    ` : `
-                        <button class="feed-post-action-btn" title="Действия"
-                                onclick="openPostDownloadModal('${post.id}', event)">
-                            <i class="fa-solid fa-download"></i>
-                        </button>
-                    `}
+${isMe ? `
+    <button class="feed-post-action-btn" title="Удалить"
+            onclick="deletePost('${post.id}', event)">
+        <i class="fa-regular fa-trash-can"></i>
+    </button>
+` : ''}
                 </div>
 
                 <div class="feed-post-content">
@@ -22098,12 +22089,6 @@ if (isMe) {
                 Скачать фото
             </button>
         </div>
-
-        ${isProgram && hasShareLink ? `
-            <button class="btn btn-primary" id="postDlCopyProgramBtn" style="width:100%;">
-                <i class="fa-solid fa-link"></i> Скопировать ссылку на программу
-            </button>
-        ` : ''}
     `;
 } else {
         buttonsHtml = `
@@ -22150,30 +22135,6 @@ if (isMe) {
         closeModal('postDownloadModal');
         downloadPostImage(post);
     });
-
-    const copyProgramBtn = document.getElementById(
-    'postDlCopyProgramBtn'
-);
-
-if (copyProgramBtn) {
-    copyProgramBtn.addEventListener('click', async () => {
-        const url = post.programShareUrl;
-
-        if (!url) {
-            showToast('❌ Ссылка на программу не найдена');
-            return;
-        }
-
-        try {
-            await navigator.clipboard.writeText(url);
-            showToast('✅ Ссылка на программу скопирована!');
-            closeModal('postDownloadModal');
-        } catch (error) {
-            console.error('Ошибка копирования ссылки:', error);
-            showToast('❌ Не удалось скопировать ссылку');
-        }
-    });
-}
 
     const shareBtn = document.getElementById('postDlShareBtn');
 
