@@ -18485,6 +18485,13 @@ if (editProgramBtn) {
     editProgramBtn.style.display = isCustom ? 'flex' : 'none';
 }
 
+const shareProgramBtn = document.getElementById('shareProgramLinkBtn');
+
+if (shareProgramBtn) {
+    shareProgramBtn.style.display = isCustom ? 'flex' : 'none';
+    shareProgramBtn.onclick = () => shareProgramLink(programId);
+}
+
     window.navigateTo('program-detail');
 }
 window.openProgramDetail = openProgramDetail;
@@ -21599,9 +21606,18 @@ if (_feedFilter === 'my') {
 
         _feedPosts = [];
         snapshot.forEach(doc => {
-            const data = doc.data();
-            if (allowedIds && !allowedIds.includes(data.userId)) return;
-            _feedPosts.push({ id: doc.id, ...data });
+const data = doc.data();
+
+// Не показываем технические записи для передачи программ
+if (
+    data.contentType === 'program' &&
+    data.programData &&
+    !data.imageData
+) return;
+
+if (allowedIds && !allowedIds.includes(data.userId)) return;
+
+_feedPosts.push({ id: doc.id, ...data });
         });
 
         renderFeed();
@@ -23186,6 +23202,174 @@ function createShareableProgramData(program) {
     };
 }
 
+/**
+ * Поделиться личной программой через ссылку.
+ * Программа сохраняется в Firestore и передаётся целиком.
+ */
+async function shareProgramLink(programId) {
+    const program = getMyPrograms().find(p => p.id === programId);
+
+    if (!program) {
+        showToast('❌ Программа не найдена');
+        return;
+    }
+
+    try {
+        const user = await getFirebaseUser();
+
+        if (!user) {
+            showToast('🔒 Войдите в SportApp');
+            return;
+        }
+
+        showToast('Подготавливаем программу...');
+
+        // Создаём независимую копию расписания и упражнений
+        const programData = createShareableProgramData(program);
+        const profileResult = await getUserProfile(user.uid);
+        const profile = profileResult.success
+            ? profileResult.data
+            : {};
+
+        const stats = getPostProgramStats(program);
+
+        // Сохраняем скрытую запись для передачи программы.
+        // Пустое imageData отличает её от обычных постов.
+        const shareRef = await firebase.firestore()
+            .collection('posts')
+            .add({
+                userId: user.uid,
+                userName: profile.displayName || 'Пользователь',
+                userGender: profile.gender || 'male',
+
+                contentType: 'program',
+                workoutTitle: program.title || 'Программа',
+                workoutIcon: program.icon || null,
+
+                imageData: '',
+                programData: programData,
+                programId: program.id,
+                programTitle: program.title || 'Программа',
+                programShareLink: true,
+
+                stats: {
+                    durationDays: stats.durationDays,
+                    totalWorkouts: stats.totalWorkouts,
+                    weeklyWorkouts: stats.weeklyWorkouts
+                },
+
+                likes: [],
+                downloads: 0,
+
+                createdAt:
+                    firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+        const url =
+            `${window.location.origin}${window.location.pathname}?p=${shareRef.id}`;
+
+        const shareText =
+            `Программа «${program.title}» в SportApp. Открой ссылку, чтобы добавить её себе:`;
+
+        // Сначала пробуем системное меню «Поделиться»
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: 'Программа в SportApp',
+                    text: shareText,
+                    url: url
+                });
+
+                return;
+            } catch (error) {
+                if (error.name === 'AbortError') return;
+
+                console.warn('Меню «Поделиться» недоступно:', error);
+            }
+        }
+
+        // Если системное меню недоступно - копируем ссылку
+        const fullText = `${shareText}\n${url}`;
+
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(fullText);
+            showToast('✅ Ссылка на программу скопирована!');
+            return;
+        }
+
+        // Резервное копирование
+        const textarea = document.createElement('textarea');
+        textarea.value = fullText;
+        textarea.style.position = 'fixed';
+        textarea.style.top = '-1000px';
+
+        document.body.appendChild(textarea);
+        textarea.select();
+
+        const copied = document.execCommand('copy');
+        document.body.removeChild(textarea);
+
+        if (copied) {
+            showToast('✅ Ссылка на программу скопирована!');
+        } else {
+            showShareProgramLinkManual(url);
+        }
+
+    } catch (error) {
+        console.error('Ошибка передачи программы:', error);
+        showToast('❌ Не удалось создать ссылку на программу');
+    }
+}
+
+
+/**
+ * Резервная модалка со ссылкой на программу.
+ */
+function showShareProgramLinkManual(url) {
+    const old = document.getElementById('manualProgramLinkModal');
+    if (old) old.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'manualProgramLinkModal';
+
+    overlay.innerHTML = `
+        <div class="modal-content" style="max-width:420px; width:95%;">
+            <div class="modal-title">Ссылка на программу</div>
+
+            <p class="modal-text" style="margin-bottom:1rem;">
+                Выделите ссылку и скопируйте вручную
+            </p>
+
+            <input type="text"
+                   id="manualProgramLinkInput"
+                   class="form-input"
+                   value="${url}"
+                   readonly
+                   style="margin-bottom:1rem; text-align:center; font-size:0.75rem;"
+                   onclick="this.select();" />
+
+            <button class="btn btn-primary"
+                    onclick="closeModal('manualProgramLinkModal')">
+                Понятно
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    overlay.style.display = 'flex';
+    void overlay.offsetWidth;
+    overlay.classList.add('modal-overlay-visible');
+
+    setTimeout(() => {
+        const input = document.getElementById('manualProgramLinkInput');
+
+        if (input) {
+            input.focus();
+            input.select();
+        }
+    }, 100);
+}
 
 function handlePostWorkoutChange() {
     const typeSelect = document.getElementById('postTypeSelect');
@@ -24190,7 +24374,7 @@ window.PWA = PWA;
 // =================== МОДАЛКА: ЧТО НОВОГО ===================
 const CHANGELOG = {
     // ★★★ ТЕКУЩАЯ ВЕРСИЯ — меняй при выпуске обновления ★★★
-    CURRENT_VERSION: '1.2.1',
+    CURRENT_VERSION: '1.2.2',
 
     STORAGE_KEY: 'changelogSeenVersion',
 
@@ -24198,6 +24382,16 @@ const CHANGELOG = {
     // Порядок: от новых к старым
     // ★★★ ИСТОРИЯ ВЕРСИЙ — от новых к старым ★★★
     VERSIONS: [
+    {
+        version: '1.2.2',
+        date: '21 ноября 2026',
+        title: 'Обновление программ и вызовов',
+        changes: [
+            '🎓 <strong>Обучение</strong> - Обновлён процесс обучения, чтобы новым пользователям было проще познакомиться с возможностями SportApp.',
+            '⚔️ <strong>Вызовы</strong> - Обновлена система вызовов. Стало удобнее отправлять, принимать и отслеживать соревнования с друзьями.',
+            '📋 <strong>Программы</strong> - Теперь при создании поста можно прикрепить не только тренировку, но и целую программу. Появилась возможность добавлять опубликованные программы в свои личные программы, а также копировать и отправлять ссылки на них.'
+        ]
+    },
 {
     version: '1.2.1',
     date: '19 ноября 2026',
