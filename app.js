@@ -9606,14 +9606,6 @@ function blockClicksDuringTutorial(e) {
     return false;
 }
 
-function scrollToElement(element) {
-    if (!element) return;
-    const rect = element.getBoundingClientRect();
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    const targetPosition = rect.top + scrollTop - 100;
-    window.scrollTo({ top: targetPosition, behavior: 'smooth' });
-}
-
 function createTutorialOverlay(step) {
     const overlay = document.createElement('div');
     overlay.id = 'tutorialOverlay';
@@ -9669,9 +9661,6 @@ function createTutorialOverlay(step) {
             });
         }, 50);
         overlay._highlightElements = highlightElements;
-        if (highlightElements.length > 0) {
-            setTimeout(() => scrollToElement(highlightElements[0]), 300);
-        }
     }
 
     let dotsHtml = '';
@@ -9709,7 +9698,7 @@ function createTutorialOverlay(step) {
     `;
     document.body.appendChild(tooltip);
 
-    const autoSteps = [1, 8, 9, 13, 14, 15];
+    const autoSteps = [null]; //тут числа
     const isAuto = autoSteps.includes(step.id) && highlightElements.length > 0;
 
 if (isAuto) {
@@ -9790,11 +9779,27 @@ function showTutorialStep(index) {
         finishTutorial();
         return;
     }
+
     const step = tutorialSteps[index];
     currentTutorialStep = index;
+
     if (step.page) window.navigateTo(step.page);
-    if (step.action) setTimeout(() => step.action(), 600);
-    setTimeout(() => createTutorialOverlay(step), 800);
+
+    const showOverlay = () => createTutorialOverlay(step);
+
+    if (step.action) {
+        setTimeout(async () => {
+            try {
+                await step.action();
+            } catch (error) {
+                console.error('Ошибка подготовки шага обучения:', error);
+            }
+
+            showOverlay();
+        }, 600);
+    } else {
+        setTimeout(showOverlay, 800);
+    }
 }
 
 function nextTutorialStep() {
@@ -9838,190 +9843,77 @@ function getTasksText() {
 const tutorialSteps = [
     {
         id: 1,
-        page: 'workouts',
-        highlight: '#bottomNav',
-        text: 'Это главное меню. Здесь четыре страницы:\nЛента, Статистика, Тренировки и Профиль.',
-        action: () => {
-            activeWorkoutsTab = 'ready';
-            applyWorkoutsTab('ready');
-        }
+        page: 'feed',
+        highlight: '#feedContainer .feed-post:first-child',
+        text: 'Тренировки не обязательно оставлять только для себя. Публикуйте свои результаты в Ленте, делитесь достижениями и следите за успехами других пользователей.',
+action: async () => {
+    await setFeedFilter('all');
+
+    const images = Array.from(
+        document.querySelectorAll('#feedContainer .feed-post img')
+    );
+
+    await Promise.all(
+        images.map(img => {
+            if (img.complete) return Promise.resolve();
+
+            return new Promise(resolve => {
+                img.addEventListener('load', resolve, { once: true });
+                img.addEventListener('error', resolve, { once: true });
+            });
+        })
+    );
+}
     },
     {
         id: 2,
-        page: 'feed',
-        highlight: null,
-        text: 'В Ленте вы можете делиться своими тренировками и смотреть посты других пользователей.',
+        page: 'stats',
+        highlight: '.stats-summary#statsSummary .stat-card',
+        text: 'Следите за своим прогрессом: изучайте историю тренировок, активность и изменения результатов. В мировой статистике можно сравнить свои достижения с другими пользователями.',
         action: () => {
-            setFeedFilter('all');
+            switchStatsTab('personal');
         }
     },
     {
         id: 3,
-        page: 'stats',
-        highlight: '#page-stats .tab-btn[data-tab="personal"]',
-            text: 'В разделе "Личной статистики" собрана вся информация о ваших тренировках.',
-    },
-    {
-        id: 4,
-        page: 'stats',
-        highlight: '#page-stats .tab-btn[data-tab="world"]',
-        text: 'В разделе "Мировой статистики" собрана статистика всего сообщества SportApp.',
-        action: () => { switchStatsTab('world'); }
-    },
-    {
-        id: 5,
         page: 'workouts',
-        highlight: ['#page-workouts .tab-btn[data-tab="ready"]', '.item-card[data-category="Руки"]'],
-        text: 'В разделе "Готовых тренировок" собраны тренировки для всех групп мышц.',
+        highlight: ['#workoutsBlocksContainer .item-card[data-category="Руки"]'],
+        text: 'Выбирайте готовую тренировку, подходящий уровень сложности и переходите к упражнениям. При необходимости можно изменить тренировку под себя или создать полностью собственную. Заниматься можно одному или вместе с друзьями.',
         action: () => {
             activeWorkoutsTab = 'ready';
             applyWorkoutsTab('ready');
         }
     },
     {
+        id: 4,
+        page: 'programs',
+        highlight: '#freeProgramsList .program-list-card:first-child',
+        text: 'Программы помогают выстроить системные тренировки. Выбирайте готовый план или создавайте свой: определяйте продолжительность, частоту занятий, распределяйте тренировки и дни отдыха.',
+        action: () => {
+            switchProgramTab('ready');
+        }
+    },
+    {
+        id: 5,
+        page: 'profile',
+        highlight: '.profile-card',
+        text: 'Ваш профиль развивается вместе с вами. Получайте XP за активность, повышайте уровень и открывайте достижения. Выполняйте задания, чтобы получать дополнительный опыт.',
+        action: () => {
+            switchProfileTab('my');
+        }
+    },
+    {
         id: 6,
-        page: 'level-select',
-        highlight: '.item-card',
-        text: 'Каждая тренировка разделена на 3 уровня сложности.',
-        action: () => {
-            window.navigateTo('level-select', { category: 'Руки' });
-        }
-    },
-    {
-        id: 7,
-        page: 'workout-detail',
-        highlight: '.item-grid',
-        text: 'После выбора уровня сложности вы видите полный список упражнений в этой тренировке.',
-        action: () => {
-            window.navigateTo('workout-detail', {
-                category: 'Руки',
-                level: '1 LVL',
-                parentCategory: 'Силовые'
-            });
-        }
-    },
-    {
-        id: 8,
-        page: 'workout-detail',
-        highlight: ['#coopInviteBtn', '#actionButton'],
-        text: 'Вы можете начать тренировку один - кнопка "СТАРТ", или пригласить друзей для совместной тренировки - кнопка "Совместная".',
-        action: () => {
-            // Убедимся, что кнопки видны
-            const inviteBtn = document.getElementById('coopInviteBtn');
-            const actionBtn = document.getElementById('actionButton');
-            if (inviteBtn) inviteBtn.style.display = 'block';
-            if (actionBtn) actionBtn.style.display = 'block';
-        }
-    },
-    {
-        id: 9,
-        page: 'workout-detail',
-        highlight: '#editWorkoutBtn',
-        text: 'Вы можете редактировать тренировку: менять ее название, добавлять новые упражнения, редактировать их и удалять.',
-        action: () => {
-            const editWorkoutBtn = document.getElementById('editWorkoutBtn');
-            if (editWorkoutBtn) {
-                editWorkoutBtn.style.display = 'block';
-            }
-        }
-    },
-    {
-        id: 10,
-        page: 'workouts',
-        highlight: ['#page-workouts .tab-btn[data-tab="my"]', '.custom-workout .btn-primary'],
-        text: 'В разделе "Личных тренировок" вы можете создавать свои собственные тренировки и редактировать их.',
-        action: () => {
-            activeWorkoutsTab = 'my';
-            applyWorkoutsTab('my');
-        }
-    },
-    {
-        id: 11,
         page: 'profile',
-        highlight: ['.profile-card'],
-        text: 'Это ваш профиль.\nТренируйтесь, получайте XP и повышайте свой уровень.',
-    },
-{
-    id: 12,
-    page: 'profile',
-    get highlight() {
-        const isDaily = checkAllTasksCompleted();
-        // ★★★ ВОЗВРАЩАЕМ CSS-СЕЛЕКТОР ДЛЯ НУЖНОГО БЛОКА ★★★
-        return isDaily 
-            ? '#daily-tasks-block .settings-block'
-            : '#tasks-block .settings-block';
-    },
-    get text() {
-        const isDaily = checkAllTasksCompleted();
-        return isDaily 
-            ? 'Это ваши ежедневные задания.\nВыполняйте их каждый день, чтобы получать дополнительный опыт!'
-            : 'Это ваши первые задания.\nВыполните все задания, чтобы открыть ежедневные задания!';
-    },
-    action: function() {
-        const isDaily = checkAllTasksCompleted();
-        
-        if (isDaily) {
-            // ★★★ РАСКРЫВАЕМ ЕЖЕДНЕВНЫЕ ЗАДАНИЯ ★★★
-            const block = document.getElementById('daily-tasks-block');
-            if (block) {
-                block.classList.add('open');
-                block.style.display = 'block';
-                saveBlocksState();
-            }
-            // ★★★ СКРЫВАЕМ ПЕРВЫЕ ЗАДАНИЯ ★★★
-            const tasksBlock = document.getElementById('tasks-block');
-            if (tasksBlock) {
-                tasksBlock.style.display = 'none';
-            }
-            renderDailyTasks();
-        } else {
-            // ★★★ РАСКРЫВАЕМ ПЕРВЫЕ ЗАДАНИЯ ★★★
-            const block = document.getElementById('tasks-block');
-            if (block) {
-                block.classList.add('open');
-                block.style.display = 'block';
-                saveBlocksState();
-            }
-            // ★★★ СКРЫВАЕМ ЕЖЕДНЕВНЫЕ ЗАДАНИЯ ★★★
-            const dailyBlock = document.getElementById('daily-tasks-block');
-            if (dailyBlock) {
-                dailyBlock.style.display = 'none';
-            }
-            updateTasksUI();
-        }
-    }
-},
-    
-{
-    id: 13,
-    page: 'profile',
-    highlight: '#settings-block-main .settings-block',
-    text: 'В основных настройках вы можете настроить приложение под себя.'
-},
-{
-    id: 14,
-    page: 'profile',
-    highlight: '#settings-block-extra .settings-block',
-    text: 'В дополнительных настройках вы можете скрывать или показывать дополнительные функции приложения.'
-},
-{
-    id: 15,
-    page: 'profile',
-    highlight: '#dangerSettings .settings-block',
-    text: 'Здесь находятся важные настройки. Будьте внимательны, эти действия нельзя отменить.'
-},
-    {
-        id: 16,
-        page: 'profile',
-        highlight: ['.profile-tab-btn[data-tab="friends"]', '.friends-list-block'],
-        text: 'Здесь вы можете находить друзей и следить за их успехами.',
+        highlight: '.section-block[data-block-id="friends-search"]',
+        text: 'Добавляйте друзей, следите за их прогрессом и приглашайте их на совместные тренировки. После занятия можно сравнить результаты всех участников.',
         action: () => {
             switchProfileTab('friends');
             renderFriendsInProfile();
         }
     },
     {
-        id: 17,
+        id: 7,
         page: 'workouts',
         highlight: null,
         text: 'Желаем отличной тренировки! Если не знаете, с чего начать, начните с выполнения заданий.',
@@ -10032,6 +9924,7 @@ const tutorialSteps = [
         }
     }
 ];
+
 
 // ===================PREMIUM ===================
 // ★★★ Статус PREMIUM хранится в Firestore (поле users/{uid}.premium).
@@ -21588,7 +21481,7 @@ function setFeedFilter(filter) {
     document.querySelectorAll('#page-feed .tab-btn').forEach(btn => {
         btn.classList.toggle('tab-btn-active', btn.dataset.feedFilter === filter);
     });
-    loadFeed();
+    return loadFeed();
 }
 window.setFeedFilter = setFeedFilter;
 
@@ -23838,9 +23731,6 @@ const Challenges = {
     // Текущий вызов в модалке деталей
     _detailId: null,
 
-    // Фильтр
-    _filter: new Set(['pending', 'active', 'completed']),
-
     // Состояние загрузки
     _loading: true,
     _loaded: false,
@@ -25090,75 +24980,191 @@ async _surrender(c) {
     },
 
     // ─────────────────────────────────────────
-    // ФИЛЬТРЫ
-    // ─────────────────────────────────────────
-    _updateFilterUI() {
-        const filters = document.getElementById('challengesFilters');
-        if (!filters) return;
-        filters.querySelectorAll('.challenge-filter-btn').forEach(b => {
-            b.classList.toggle('challenge-filter-active', this._filter.has(b.dataset.filter));
-        });
-    },
-
-    // ─────────────────────────────────────────
     // РЕНДЕР СПИСКА
     // ─────────────────────────────────────────
+
 render() {
     const container = document.getElementById('challengesContainer');
     if (!container) return;
 
     const user = firebase.auth().currentUser;
-    if (!user) { container.innerHTML = ''; return; }
+
+    if (!user) {
+        container.innerHTML = '';
+        return;
+    }
 
     if (this._loading && !this._loaded) {
         container.innerHTML = Skeleton.itemCardList(3);
         return;
     }
 
-    // Фильтрация — по эффективному статусу
-    const visible = this.list.filter(c => {
-        if (this._isChallengeHidden(c)) return false;
-        if (c.status === 'cancelled') return false;
-        const eff = this._getEffectiveStatus(c);
-        return this._filter.has(eff);
+    const myId = user.uid;
+
+    // Только незавершённые и видимые вызовы.
+    const current = this.list.filter(c =>
+        !this._isChallengeHidden(c) &&
+        c.status !== 'cancelled' &&
+        this._getEffectiveStatus(c) !== 'completed'
+    );
+
+    const pending = current.filter(c =>
+        this._getEffectiveStatus(c) === 'pending'
+    );
+
+    const active = current.filter(c =>
+        this._getEffectiveStatus(c) === 'active'
+    );
+
+    // Сортировка от новых к старым.
+    const sortNewest = (a, b) =>
+        (b.createdAt?.seconds || 0) -
+        (a.createdAt?.seconds || 0);
+
+    pending.sort(sortNewest);
+    active.sort(sortNewest);
+
+    // Входящие приглашения.
+    const incoming = pending.filter(c => {
+        const me = (c.participants || []).find(p => p.id === myId);
+        return me && me.accepted === null;
     });
 
-    // Сортировка — по эффективному статусу
-    const order = { pending: 0, active: 1, completed: 2 };
-    visible.sort((a, b) => {
-        const oa = order[this._getEffectiveStatus(a)] ?? 3;
-        const ob = order[this._getEffectiveStatus(b)] ?? 3;
-        if (oa !== ob) return oa - ob;
+    // Мои отправленные приглашения.
+    const outgoing = pending.filter(c =>
+        (c.participants || [])[0]?.id === myId
+    );
 
-        if (this._getEffectiveStatus(a) === 'completed') {
-            const at = a.completedAt?.seconds || a.createdAt?.seconds || 0;
-            const bt = b.completedAt?.seconds || b.createdAt?.seconds || 0;
-            return bt - at;
-        }
+    // Уже принятые входящие, которые ждут ответа остальных.
+    const waiting = pending.filter(c => {
+        const me = (c.participants || []).find(p => p.id === myId);
 
-        const at = a.createdAt?.seconds || 0;
-        const bt = b.createdAt?.seconds || 0;
-        return bt - at;
+        return me &&
+            me.accepted === true &&
+            (c.participants || [])[0]?.id !== myId;
     });
 
-    if (visible.length === 0) {
-        const text = this.list.length === 0
-            ? 'Брось другу вызов — кто больше натренирует за неделю.'
-            : 'По выбранным фильтрам ничего нет.';
+    const renderGroup = (title, items) => {
+        if (!items.length) return '';
+
+        return `
+            <div class="challenge-list-group">
+                <div class="challenge-list-heading">${title}</div>
+                ${items.map(c => this._renderCard(c, myId)).join('')}
+            </div>
+        `;
+    };
+
+    let html = '';
+
+    if (incoming.length || outgoing.length || waiting.length) {
+        html += `
+            <div class="challenge-attention-section">
+                <div class="challenge-section-heading">
+                    Требуют внимания
+                </div>
+
+                ${renderGroup('Входящие приглашения', incoming)}
+                ${renderGroup('Мои приглашения', outgoing)}
+                ${renderGroup('Ожидают ответа', waiting)}
+            </div>
+        `;
+    }
+
+    // Активные соревнования выводятся сразу, без дополнительного заголовка.
+    html += active.map(c => this._renderCard(c, myId)).join('');
+
+    if (!html) {
         container.innerHTML = `
-            <div class="empty-state" style="box-shadow:none; padding:1rem; margin-bottom:0.5rem">
+            <div class="empty-state"
+                 style="box-shadow:none; padding:1rem; margin-bottom:0.5rem">
                 <span class="empty-icon">🎯</span>
-                <h3 class="empty-title">Вызовов нет</h3>
-                <p class="empty-text">${text}</p>
+                <h3 class="empty-title">Пока нет вызовов</h3>
+                <p class="empty-text">
+                    Брось другу вызов и узнай, кто добьётся большего результата.
+                </p>
             </div>
         `;
         return;
     }
 
-    container.innerHTML = visible.map(c => this._renderCard(c, user.uid)).join('');
+    container.innerHTML = html;
 },
 
-_renderCard(c, myId) {
+
+openHistory() {
+    this.renderHistory();
+    openModal('challengeHistoryModal');
+},
+
+renderHistory() {
+    const container = document.getElementById('challengeHistoryContainer');
+    const count = document.getElementById('challengeHistoryCount');
+
+    if (!container || !count) return;
+
+    const user = firebase.auth().currentUser;
+
+    if (!user) return;
+
+    if (this._loading && !this._loaded) {
+        count.textContent = 'Всего вызовов: 0';
+        container.innerHTML = Skeleton.itemCardList(3);
+        return;
+    }
+
+    const myId = user.uid;
+
+    const history = this.list.filter(c =>
+        !this._isChallengeHidden(c) &&
+        c.status !== 'cancelled' &&
+        this._getEffectiveStatus(c) === 'completed'
+    );
+
+    const getTimestamp = value => {
+        if (!value) return 0;
+        if (value.seconds) return value.seconds;
+
+        const time = new Date(value).getTime();
+        return Number.isFinite(time) ? time / 1000 : 0;
+    };
+
+    history.sort((a, b) =>
+        getTimestamp(b.completedAt || b.createdAt) -
+        getTimestamp(a.completedAt || a.createdAt)
+    );
+
+    count.textContent = `Всего вызовов: ${history.length}`;
+
+    if (!history.length) {
+        container.innerHTML = `
+            <div class="empty-state"
+                 style="box-shadow:none; padding:1rem;">
+                <span class="empty-icon">🏆</span>
+                <h3 class="empty-title">История пока пуста</h3>
+                <p class="empty-text">
+                    Здесь появятся завершённые вызовы.
+                </p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = history
+        .map(c => this._renderCard(c, myId, true))
+        .join('');
+},
+
+openHistoryDetail(challengeId) {
+    closeModal('challengeHistoryModal');
+
+    setTimeout(() => {
+        this.openDetail(challengeId);
+    }, 650);
+},
+
+
+_renderCard(c, myId, fromHistory = false) {
     const title = this._TITLES[c.type] || 'Вызов';
     const participants = c.participants || [];
     const me = participants.find(p => p.id === myId);
@@ -25242,7 +25248,9 @@ _renderCard(c, myId) {
     }
 
     return `
-        <div class="challenge-card" onclick="Challenges.openDetail('${c.id}')">
+<div class="challenge-card" onclick="${fromHistory
+    ? `Challenges.openHistoryDetail('${c.id}')`
+    : `Challenges.openDetail('${c.id}')`}">
             <div class="challenge-header">
                 <div class="challenge-title">🎯 ${title}</div>
                 ${statusHtml}
@@ -25334,37 +25342,6 @@ window.stopChallengesListener = function() {
 };
 
 window.Challenges = Challenges;
-
-// ═══════════════════════════════════════════════════════════
-// ОБРАБОТЧИК ФИЛЬТРОВ (мульти-выбор)
-// ═══════════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
-    const filters = document.getElementById('challengesFilters');
-    if (!filters) return;
-
-    filters.addEventListener('click', (e) => {
-        const btn = e.target.closest('.challenge-filter-btn');
-        if (!btn || !window.Challenges) return;
-
-        const filter = btn.dataset.filter;
-        const set = window.Challenges._filter;
-
-        if (set.has(filter)) {
-            set.delete(filter);
-        } else {
-            set.add(filter);
-        }
-
-        if (set.size === 0) {
-            set.add('pending');
-            set.add('active');
-            set.add('completed');
-        }
-
-        window.Challenges._updateFilterUI();
-        window.Challenges.render();
-    });
-});
 
 window.goToWorkoutsFromEmpty = function() {
     TabManager.workouts('ready');

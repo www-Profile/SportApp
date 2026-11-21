@@ -1811,28 +1811,37 @@
     </div>
 </div>
 
+
 <!-- ★ БЛОК ВЫЗОВОВ ★ -->
 <div class="section-block" data-block-id="challenges">
     <div class="section-header">
         <span class="section-title">Вызовы</span>
-        <button class="section-toggle"><i class="fa-solid fa-chevron-right"></i></button>
+        <button class="section-toggle">
+            <i class="fa-solid fa-chevron-right"></i>
+        </button>
     </div>
 
     <div class="section-body">
-<!-- ★ ПАНЕЛЬ ФИЛЬТРОВ ★ -->
-<div class="challenges-filters" id="challengesFilters">
-    <button class="challenge-filter-btn challenge-filter-active" data-filter="pending">Ожидаемые</button>
-    <button class="challenge-filter-btn challenge-filter-active" data-filter="active">Активные</button>
-    <button class="challenge-filter-btn challenge-filter-active" data-filter="completed">Завершённые</button>
+<div id="challengesContainer"></div>
+
+<div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+    <button class="btn btn-secondary"
+            onclick="Challenges.openHistory()"
+            style="flex:1;">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        История
+    </button>
+
+    <button class="btn btn-primary"
+            onclick="openCreateChallengeModal()"
+            style="flex:1;">
+        <i class="fa-solid fa-bolt"></i>
+        Бросить вызов
+    </button>
 </div>
-
-            <div id="challengesContainer"></div>
-
-            <button class="btn btn-primary" onclick="openCreateChallengeModal()" style="width: 100%;">
-                <i class="fa-solid fa-bolt"></i> Бросить вызов
-            </button>
     </div>
 </div>
+
 
 <!-- Блок 4: История друзей (обновленный с ID) -->
 <div class="section-block" id="friends-history-block" data-block-id="friends-history">
@@ -2468,6 +2477,31 @@
 
     </div>
 </div>
+
+
+<!-- ===== МОДАЛКА: ИСТОРИЯ ВЫЗОВОВ ===== -->
+<div id="challengeHistoryModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:440px; width:95%; max-height:88vh; display:flex; flex-direction:column;">
+
+        <div class="modal-title">История вызовов</div>
+
+        <div id="challengeHistoryCount" class="modal-text">
+            Всего вызовов: 0
+        </div>
+
+        <div id="challengeHistoryContainer"
+             class="scroll-wrapper-modal"
+             style="max-height:55vh; overflow-y:auto; margin-bottom:1rem;">
+        </div>
+
+        <button class="btn btn-primary"
+                onclick="closeModal('challengeHistoryModal')">
+            Понятно
+        </button>
+
+    </div>
+</div>
+
 
 <!-- ===== МОДАЛКА: ФУНКЦИЯ НЕ ДОСТУПНА ===== -->
 <div id="notAvailableModal" class="modal-overlay" style="display:none;">
@@ -3626,7 +3660,7 @@
         <div class="modal-content" style="max-width: 420px; width: 95%;">
             <div class="modal-title">Правила</div>
             <p class="modal-text">
-                Эти правила нужны для точной работы приложения.
+                Эти правила нужны для точного подсчета вашего прогресса, если будете придумывать свои результаты, то смысл приложения теряется...
             </p>
 
             <div style="text-align: left; margin-bottom: 1rem;">

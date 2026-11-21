@@ -5438,6 +5438,7 @@ body.theme-dark-mode .workout-share-btn {
     gap: 0.5rem;                 /* ← отступ между блоками */
     background: transparent;     /* ← общего фона больше нет */
     padding: 0;
+    border-radius: 16px;
 }
 
 /* Шапка — отдельный блок, прозрачный */
