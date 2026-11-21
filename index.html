@@ -2591,14 +2591,29 @@
 <input type="file" id="postPhotoInput" accept="image/*"
        style="display:none;" onchange="handlePostPhotoSelect(event)">
 
-<!-- Выбор тренировки -->
-<div style="text-align:left;margin-bottom: 0.5rem; margin-top: 0.5rem;">
-    <label class="form-label">Тренировка</label>
-    <select id="postWorkoutSelect" class="form-select"
-            onchange="handlePostWorkoutChange()">
-        <option value="">Загрузка...</option>
+
+<!-- Выбор типа и элемента для прикрепления к посту -->
+<div style="text-align:left;margin-bottom:0.5rem;margin-top:0.5rem;">
+
+    <label class="form-label">Что прикрепить к посту?</label>
+    <select id="postTypeSelect"
+            class="form-select"
+            onchange="handlePostTypeChange()">
+        <option value="workout" selected>Тренировку</option>
+        <option value="program">Программу</option>
     </select>
+
+    <div style="margin-top:0.5rem;">
+        <label class="form-label" id="postItemLabel">Выберите тренировку</label>
+        <select id="postWorkoutSelect"
+                class="form-select"
+                onchange="handlePostWorkoutChange()">
+            <option value="">Загрузка...</option>
+        </select>
+    </div>
+
 </div>
+
 
 <!-- Опция: прикрепить ссылку на тренировку -->
 <div id="postShareLinkBlock" class="post-toggle-row" style="display:none;">

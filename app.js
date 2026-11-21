@@ -22358,75 +22358,243 @@ function scrollFeedToTop() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 window.scrollFeedToTop = scrollFeedToTop;
+
 /**
- * Открыть модалку создания поста
+ * Получить упражнения готовой тренировки
+ * по точным parent, category и level из каталога.
+ */
+function getPostReadyWorkoutExercises(option) {
+    const levelData =
+        exercisesData?.[option.parent]?.[option.category]?.[option.level];
+
+    if (!levelData) return [];
+
+    // Старый формат - массив упражнений
+    if (Array.isArray(levelData)) {
+        return JSON.parse(JSON.stringify(levelData));
+    }
+
+    // Формат с пользовательским переопределением
+    if (Array.isArray(levelData._exercises)) {
+        return JSON.parse(JSON.stringify(levelData._exercises));
+    }
+
+    // Адаптивный формат
+    if (typeof levelData === 'object') {
+        const exercises = buildWorkoutForUser(
+            levelData,
+            getUserInventoryFromStorage()
+        );
+
+        return Array.isArray(exercises)
+            ? JSON.parse(JSON.stringify(exercises))
+            : [];
+    }
+
+    return [];
+}
+
+
+/**
+ * Сформировать список тренировок:
+ * сначала готовые, затем личные.
+ * Premium-фильтрация готовых тренировок
+ * выполняется существующей getProgramWorkoutOptions().
+ */
+function getPostWorkoutItems() {
+    const options = getProgramWorkoutOptions();
+
+    const readyWorkouts = options
+        .filter(option => option.source === 'ready')
+        .map(option => {
+            const exercises = getPostReadyWorkoutExercises(option);
+
+            if (!exercises.length) return null;
+
+            return {
+                _postType: 'workout',
+                _postSource: 'ready',
+                title: option.title,
+                icon: null,
+                exercises,
+                restTime: 30,
+                category: option.category,
+                parentCategory: option.parent,
+                level: option.level
+            };
+        })
+        .filter(Boolean);
+
+    const personalWorkouts = getMyWorkouts()
+        .filter(workout =>
+            workout &&
+            workout._id &&
+            Array.isArray(workout.exercises) &&
+            workout.exercises.length > 0
+        )
+        .map(workout => ({
+            ...workout,
+            _postType: 'workout',
+            _postSource: 'personal'
+        }));
+
+    return [...readyWorkouts, ...personalWorkouts];
+}
+
+
+/**
+ * Переключение между тренировками и программами.
+ */
+function handlePostTypeChange() {
+    const typeSelect = document.getElementById('postTypeSelect');
+    const itemLabel = document.getElementById('postItemLabel');
+    const itemSelect = document.getElementById('postWorkoutSelect');
+    const previewBody = document.getElementById('postPreviewBody');
+    const linkBlock = document.getElementById('postShareLinkBlock');
+
+    if (!typeSelect || !itemSelect || !itemLabel) return;
+
+    const type = typeSelect.value;
+
+    itemSelect.innerHTML = '';
+    itemSelect._items = [];
+    itemSelect._workouts = [];
+
+    previewBody.style.display = 'none';
+
+    if (linkBlock) {
+        linkBlock.style.display = 'none';
+    }
+
+    if (type === 'program') {
+        itemLabel.textContent = 'Выберите программу';
+
+        _postShareLink = false;
+
+        // Готовые программы - сначала
+        const readyPrograms = PRESET_PROGRAMS
+            .filter(program =>
+                !program.isPremium || hasPremium()
+            )
+            .map(program => ({
+                ...program,
+                _postType: 'program',
+                _postSource: 'ready'
+            }));
+
+        // Личные программы - после готовых
+        const personalPrograms = getMyPrograms()
+            .map(program => ({
+                ...program,
+                _postType: 'program',
+                _postSource: 'personal'
+            }));
+
+        itemSelect._items = [
+            ...readyPrograms,
+            ...personalPrograms
+        ];
+
+    } else {
+        itemLabel.textContent = 'Выберите тренировку';
+
+        _postShareLink = true;
+
+        itemSelect._items = getPostWorkoutItems();
+    }
+
+    // Сохраняем совместимость со старым кодом
+    itemSelect._workouts = itemSelect._items;
+
+    const items = itemSelect._items;
+
+    if (!items.length) {
+        const option = document.createElement('option');
+        option.value = '';
+
+        option.textContent = type === 'program'
+            ? 'Нет доступных программ'
+            : 'Нет доступных тренировок';
+
+        itemSelect.appendChild(option);
+        return;
+    }
+
+    // Заполняем список в исходном порядке:
+    // готовые элементы, затем личные.
+    items.forEach((item, index) => {
+        const option = document.createElement('option');
+
+        option.value = String(index);
+        option.textContent = item.subtitle
+            ? `${item.title} ${item.subtitle}`
+            : item.title || (
+                type === 'program' ? 'Программа' : 'Тренировка'
+            );
+
+        itemSelect.appendChild(option);
+    });
+
+    // По умолчанию выбираем самый верхний элемент
+    itemSelect.selectedIndex = 0;
+
+    handlePostWorkoutChange();
+}
+
+window.handlePostTypeChange = handlePostTypeChange;
+
+
+/**
+ * Открыть модалку создания поста.
  */
 async function openCreatePostModal(options = {}) {
-    const { autoSelectLatest = false } = options;
-
     _postImageDataUrl = null;
     _postShareLink = true;
-    document.getElementById('postShareLinkBlock').style.display = 'none';
 
-    // ★ Сброс превью: возвращаем placeholder, скрываем статистику
     const previewImage = document.getElementById('postPreviewImage');
+    const previewBody = document.getElementById('postPreviewBody');
+    const photoInput = document.getElementById('postPhotoInput');
+    const typeSelect = document.getElementById('postTypeSelect');
+    const itemSelect = document.getElementById('postWorkoutSelect');
+    const linkBlock = document.getElementById('postShareLinkBlock');
+
+    // Сбрасываем фото
     previewImage.innerHTML = `
         <div class="upload-zone-placeholder">
             <i class="fa-solid fa-camera upload-zone-icon"></i>
             <div class="upload-zone-text">Нажмите, чтобы загрузить фото</div>
         </div>
     `;
-    document.getElementById('postPreviewBody').style.display = 'none';
-    document.getElementById('postPhotoInput').value = '';
 
-    const select = document.getElementById('postWorkoutSelect');
-    select.innerHTML = '<option value="">Загрузка...</option>';
-    select._workouts = [];
+    previewBody.style.display = 'none';
+    photoInput.value = '';
+
+    if (linkBlock) {
+        linkBlock.style.display = 'none';
+    }
+
+    // Каждый раз начинаем с выбора тренировки
+    typeSelect.value = 'workout';
+
+    itemSelect.innerHTML = '<option value="">Загрузка...</option>';
+    itemSelect._items = [];
+    itemSelect._workouts = [];
 
     openModal('createPostModal');
 
-    // Грузим тренировки
     try {
-        const user = await getFirebaseUser();
-        if (!user) return;
-
-        const result = await getUserWorkoutsFromFirestore(user.uid);
-        if (!result.success) {
-            select.innerHTML = '<option value="">Ошибка загрузки</option>';
-            return;
-        }
-
-        const workouts = result.data
-            .filter(w => {
-                const icon = getWorkoutIcon(w);
-                return icon && icon !== 'charging' && !w.isSingle;
-            })
-            .slice(0, 30);
-
-        if (workouts.length === 0) {
-            select.innerHTML = '<option value="">Сначала выполните тренировку</option>';
-            return;
-        }
-
-        select._workouts = workouts;
-        select.innerHTML = '<option value="">Выберите тренировку</option>' +
-            workouts.map((w, i) => {
-                const d = new Date(w.date);
-                const dateStr = d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
-                return `<option value="${i}">${dateStr} · ${w.title || 'Тренировка'}</option>`;
-            }).join('');
-
-        // ★★★ АВТОВЫБОР ПОСЛЕДНЕЙ ТРЕНИРОВКИ ★★★
-        if (autoSelectLatest && workouts.length > 0) {
-            select.value = '0';                  // самая свежая — первая в массиве
-            handlePostWorkoutChange();            // сразу показываем превью статистики
-        }
+        // Наполняем селекторы из существующих данных SportApp
+        handlePostTypeChange();
     } catch (error) {
-        console.error('Ошибка загрузки тренировок:', error);
-        select.innerHTML = '<option value="">Ошибка загрузки</option>';
+        console.error('Ошибка загрузки элементов поста:', error);
+
+        itemSelect.innerHTML =
+            '<option value="">Ошибка загрузки</option>';
     }
 }
+
 window.openCreatePostModal = openCreatePostModal;
+
 
 let _postImageDataUrl = null;   // ← переименовали переменную
 
@@ -22527,46 +22695,92 @@ function compressImageToDataURL(file, maxSize = 600, maxBytes = 180000) {
     });
 }
 
-/**
- * Обработка выбора тренировки — превью статистики
- */
+
 function handlePostWorkoutChange() {
-    const select = document.getElementById('postWorkoutSelect');
+    const typeSelect = document.getElementById('postTypeSelect');
+    const itemSelect = document.getElementById('postWorkoutSelect');
+
     const previewBody = document.getElementById('postPreviewBody');
     const previewTitle = document.getElementById('postPreviewTitle');
     const previewMinutes = document.getElementById('postPreviewMinutes');
     const previewExercises = document.getElementById('postPreviewExercises');
     const previewXp = document.getElementById('postPreviewXp');
-    const linkBlock = document.getElementById('postShareLinkBlock');
-    const idx = select.value;
-    const workouts = select._workouts || [];
 
-    if (idx === '' || !workouts[idx]) {
+    const statsBlock = previewBody.querySelector('.feed-post-stats');
+    const linkBlock = document.getElementById('postShareLinkBlock');
+
+    const type = typeSelect?.value || 'workout';
+    const index = itemSelect.value;
+    const items = itemSelect._items || [];
+
+    if (index === '' || !items[index]) {
         previewBody.style.display = 'none';
-        linkBlock.style.display = 'none';
+
+        if (linkBlock) {
+            linkBlock.style.display = 'none';
+        }
+
         return;
     }
 
-    const w = workouts[idx];
-    const totalEx = w.exercises?.length || 0;
-    const completedEx = w.exercises?.filter(e => e.completed === true).length || 0;
-    const minutes = Math.floor((w.durationSeconds || 0) / 60);
-    const xp = Math.round(w.xpEarned || 0);
+    const item = items[index];
 
-    // ★ Заполняем наложенную статистику
-    previewTitle.textContent = w.title || 'Тренировка';
+    // Выбрана программа
+    if (type === 'program') {
+        previewTitle.textContent = item.title || 'Программа';
+
+        if (statsBlock) {
+            statsBlock.style.display = 'none';
+        }
+
+        previewBody.style.display = 'block';
+
+        if (linkBlock) {
+            linkBlock.style.display = 'none';
+        }
+
+        _postShareLink = false;
+        return;
+    }
+
+    // Выбрана тренировка
+    if (statsBlock) {
+        statsBlock.style.display = '';
+    }
+
+    const totalEx = item.exercises?.length || 0;
+
+    const completedEx =
+        item.exercises?.filter(ex => ex.completed === true).length || 0;
+
+    const minutes = Math.floor(
+        (item.durationSeconds || 0) / 60
+    );
+
+    const xp = Math.round(item.xpEarned || 0);
+
+    previewTitle.textContent = item.title || 'Тренировка';
     previewMinutes.textContent = minutes;
     previewExercises.textContent = `${completedEx}/${totalEx}`;
     previewXp.textContent = `+${xp}`;
 
-    // ★ Показываем блок с наложенной статистикой поверх фото
     previewBody.style.display = 'block';
 
-    // Показываем блок «Добавить ссылку?» и сбрасываем на «Да»
-    linkBlock.style.display = 'flex';
+    if (linkBlock) {
+        linkBlock.style.display = 'flex';
+    }
+
     setPostShareLink(true);
+
+    const checkbox = document.getElementById('postShareLinkCheckbox');
+
+    if (checkbox) {
+        checkbox.checked = true;
+    }
 }
+
 window.handlePostWorkoutChange = handlePostWorkoutChange;
+
 
 function setPostShareLink(value) {
     _postShareLink = value;
@@ -22578,8 +22792,10 @@ function setPostShareLink(value) {
 }
 window.setPostShareLink = setPostShareLink;
 
+
 async function publishPost() {
     const btn = document.getElementById('postPublishBtn');
+
     if (btn.disabled) return;
 
     if (!_postImageDataUrl) {
@@ -22587,107 +22803,184 @@ async function publishPost() {
         return;
     }
 
+    const typeSelect = document.getElementById('postTypeSelect');
     const select = document.getElementById('postWorkoutSelect');
-    const idx = select.value;
-    const workouts = select._workouts || [];
 
-    if (idx === '' || !workouts[idx]) {
-        showToast('⚠️ Выберите тренировку');
+    const type = typeSelect?.value || 'workout';
+    const index = select.value;
+    const items = select._items || [];
+
+    if (index === '' || !items[index]) {
+        showToast(
+            type === 'program'
+                ? '⚠️ Выберите программу'
+                : '⚠️ Выберите тренировку'
+        );
         return;
     }
 
-    const workout = workouts[idx];
+    const item = items[index];
+
     btn.disabled = true;
     btn.textContent = 'Публикация...';
 
     try {
         const user = await getFirebaseUser();
-        if (!user) throw new Error('Не авторизован');
+
+        if (!user) {
+            throw new Error('Не авторизован');
+        }
 
         const profileResult = await getUserProfile(user.uid);
-        const profile = profileResult.success ? profileResult.data : {};
+        const profile = profileResult.success
+            ? profileResult.data
+            : {};
 
-        const totalEx = workout.exercises?.length || 0;
-        const completedEx = workout.exercises?.filter(e => e.completed === true).length || 0;
-        const minutes = Math.floor((workout.durationSeconds || 0) / 60);
-        const xp = Math.round(workout.xpEarned || 0);
+        const isProgram = type === 'program';
 
-        // ★★★ СОЗДАЁМ postData ЗДЕСЬ, ДО ВСЕХ ИСПОЛЬЗОВАНИЙ ★★★
+        const totalEx = isProgram
+            ? 0
+            : (item.exercises?.length || 0);
+
+        const completedEx = isProgram
+            ? 0
+            : (
+                item.exercises?.filter(
+                    ex => ex.completed === true
+                ).length || 0
+            );
+
+        const minutes = isProgram
+            ? 0
+            : Math.floor((item.durationSeconds || 0) / 60);
+
+        const xp = isProgram
+            ? 0
+            : Math.round(item.xpEarned || 0);
+
         const postData = {
             userId: user.uid,
             userName: profile.displayName || 'Пользователь',
             userGender: profile.gender || 'male',
-            workoutTitle: workout.title || 'Тренировка',
-            workoutIcon: workout.icon || null,
+
+            // Тип прикреплённого элемента
+            contentType: type,
+
+            // Общие данные
+            workoutTitle: item.title || (
+                isProgram ? 'Программа' : 'Тренировка'
+            ),
+
+            workoutIcon: item.icon || null,
+
             imageData: _postImageDataUrl,
+
             stats: {
                 completed: completedEx,
                 total: totalEx,
                 minutes: minutes,
                 xp: xp
             },
-            likes: [],                              // ★
-            downloads: 0,                           // ★ новое
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+
+            likes: [],
+            downloads: 0,
+
+            createdAt:
+                firebase.firestore.FieldValue.serverTimestamp()
         };
 
-        // ★ Теперь добавляем shareLink, если нужно
-        if (_postShareLink) {
-            const exercises = workout.exercises || [];
-            if (exercises.length > 0) {
-                try {
-                    const linkPayload = {
-                        t: workout.title || 'Тренировка',
-                        i: workout.icon || null,
-                        r: parseInt(workout.restTime) || 30,
-                        e: exercises.map(ex => [
-                            String(ex.name || ''),
-                            parseInt(ex.sets) || 3,
-                            String(ex.reps || '12'),
-                            parseFloat(ex.weight) || 0,
-                            ex.icon || null
-                        ])
-                    };
-                    postData.shareLink = _encodeShareBase64(JSON.stringify(linkPayload));
-                } catch (e) {
-                    console.warn('⚠️ Не удалось создать ссылку:', e);
+        if (isProgram) {
+            // Сохраняем всю выбранную программу
+            postData.programId = item.id || null;
+            postData.programTitle = item.title || 'Программа';
+            postData.programData = JSON.parse(
+                JSON.stringify(item)
+            );
+
+        } else {
+            // Ссылка создаётся только для тренировок
+            if (_postShareLink) {
+                const exercises = item.exercises || [];
+
+                if (exercises.length > 0) {
+                    try {
+                        const linkPayload = {
+                            t: item.title || 'Тренировка',
+                            i: item.icon || null,
+                            r: parseInt(item.restTime) || 30,
+
+                            e: exercises.map(ex => [
+                                String(ex.name || ''),
+                                parseInt(ex.sets) || 3,
+                                String(ex.reps || '12'),
+                                parseFloat(ex.weight) || 0,
+                                ex.icon || null
+                            ])
+                        };
+
+                        postData.shareLink = _encodeShareBase64(
+                            JSON.stringify(linkPayload)
+                        );
+
+                    } catch (error) {
+                        console.warn(
+                            '⚠️ Не удалось создать ссылку:',
+                            error
+                        );
+                    }
                 }
             }
         }
 
-        // ★ Сохраняем в Firestore
-        await firebase.firestore().collection('posts').add(postData);
+        // Сохраняем пост в Firestore
+        await firebase.firestore()
+            .collection('posts')
+            .add(postData);
 
-        // ★ Помечаем, что сегодня пост уже был
+        // Сохраняем дневной лимит публикаций
         const todayKey = getLocalDateKey();
+
         localStorage.setItem(POST_DATE_KEY, todayKey);
+
         try {
-            await updateUserProfile(user.uid, { lastPostDate: todayKey });
-        } catch (e) {
-            console.warn('⚠️ Не удалось сохранить lastPostDate:', e);
+            await updateUserProfile(user.uid, {
+                lastPostDate: todayKey
+            });
+        } catch (error) {
+            console.warn(
+                '⚠️ Не удалось сохранить lastPostDate:',
+                error
+            );
         }
 
-        // ★ Сбрасываем данные после успеха
         _postImageDataUrl = null;
 
         closeModal('createPostModal');
+
         showToast('✅ Пост опубликован!');
+
         setTimeout(() => loadFeed(), 400);
 
     } catch (error) {
         console.error('❌ Ошибка публикации:', error);
-        if (error.message && error.message.includes('exceeds the maximum')) {
+
+        if (
+            error.message &&
+            error.message.includes('exceeds the maximum')
+        ) {
             showToast('❌ Фото слишком большое для публикации');
         } else {
             showToast('❌ Не удалось опубликовать');
         }
+
     } finally {
-        // ★ Всегда сбрасываем кнопку
         btn.disabled = false;
         btn.textContent = 'Опубликовать';
     }
 }
+
 window.publishPost = publishPost;
+
 
 let _postLimitTimerInterval = null;
 
