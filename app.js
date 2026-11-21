@@ -18571,6 +18571,26 @@ function startProgramDay(programId, day, category, event) {
         workout = buildProgramWorkout(programId, day);
     }
 
+
+if (assignment.source === 'shared') {
+    if (
+        !Array.isArray(assignment.exercises) ||
+        !assignment.exercises.length
+    ) {
+        showToast('⚠️ Тренировка программы повреждена');
+        return;
+    }
+
+    workout = {
+        title: assignment.title || 'Тренировка',
+        icon: assignment.icon || null,
+        exercises: JSON.parse(
+            JSON.stringify(assignment.exercises)
+        )
+    };
+}
+
+
     if (!workout || !Array.isArray(workout.exercises) ||
         workout.exercises.length === 0) {
         showToast('⚠️ Не удалось загрузить тренировку');
@@ -19270,6 +19290,21 @@ function tryOpenPendingInvite() {
             console.warn('Ошибка разбора отложенной тренировки:', e);
         }
     }
+
+
+    // Программа из ссылки
+    const pendingProgramPostId = localStorage.getItem(
+        'pendingSharedProgramPostId'
+    );
+
+    if (pendingProgramPostId && isInsideApp()) {
+        localStorage.removeItem('pendingSharedProgramPostId');
+
+        setTimeout(() => {
+            addSharedProgramFromPost(pendingProgramPostId);
+        }, 900);
+    }
+
 }
 
 async function openFriendInviteModal(friendId) {
@@ -19458,7 +19493,8 @@ function renderFriendProfileActions(mode, friendId, status) {
 // ★★★ ЗАПУСКАЕМ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ ★★★
 document.addEventListener('DOMContentLoaded', () => {
     checkFriendInviteLink();
-    checkWorkoutShareLink();   // ★ добавили
+    checkWorkoutShareLink();
+    checkProgramShareLink();
 });
 
 // =================== ЕЖЕМЕСЯЧНЫЕ ЗНАЧКИ ===================
@@ -21376,6 +21412,42 @@ function showSharedWorkoutAddedModal(workout, exercisesCount, isDuplicate) {
     });
 }
 
+
+/**
+ * Обработка ссылки на программу:
+ * SportApp/?p=ID_ПОСТА
+ */
+async function checkProgramShareLink() {
+    const params = new URLSearchParams(window.location.search);
+    const postId = params.get('p');
+
+    if (!postId) return;
+
+    // Убираем параметр из адресной строки
+    window.history.replaceState(
+        {},
+        '',
+        window.location.pathname
+    );
+
+    // Сохраняем ссылку, если пользователь ещё не вошёл
+    localStorage.setItem(
+        'pendingSharedProgramPostId',
+        postId
+    );
+
+    const user = await getFirebaseUser();
+
+    if (user && isInsideApp()) {
+        localStorage.removeItem('pendingSharedProgramPostId');
+
+        await addSharedProgramFromPost(postId);
+    }
+}
+
+window.checkProgramShareLink = checkProgramShareLink;
+
+
 /**
  * Проверка ссылки ?w=... при загрузке страницы
  */
@@ -21614,6 +21686,7 @@ if (displayPosts.length === 0) {
             : 'images/avatar-men.png';
         const timeStr = formatRelativeTime(post.createdAt);
         const s = post.stats || {};
+        const isProgramPost = post.contentType === 'program';
 
         // ★ Лайки
         const likes = post.likes || [];
@@ -21655,29 +21728,50 @@ if (displayPosts.length === 0) {
                     </div>
                     <div class="feed-post-body">
                         <div class="feed-post-title">${post.workoutTitle || 'Тренировка'}</div>
-                        <div class="feed-post-stats">
-                            <div class="feed-post-stat">
-                                <span class="feed-post-stat-label">Время</span>
-                                <span class="feed-post-stat-value">${s.minutes || 0}</span>
-                            </div>
-                            <div class="feed-post-stat">
-                                <span class="feed-post-stat-label">Упражнений</span>
-                                <span class="feed-post-stat-value">${s.completed || 0}/${s.total || 0}</span>
-                            </div>
-                            <div class="feed-post-stat">
-                                <span class="feed-post-stat-label">Прогресс</span>
-                                <span class="feed-post-stat-value">+${s.xp || 0}</span>
-                            </div>
-                        </div>
+
+${isProgramPost ? `
+    <div class="feed-post-stats">
+        <div class="feed-post-stat">
+            <span class="feed-post-stat-label">Длительность</span>
+            <span class="feed-post-stat-value">${s.durationDays || 0} дн.</span>
+        </div>
+        <div class="feed-post-stat">
+            <span class="feed-post-stat-label">Тренировок</span>
+            <span class="feed-post-stat-value">${s.totalWorkouts || 0}</span>
+        </div>
+        <div class="feed-post-stat">
+            <span class="feed-post-stat-label">В неделю</span>
+            <span class="feed-post-stat-value">${s.weeklyWorkouts || 0}/7</span>
+        </div>
+    </div>
+` : `
+    <div class="feed-post-stats">
+        <div class="feed-post-stat">
+            <span class="feed-post-stat-label">Время</span>
+            <span class="feed-post-stat-value">${s.minutes || 0}</span>
+        </div>
+        <div class="feed-post-stat">
+            <span class="feed-post-stat-label">Упражнений</span>
+            <span class="feed-post-stat-value">${s.completed || 0}/${s.total || 0}</span>
+        </div>
+        <div class="feed-post-stat">
+            <span class="feed-post-stat-label">Прогресс</span>
+            <span class="feed-post-stat-value">+${s.xp || 0}</span>
+        </div>
+    </div>
+`}
+
                     </div>
                 </div>
 
                 <!-- ★★★ СКАЧИВАНИЯ + ЛАЙКИ ★★★ -->
                 <div class="feed-post-footer">
-${post.shareLink ? `
+${post.shareLink || post.programShareLink ? `
 <span class="feed-download-stat ${isPostDownloaded(post.id) ? 'downloaded' : ''}"
       data-post-id="${post.id}"
-      title="Скачали тренировку ${post.downloads || 0} раз"
+      title="${post.contentType === 'program'
+    ? `Добавить программу. Скачали ${post.downloads || 0} раз`
+    : `Скачали тренировку ${post.downloads || 0} раз`}"
       onclick="openPostDownloadModal('${post.id}', event)">
     <i class="fa-solid fa-download"></i>
     <span>${post.downloads || 0}</span>
@@ -21955,16 +22049,12 @@ async function openProfileFromPost(userId) {
 }
 window.openProfileFromPost = openProfileFromPost;
 
-/**
- * Открывает модалку действий с постом.
- * Для своего поста: Отмена / Скачать.
- * Для чужого: Отмена / Скачать фото / Загрузить тренировку.
- */
+
 function openPostDownloadModal(postId, event) {
     if (event) event.stopPropagation();
 
-    // Находим пост в массиве
     const post = _feedPosts.find(p => p.id === postId);
+
     if (!post) {
         showToast('❌ Пост не найден');
         return;
@@ -21973,9 +22063,12 @@ function openPostDownloadModal(postId, event) {
     const currentUser = firebase.auth().currentUser;
     const currentUserId = currentUser ? currentUser.uid : null;
     const isMe = post.userId === currentUserId;
-    const hasShareLink = !!post.shareLink;
 
-    // Удаляем старую модалку, если есть
+    const isProgram = post.contentType === 'program';
+    const hasShareLink = isProgram
+        ? post.programShareLink === true
+        : !!post.shareLink;
+
     const old = document.getElementById('postDownloadModal');
     if (old) old.remove();
 
@@ -21983,52 +22076,72 @@ function openPostDownloadModal(postId, event) {
     overlay.className = 'modal-overlay';
     overlay.id = 'postDownloadModal';
 
-    // Формируем текст
-    const titleText = isMe ? 'Ваш пост' : 'Пост пользователя';
+    const titleText = isMe
+        ? 'Ваш пост'
+        : 'Пост пользователя';
+
     const messageText = isMe
         ? 'Скачать фото из этого поста?'
-        : `Скачать фото или добавить тренировку «${post.workoutTitle || 'Тренировка'}» себе?`;
+        : isProgram
+            ? `Скачать фото или добавить программу «${post.workoutTitle || 'Программа'}» себе?`
+            : `Скачать фото или добавить тренировку «${post.workoutTitle || 'Тренировка'}» себе?`;
 
-    // Формируем кнопки
-let buttonsHtml = '';
+    let buttonsHtml = '';
 
 if (isMe) {
-    // Свой пост: Отмена и Скачать в одну строку
     buttonsHtml = `
         <div style="display:flex; gap:0.5rem; width:100%;">
-            <button class="btn btn-secondary" id="postDlCancelBtn" style="flex:1;">Отмена</button>
-            <button class="btn btn-primary" id="postDlPhotoBtn" style="flex:1;">Скачать</button>
+            <button class="btn btn-secondary" id="postDlCancelBtn" style="flex:1;">
+                Отмена
+            </button>
+            <button class="btn btn-primary" id="postDlPhotoBtn" style="flex:1;">
+                Скачать фото
+            </button>
         </div>
+
+        ${isProgram && hasShareLink ? `
+            <button class="btn btn-primary" id="postDlCopyProgramBtn" style="width:100%;">
+                <i class="fa-solid fa-link"></i> Скопировать ссылку на программу
+            </button>
+        ` : ''}
     `;
 } else {
-    // Чужой пост: сверху — Отмена, снизу — Скачать + Загрузить в ряд
-    buttonsHtml = `
-        <div style="display:flex; gap:0.5rem; width:100%;">
-            <button class="btn btn-primary" id="postDlPhotoBtn" style="flex:1;">Скачать фото</button>
-            ${hasShareLink ? `
-                <button class="btn btn-primary" id="postDlWorkoutBtn" style="flex:1;">Загрузить тренировку</button>
-            ` : ''}
-        </div>
-        <button class="btn btn-secondary" id="postDlCancelBtn" style="width:100%;">Отмена</button>
-    `;
-}
+        buttonsHtml = `
+            <div style="display:flex; gap:0.5rem; width:100%;">
+                <button class="btn btn-primary" id="postDlPhotoBtn" style="flex:1;">
+                    Скачать фото
+                </button>
 
-overlay.innerHTML = `
-    <div class="modal-content" style="max-width:440px; width:95%;">
-        <div class="modal-title">${titleText}</div>
-        <p class="modal-text" style="margin-bottom:1rem;">${messageText}</p>
-        <div style="display:flex; flex-direction:column; gap:0.5rem; width:100%;">
-            ${buttonsHtml}
+                ${hasShareLink ? `
+                    <button class="btn btn-primary" id="postDlShareBtn" style="flex:1;">
+                        ${isProgram ? 'Добавить программу' : 'Загрузить тренировку'}
+                    </button>
+                ` : ''}
+            </div>
+
+            <button class="btn btn-secondary" id="postDlCancelBtn" style="width:100%;">
+                Отмена
+            </button>
+        `;
+    }
+
+    overlay.innerHTML = `
+        <div class="modal-content" style="max-width:440px; width:95%;">
+            <div class="modal-title">${titleText}</div>
+            <p class="modal-text" style="margin-bottom:1rem;">
+                ${messageText}
+            </p>
+            <div style="display:flex; flex-direction:column; gap:0.5rem; width:100%;">
+                ${buttonsHtml}
+            </div>
         </div>
-    </div>
-`;
+    `;
 
     document.body.appendChild(overlay);
     overlay.style.display = 'flex';
     void overlay.offsetWidth;
     overlay.classList.add('modal-overlay-visible');
 
-    // Обработчики
     document.getElementById('postDlCancelBtn').addEventListener('click', () => {
         closeModal('postDownloadModal');
     });
@@ -22038,15 +22151,51 @@ overlay.innerHTML = `
         downloadPostImage(post);
     });
 
-    const workoutBtn = document.getElementById('postDlWorkoutBtn');
-    if (workoutBtn) {
-        workoutBtn.addEventListener('click', () => {
+    const copyProgramBtn = document.getElementById(
+    'postDlCopyProgramBtn'
+);
+
+if (copyProgramBtn) {
+    copyProgramBtn.addEventListener('click', async () => {
+        const url = post.programShareUrl;
+
+        if (!url) {
+            showToast('❌ Ссылка на программу не найдена');
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(url);
+            showToast('✅ Ссылка на программу скопирована!');
             closeModal('postDownloadModal');
-            addSharedWorkoutFromPost(post.shareLink, null, postId);
+        } catch (error) {
+            console.error('Ошибка копирования ссылки:', error);
+            showToast('❌ Не удалось скопировать ссылку');
+        }
+    });
+}
+
+    const shareBtn = document.getElementById('postDlShareBtn');
+
+    if (shareBtn) {
+        shareBtn.addEventListener('click', () => {
+            closeModal('postDownloadModal');
+
+            if (isProgram) {
+                addSharedProgramFromPost(post.id);
+            } else {
+                addSharedWorkoutFromPost(
+                    post.shareLink,
+                    null,
+                    post.id
+                );
+            }
         });
     }
 }
+
 window.openPostDownloadModal = openPostDownloadModal;
+
 
 /**
  * Скачивает готовое изображение поста (фото + статистика),
@@ -22109,11 +22258,26 @@ async function downloadPostImage(post) {
 
         // ★ 6. Три плитки со статистикой
         const s = post.stats || {};
-        const stats = [
-            { label: 'ВРЕМЯ', value: String(s.minutes || 0) },
-            { label: 'УПРАЖНЕНИЙ', value: `${s.completed || 0}/${s.total || 0}` },
-            { label: 'ПРОГРЕСС', value: `+${s.xp || 0}` }
-        ];
+const stats = post.contentType === 'program'
+    ? [
+        {
+            label: 'ДЛИТЕЛЬНОСТЬ',
+            value: `${s.durationDays || 0} дн.`
+        },
+        {
+            label: 'ТРЕНИРОВОК',
+            value: String(s.totalWorkouts || 0)
+        },
+        {
+            label: 'В НЕДЕЛЮ',
+            value: `${s.weeklyWorkouts || 0}/7`
+        }
+    ]
+    : [
+        { label: 'ВРЕМЯ', value: String(s.minutes || 0) },
+        { label: 'УПРАЖНЕНИЙ', value: `${s.completed || 0}/${s.total || 0}` },
+        { label: 'ПРОГРЕСС', value: `+${s.xp || 0}` }
+    ];
 
         const padding = 40;
         const gap = 16;
@@ -22304,6 +22468,225 @@ async function deletePost(postId, event) {
     );
 }
 window.deletePost = deletePost;
+
+
+/**
+ * Добавляет полученную программу в личные программы.
+ */
+async function applySharedProgramData(programData, postId) {
+    if (
+        !programData ||
+        !Array.isArray(programData.dayWorkouts) ||
+        !programData.dayWorkouts.some(Boolean)
+    ) {
+        showToast('❌ Данные программы повреждены');
+        return false;
+    }
+
+    if (programData.isPremium && !hasPremium()) {
+        openModal('premiumModal');
+        return false;
+    }
+
+    const existingPrograms = getMyPrograms();
+
+    // Не добавляем одну и ту же программу из одного поста повторно
+    const duplicate = existingPrograms.find(
+        p => p.sharedFromPostId === postId
+    );
+
+    if (duplicate) {
+        showSharedProgramAddedModal(duplicate, true);
+        return false;
+    }
+
+    const durationDays = Number(programData.durationDays) || 0;
+
+    if (
+        durationDays < 1 ||
+        programData.dayWorkouts.length !== durationDays
+    ) {
+        showToast('❌ Неверное расписание программы');
+        return false;
+    }
+
+    // Проверяем, что все тренировочные дни содержат упражнения
+    const dayWorkouts = programData.dayWorkouts.map(day => {
+        if (!day) return null;
+
+        if (
+            day.source !== 'shared' ||
+            !Array.isArray(day.exercises) ||
+            !day.exercises.length
+        ) {
+            return null;
+        }
+
+        return {
+            source: 'shared',
+            title: day.title || 'Тренировка',
+            icon: day.icon || null,
+            exercises: JSON.parse(JSON.stringify(day.exercises))
+        };
+    });
+
+    if (!dayWorkouts.some(Boolean)) {
+        showToast('❌ В программе нет доступных тренировок');
+        return false;
+    }
+
+    const weekPattern = Array.from(
+        { length: 7 },
+        (_, index) => Boolean(dayWorkouts[index])
+    );
+
+    const program = {
+        id: 'myprog_shared_' + Date.now(),
+
+        title: programData.title || 'Программа',
+        icon: programData.icon || 'WholeBody',
+        category: programData.category || 'Всё тело',
+
+        durationDays,
+        dayWorkouts,
+
+        workoutsPerWeek: weekPattern.filter(Boolean).length,
+        weekPattern,
+
+        difficulty: programData.difficulty || 'Средний',
+        description: programData.description || '',
+
+        isCustom: true,
+        sharedFromPostId: postId,
+        createdAt: Date.now()
+    };
+
+    existingPrograms.push(program);
+    saveMyPrograms(existingPrograms);
+
+    showSharedProgramAddedModal(program, false);
+
+    return true;
+}
+
+
+/**
+ * Получает программу из опубликованного поста.
+ */
+async function addSharedProgramFromPost(postId) {
+    if (!postId) {
+        showToast('❌ Ссылка на программу повреждена');
+        return false;
+    }
+
+    try {
+        const user = await getFirebaseUser();
+
+        if (!user) {
+            showToast('🔒 Войдите в SportApp, чтобы добавить программу');
+            return false;
+        }
+
+        const doc = await firebase.firestore()
+            .collection('posts')
+            .doc(postId)
+            .get();
+
+        if (!doc.exists) {
+            showToast('❌ Пост с программой не найден');
+            return false;
+        }
+
+        const post = doc.data();
+
+        if (
+            post.contentType !== 'program' ||
+            post.programShareLink !== true ||
+            !post.programData
+        ) {
+            showToast('❌ Ссылка на программу недоступна');
+            return false;
+        }
+
+        const result = await applySharedProgramData(
+            post.programData,
+            postId
+        );
+
+        if (result) {
+            incrementPostDownloads(postId);
+        }
+
+        return result;
+
+    } catch (error) {
+        console.error('Ошибка добавления программы:', error);
+        showToast('❌ Не удалось добавить программу');
+        return false;
+    }
+}
+
+window.addSharedProgramFromPost = addSharedProgramFromPost;
+
+
+/**
+ * Модалка после добавления программы.
+ */
+function showSharedProgramAddedModal(program, isDuplicate) {
+    const old = document.getElementById('sharedProgramModal');
+    if (old) old.remove();
+
+    const titleText = isDuplicate
+        ? 'Программа уже у вас'
+        : 'Программа добавлена!';
+
+    const messageText = isDuplicate
+        ? `Программа «${program.title}» уже есть в ваших личных программах.`
+        : `Программа «${program.title}» добавлена в ваши личные программы.`;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'sharedProgramModal';
+
+    overlay.innerHTML = `
+        <div class="modal-content" style="max-width:400px;">
+            <div class="modal-title">${titleText}</div>
+
+            <div style="text-align:center; font-size:3rem; color:var(--accent); margin:0.5rem 0;">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+
+            <p class="modal-text">${messageText}</p>
+
+            <div style="display:flex; gap:0.5rem; width:100%;">
+                <button class="btn btn-secondary" id="sharedProgramCloseBtn" style="flex:1;">
+                    Позже
+                </button>
+
+                <button class="btn btn-primary" id="sharedProgramOpenBtn" style="flex:1;">
+                    Открыть
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    overlay.style.display = 'flex';
+    void overlay.offsetWidth;
+    overlay.classList.add('modal-overlay-visible');
+
+    document.getElementById('sharedProgramCloseBtn')
+        .addEventListener('click', () => {
+            closeModal('sharedProgramModal');
+        });
+
+    document.getElementById('sharedProgramOpenBtn')
+        .addEventListener('click', () => {
+            closeModal('sharedProgramModal');
+            openProgramDetail(program.id);
+        });
+}
+
 
 async function addSharedWorkoutFromPost(encoded, event, postId = null) {
     if (event) event.stopPropagation();
@@ -22696,18 +23079,164 @@ function compressImageToDataURL(file, maxSize = 600, maxBytes = 180000) {
 }
 
 
+/**
+ * Статистика программы для превью и публикации.
+ * Число тренировок берётся из реального расписания.
+ */
+function getPostProgramStats(program) {
+    if (!program) {
+        return {
+            durationDays: 0,
+            totalWorkouts: 0,
+            weeklyWorkouts: 0
+        };
+    }
+
+    const durationDays = Number(program.durationDays) || 0;
+
+    const totalWorkouts = typeof getProgramWorkoutCount === 'function'
+        ? getProgramWorkoutCount(program)
+        : 0;
+
+    const pattern = Array.isArray(program.weekPattern)
+        ? program.weekPattern
+        : PROGRAM_WORKOUTS[program.id]?.weekPattern;
+
+    const weeklyWorkouts = Array.isArray(pattern)
+        ? pattern.filter(Boolean).length
+        : Number(program.workoutsPerWeek) || 0;
+
+    return {
+        durationDays,
+        totalWorkouts,
+        weeklyWorkouts
+    };
+}
+
+
+/**
+ * Создаёт самостоятельную копию программы для передачи другому пользователю.
+ * Упражнения каждого тренировочного дня встраиваются в программу.
+ * Поэтому копия не зависит от личных тренировок автора.
+ */
+function createShareableProgramData(program) {
+    if (!program) {
+        throw new Error('Программа не найдена');
+    }
+
+    const durationDays = Number(program.durationDays) || 0;
+
+    const schedule = generateProgramSchedule(
+        durationDays,
+        program.workoutsPerWeek,
+        program.category,
+        program.weekPattern,
+        program.id
+    );
+
+    const isCustom = getMyPrograms().some(p => p.id === program.id);
+
+    const dayWorkouts = Array.from(
+        { length: durationDays },
+        (_, index) => {
+            const day = index + 1;
+            const scheduleDay = schedule.find(d => d.day === day);
+
+            if (!scheduleDay || scheduleDay.type !== 'workout') {
+                return null;
+            }
+
+            let workout = null;
+
+            if (isCustom) {
+                const assignment = program.dayWorkouts?.[index];
+
+                if (!assignment) return null;
+
+                if (assignment.source === 'personal') {
+                    const personalWorkout = getWorkoutById(
+                        assignment.workoutId
+                    );
+
+                    if (personalWorkout) {
+                        workout = {
+                            title: personalWorkout.title,
+                            icon: personalWorkout.icon || null,
+                            exercises: personalWorkout.exercises
+                        };
+                    }
+                } else if (assignment.source === 'ready') {
+                    const exercises = getExercisesForEdit(
+                        assignment.category,
+                        assignment.level,
+                        false
+                    );
+
+                    workout = {
+                        title: assignment.title || scheduleDay.category,
+                        icon: null,
+                        exercises
+                    };
+                } else if (assignment.source === 'shared') {
+                    workout = assignment;
+                }
+            } else {
+                // Для готовых программ используем их настоящий план.
+                workout = buildProgramWorkout(program.id, day);
+            }
+
+            if (
+                !workout ||
+                !Array.isArray(workout.exercises) ||
+                !workout.exercises.length
+            ) {
+                throw new Error(
+                    `Не удалось подготовить тренировку для дня ${day}`
+                );
+            }
+
+            return {
+                source: 'shared',
+                title: workout.title || scheduleDay.category || 'Тренировка',
+                icon: workout.icon || null,
+                exercises: JSON.parse(
+                    JSON.stringify(workout.exercises)
+                )
+            };
+        }
+    );
+
+    if (!dayWorkouts.some(Boolean)) {
+        throw new Error('В программе нет тренировок для передачи');
+    }
+
+    return {
+        title: program.title || 'Программа',
+        icon: program.icon || null,
+        category: program.category || 'Всё тело',
+        durationDays,
+        workoutsPerWeek: program.workoutsPerWeek || 0,
+        weekPattern: program.weekPattern || null,
+        difficulty: program.difficulty || null,
+        description: program.description || '',
+        isPremium: program.isPremium === true,
+        dayWorkouts,
+        isCustom: true
+    };
+}
+
+
 function handlePostWorkoutChange() {
     const typeSelect = document.getElementById('postTypeSelect');
     const itemSelect = document.getElementById('postWorkoutSelect');
 
     const previewBody = document.getElementById('postPreviewBody');
     const previewTitle = document.getElementById('postPreviewTitle');
-    const previewMinutes = document.getElementById('postPreviewMinutes');
-    const previewExercises = document.getElementById('postPreviewExercises');
-    const previewXp = document.getElementById('postPreviewXp');
-
     const statsBlock = previewBody.querySelector('.feed-post-stats');
+
     const linkBlock = document.getElementById('postShareLinkBlock');
+    const linkLabel = document.getElementById('postShareLinkLabel');
+    const checkbox = document.getElementById('postShareLinkCheckbox');
 
     const type = typeSelect?.value || 'workout';
     const index = itemSelect.value;
@@ -22716,70 +23245,100 @@ function handlePostWorkoutChange() {
     if (index === '' || !items[index]) {
         previewBody.style.display = 'none';
 
-        if (linkBlock) {
-            linkBlock.style.display = 'none';
-        }
+        if (linkBlock) linkBlock.style.display = 'none';
 
         return;
     }
 
     const item = items[index];
 
-    // Выбрана программа
     if (type === 'program') {
+        const stats = getPostProgramStats(item);
+
         previewTitle.textContent = item.title || 'Программа';
 
-        if (statsBlock) {
-            statsBlock.style.display = 'none';
+        statsBlock.innerHTML = `
+            <div class="feed-post-stat">
+                <span class="feed-post-stat-label">Длительность</span>
+                <span class="feed-post-stat-value">
+                    ${stats.durationDays} дн.
+                </span>
+            </div>
+            <div class="feed-post-stat">
+                <span class="feed-post-stat-label">Тренировок</span>
+                <span class="feed-post-stat-value">
+                    ${stats.totalWorkouts}
+                </span>
+            </div>
+            <div class="feed-post-stat">
+                <span class="feed-post-stat-label">В неделю</span>
+                <span class="feed-post-stat-value">
+                    ${stats.weeklyWorkouts}/7
+                </span>
+            </div>
+        `;
+
+        _postShareLink = true;
+
+        if (linkLabel) {
+            linkLabel.textContent = 'Добавить ссылку на программу?';
         }
 
-        previewBody.style.display = 'block';
+    } else {
+        const totalEx = item.exercises?.length || 0;
 
-        if (linkBlock) {
-            linkBlock.style.display = 'none';
+        const completedEx =
+            item.exercises?.filter(ex => ex.completed === true).length || 0;
+
+        const minutes = Math.floor(
+            (item.durationSeconds || 0) / 60
+        );
+
+        const xp = Math.round(item.xpEarned || 0);
+
+        previewTitle.textContent = item.title || 'Тренировка';
+
+        statsBlock.innerHTML = `
+            <div class="feed-post-stat">
+                <span class="feed-post-stat-label">Время</span>
+                <span class="feed-post-stat-value" id="postPreviewMinutes">
+                    ${minutes}
+                </span>
+            </div>
+            <div class="feed-post-stat">
+                <span class="feed-post-stat-label">Упражнений</span>
+                <span class="feed-post-stat-value" id="postPreviewExercises">
+                    ${completedEx}/${totalEx}
+                </span>
+            </div>
+            <div class="feed-post-stat">
+                <span class="feed-post-stat-label">Прогресс</span>
+                <span class="feed-post-stat-value" id="postPreviewXp">
+                    +${xp}
+                </span>
+            </div>
+        `;
+
+        _postShareLink = true;
+
+        if (linkLabel) {
+            linkLabel.textContent = 'Добавить ссылку на тренировку?';
         }
-
-        _postShareLink = false;
-        return;
     }
 
-    // Выбрана тренировка
-    if (statsBlock) {
-        statsBlock.style.display = '';
+    if (checkbox) {
+        checkbox.checked = true;
     }
-
-    const totalEx = item.exercises?.length || 0;
-
-    const completedEx =
-        item.exercises?.filter(ex => ex.completed === true).length || 0;
-
-    const minutes = Math.floor(
-        (item.durationSeconds || 0) / 60
-    );
-
-    const xp = Math.round(item.xpEarned || 0);
-
-    previewTitle.textContent = item.title || 'Тренировка';
-    previewMinutes.textContent = minutes;
-    previewExercises.textContent = `${completedEx}/${totalEx}`;
-    previewXp.textContent = `+${xp}`;
-
-    previewBody.style.display = 'block';
 
     if (linkBlock) {
         linkBlock.style.display = 'flex';
     }
 
-    setPostShareLink(true);
-
-    const checkbox = document.getElementById('postShareLinkCheckbox');
-
-    if (checkbox) {
-        checkbox.checked = true;
-    }
+    previewBody.style.display = 'block';
 }
 
 window.handlePostWorkoutChange = handlePostWorkoutChange;
+
 
 
 function setPostShareLink(value) {
@@ -22791,6 +23350,7 @@ function setPostShareLink(value) {
     });
 }
 window.setPostShareLink = setPostShareLink;
+
 
 
 async function publishPost() {
@@ -22805,6 +23365,7 @@ async function publishPost() {
 
     const typeSelect = document.getElementById('postTypeSelect');
     const select = document.getElementById('postWorkoutSelect');
+    const checkbox = document.getElementById('postShareLinkCheckbox');
 
     const type = typeSelect?.value || 'workout';
     const index = select.value;
@@ -22820,6 +23381,9 @@ async function publishPost() {
     }
 
     const item = items[index];
+    const shouldShareLink = checkbox
+        ? checkbox.checked
+        : _postShareLink;
 
     btn.disabled = true;
     btn.textContent = 'Публикация...';
@@ -22838,48 +23402,25 @@ async function publishPost() {
 
         const isProgram = type === 'program';
 
-        const totalEx = isProgram
-            ? 0
-            : (item.exercises?.length || 0);
-
-        const completedEx = isProgram
-            ? 0
-            : (
-                item.exercises?.filter(
-                    ex => ex.completed === true
-                ).length || 0
-            );
-
-        const minutes = isProgram
-            ? 0
-            : Math.floor((item.durationSeconds || 0) / 60);
-
-        const xp = isProgram
-            ? 0
-            : Math.round(item.xpEarned || 0);
-
         const postData = {
             userId: user.uid,
             userName: profile.displayName || 'Пользователь',
             userGender: profile.gender || 'male',
 
-            // Тип прикреплённого элемента
             contentType: type,
 
-            // Общие данные
             workoutTitle: item.title || (
                 isProgram ? 'Программа' : 'Тренировка'
             ),
 
             workoutIcon: item.icon || null,
-
             imageData: _postImageDataUrl,
 
             stats: {
-                completed: completedEx,
-                total: totalEx,
-                minutes: minutes,
-                xp: xp
+                completed: 0,
+                total: 0,
+                minutes: 0,
+                xp: 0
             },
 
             likes: [],
@@ -22890,54 +23431,79 @@ async function publishPost() {
         };
 
         if (isProgram) {
-            // Сохраняем всю выбранную программу
+            const programStats = getPostProgramStats(item);
+
+            // Полная копия программы с расписанием и упражнениями
+            postData.programData = createShareableProgramData(item);
+
             postData.programId = item.id || null;
             postData.programTitle = item.title || 'Программа';
-            postData.programData = JSON.parse(
-                JSON.stringify(item)
-            );
+
+            postData.stats = {
+                durationDays: programStats.durationDays,
+                totalWorkouts: programStats.totalWorkouts,
+                weeklyWorkouts: programStats.weeklyWorkouts
+            };
+
+            // Ссылка будет доступна только при включённом переключателе
+            postData.programShareLink = shouldShareLink === true;
 
         } else {
-            // Ссылка создаётся только для тренировок
-            if (_postShareLink) {
-                const exercises = item.exercises || [];
+            const exercises = item.exercises || [];
 
-                if (exercises.length > 0) {
-                    try {
-                        const linkPayload = {
-                            t: item.title || 'Тренировка',
-                            i: item.icon || null,
-                            r: parseInt(item.restTime) || 30,
+            const totalEx = exercises.length;
+            const completedEx = exercises.filter(
+                ex => ex.completed === true
+            ).length;
 
-                            e: exercises.map(ex => [
-                                String(ex.name || ''),
-                                parseInt(ex.sets) || 3,
-                                String(ex.reps || '12'),
-                                parseFloat(ex.weight) || 0,
-                                ex.icon || null
-                            ])
-                        };
+            const minutes = Math.floor(
+                (item.durationSeconds || 0) / 60
+            );
 
-                        postData.shareLink = _encodeShareBase64(
-                            JSON.stringify(linkPayload)
-                        );
+            const xp = Math.round(item.xpEarned || 0);
 
-                    } catch (error) {
-                        console.warn(
-                            '⚠️ Не удалось создать ссылку:',
-                            error
-                        );
-                    }
-                }
+            postData.stats = {
+                completed: completedEx,
+                total: totalEx,
+                minutes,
+                xp
+            };
+
+            if (shouldShareLink && exercises.length > 0) {
+                const linkPayload = {
+                    t: item.title || 'Тренировка',
+                    i: item.icon || null,
+                    r: parseInt(item.restTime) || 30,
+
+                    e: exercises.map(ex => [
+                        String(ex.name || ''),
+                        parseInt(ex.sets) || 3,
+                        String(ex.reps || '12'),
+                        parseFloat(ex.weight) || 0,
+                        ex.icon || null
+                    ])
+                };
+
+                postData.shareLink = _encodeShareBase64(
+                    JSON.stringify(linkPayload)
+                );
             }
         }
 
-        // Сохраняем пост в Firestore
-        await firebase.firestore()
-            .collection('posts')
-            .add(postData);
+const postRef = await firebase.firestore()
+    .collection('posts')
+    .add(postData);
 
-        // Сохраняем дневной лимит публикаций
+// Создаём настоящий адрес программы после получения ID поста
+if (isProgram && shouldShareLink) {
+    const programShareUrl =
+        `${window.location.origin}${window.location.pathname}?p=${postRef.id}`;
+
+    await postRef.update({
+        programShareUrl: programShareUrl
+    });
+}
+
         const todayKey = getLocalDateKey();
 
         localStorage.setItem(POST_DATE_KEY, todayKey);
@@ -22948,7 +23514,7 @@ async function publishPost() {
             });
         } catch (error) {
             console.warn(
-                '⚠️ Не удалось сохранить lastPostDate:',
+                'Не удалось сохранить lastPostDate:',
                 error
             );
         }
@@ -22962,13 +23528,13 @@ async function publishPost() {
         setTimeout(() => loadFeed(), 400);
 
     } catch (error) {
-        console.error('❌ Ошибка публикации:', error);
+        console.error('Ошибка публикации:', error);
 
         if (
             error.message &&
             error.message.includes('exceeds the maximum')
         ) {
-            showToast('❌ Фото слишком большое для публикации');
+            showToast('❌ Данные программы или фото слишком большие');
         } else {
             showToast('❌ Не удалось опубликовать');
         }
@@ -22980,6 +23546,7 @@ async function publishPost() {
 }
 
 window.publishPost = publishPost;
+
 
 
 let _postLimitTimerInterval = null;
