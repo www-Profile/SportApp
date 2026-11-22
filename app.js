@@ -9936,6 +9936,92 @@ function hasPremium() {
     return window._userPremium === true;
 }
 
+let premiumSlideshowRun = null;
+
+window.openPremiumSlideshow = function () {
+    if (premiumSlideshowRun) return premiumSlideshowRun;
+
+    premiumSlideshowRun = (async () => {
+        const dialog = document.getElementById('premiumSlideshow');
+        const stage = document.getElementById('premiumSlideshowStage');
+        const buyButton = document.getElementById('premiumSlideshowBuy');
+        const slideDuration = 3000;
+
+        // Загружаем все фотографии до начала отсчёта.
+        const slides = await Promise.all(
+            Array.from({ length: 6 }, async (_, index) => {
+                const slide = new Image();
+                slide.alt = `PREMIUM — ${index + 1} из 6`;
+                slide.src = `images/PREMIUM/${index + 1}.png`;
+                await slide.decode();
+                return slide;
+            })
+        );
+
+        const totalDuration = slides.length * slideDuration;
+        let currentSlide = 0;
+        let startTime;
+
+        buyButton.disabled = true;
+        buyButton.style.setProperty('--premium-progress', '0%');
+        stage.replaceChildren(slides[0]);
+        dialog.oncancel = event => event.preventDefault();
+        dialog.showModal();
+
+        await new Promise(resolve => {
+            function update(timestamp) {
+startTime ??= timestamp + (
+    window.matchMedia('(prefers-reduced-motion: no-preference)').matches
+        ? 1000
+        : 0
+);
+
+const elapsed = Math.min(
+    Math.max(timestamp - startTime, 0),
+    totalDuration
+);
+                const nextSlide = Math.min(
+                    Math.floor(elapsed / slideDuration),
+                    slides.length - 1
+                );
+
+                if (nextSlide !== currentSlide) {
+                    stage.replaceChildren(slides[nextSlide]);
+                    currentSlide = nextSlide;
+                }
+
+                buyButton.style.setProperty(
+                    '--premium-progress',
+                    `${(elapsed / totalDuration) * 100}%`
+                );
+
+                if (elapsed < totalDuration) {
+                    requestAnimationFrame(update);
+                } else {
+                    buyButton.disabled = false;
+                }
+            }
+
+            buyButton.onclick = () => {
+                if (buyButton.disabled) return;
+
+                buyButton.onclick = null;
+                dialog.close();
+                stage.replaceChildren();
+                resolve();
+            };
+
+            requestAnimationFrame(update);
+        });
+
+        openPremiumModal();
+    })().finally(() => {
+        premiumSlideshowRun = null;
+    });
+
+    return premiumSlideshowRun;
+};
+
 // В функцию openPremiumModal() добавить:
 function openPremiumModal() {
     // Сброс выбора тарифа на Годовой
@@ -17278,31 +17364,27 @@ function processModalQueue() {
     const item = modalQueue.shift();
 
     if (item.type === 'premium') {
-        try {
-            openPremiumModal();
-        } catch (error) {
-            console.error('❌ Ошибка открытия Premium-модалки:', error);
+        const finishPremiumOffer = () => {
             isModalQueueProcessing = false;
             processModalQueue();
-            return;
-        }
+        };
 
-        const timeout = setTimeout(() => {
-            console.warn('⚠️ Premium-модалка не закрылась за 30с — продолжаем очередь');
-            isModalQueueProcessing = false;
-            processModalQueue();
-        }, 30000);
+        window.openPremiumSlideshow()
+            .then(() => {
+                const timeout = setTimeout(finishPremiumOffer, 30000);
 
-        watchModalClose('premiumModal', () => {
-            clearTimeout(timeout);
-            isModalQueueProcessing = false;
-            processModalQueue();
-        });
-
+                watchModalClose('premiumModal', () => {
+                    clearTimeout(timeout);
+                    finishPremiumOffer();
+                });
+            })
+            .catch(error => {
+                console.error('Ошибка показа предложения PREMIUM:', error);
+                finishPremiumOffer();
+            });
     } else {
         console.warn('⚠️ Неизвестный тип модалки в очереди:', item.type);
         isModalQueueProcessing = false;
-        processModalQueue();
     }
 }
 

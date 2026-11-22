@@ -8107,3 +8107,142 @@ body.theme-dark-mode .program-detail-schedule-scroll { background: var(--bg-seco
 .profile-app-version:active {
     opacity: 1;
 }
+
+
+/* ПРЕМИУМ ВИДЕО */
+
+#premiumSlideshow {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+}
+
+#premiumSlideshowStage {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background-position: center;
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
+#premiumSlideshowStage img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    object-fit: contain;
+    object-position: center;
+}
+
+/* Предыдущая фотография остаётся под новой во время перехода. */
+#premiumSlideshowStage:has(img[src$="/2.png"]) {
+    background-image: url("images/PREMIUM/1.png");
+}
+
+#premiumSlideshowStage:has(img[src$="/3.png"]) {
+    background-image: url("images/PREMIUM/2.png");
+}
+
+#premiumSlideshowStage:has(img[src$="/4.png"]) {
+    background-image: url("images/PREMIUM/3.png");
+}
+
+#premiumSlideshowStage:has(img[src$="/5.png"]) {
+    background-image: url("images/PREMIUM/4.png");
+}
+
+#premiumSlideshowStage:has(img[src$="/6.png"]) {
+    background-image: url("images/PREMIUM/5.png");
+}
+
+#premiumSlideshowBuy {
+    --premium-progress: 0%;
+    position: absolute;
+    z-index: 1;
+    left: 50%;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+    box-sizing: border-box;
+    width: min(320px, calc(100% - 32px));
+    min-height: 30px;
+    padding: 12px 16px;
+    overflow: hidden;
+    border: 2px solid var(--dark);
+    border-radius: 14px;
+    background: #B01030;
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+#premiumSlideshowBuy::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--premium-progress);
+    background: #dc143c;
+    pointer-events: none;
+}
+
+#premiumSlideshowBuy span {
+    position: relative;
+}
+
+#premiumSlideshowBuy:disabled {
+    opacity: 1;
+    cursor: default;
+}
+
+#premiumSlideshow,
+#premiumSlideshow::backdrop {
+    background-color: #000;
+}
+
+
+
+@media (prefers-reduced-motion: no-preference) {
+    #premiumSlideshowStage img:not([src$="/1.png"]) {
+        animation: premiumSlideFadeIn 400ms ease-in-out both;
+    }
+}
+
+@keyframes premiumSlideFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+#premiumSlideshow::backdrop {
+    background-color: transparent;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    #premiumSlideshow[open] {
+        animation: premiumScreenFadeIn 500ms ease both;
+    }
+
+    #premiumSlideshow[open] #premiumSlideshowStage,
+    #premiumSlideshow[open] #premiumSlideshowBuy {
+        animation: premiumContentFadeIn 500ms ease 500ms both;
+    }
+}
+
+@keyframes premiumScreenFadeIn {
+    from { background-color: transparent; }
+    to { background-color: #000; }
+}
+
+@keyframes premiumContentFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
