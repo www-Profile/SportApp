@@ -3733,60 +3733,98 @@
 </div>
 
 <!-- ===== PWA: МОДАЛКА ДЛЯ iOS (инструкция вручную) ===== -->
-<div id="pwaIosModal" class="modal-overlay" style="display:none;">
-    <div class="modal-content" style="max-width: 400px;">
-        <div class="modal-title">Установка на iPhone</div>
-        <p class="modal-text" style="margin-bottom: 1rem;">
-            Safari не позволяет устанавливать приложения в один клик,
-            но это делается за 4 шага:
-        </p>
+<div id="pwaInstallModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content pwa-install-content"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="pwaInstallTitle">
 
-        <div class="pwa-ios-steps">
+        <h2 id="pwaInstallTitle" class="modal-title" tabindex="-1">
+            Выберите устройство
+        </h2>
 
-            <!-- Шаг 1: Три полоски -->
-            <div class="pwa-ios-step">
-                <div class="pwa-ios-step-num">1</div>
-                <div class="pwa-ios-step-text">
-                    Нажмите на иконку
-                    <strong>«Меню»</strong>
-                    снизу экрана
-                </div>
-            </div>
+        <div id="pwaDevicePicker">
+<div class="pwa-device-grid">
+    <button type="button" class="btn btn-secondary"
+            onclick="PWA.showInstallStep('computer')">Windows PC</button>
 
-            <!-- Шаг 2: Поделиться -->
-            <div class="pwa-ios-step">
-                <div class="pwa-ios-step-num">2</div>
-                <div class="pwa-ios-step-text">
-                    Выберите
-                    <strong>«Поделиться»</strong>
-                </div>
-            </div>
+    <button type="button" class="btn btn-secondary"
+            onclick="PWA.showInstallStep('laptop')">Mac</button>
 
-            <!-- Шаг 3: Добавить на экран Домой -->
-            <div class="pwa-ios-step">
-                <div class="pwa-ios-step-num">3</div>
-                <div class="pwa-ios-step-text">
-                    Пролистайте вниз и нажмите
-                    <strong>«Добавить на экран Домой»</strong>
-                </div>
-            </div>
+    <button type="button" class="btn btn-secondary"
+            onclick="PWA.showInstallStep('iphone')">iPhone</button>
 
-            <!-- Шаг 4: Добавить -->
-            <div class="pwa-ios-step">
-                <div class="pwa-ios-step-num">4</div>
-                <div class="pwa-ios-step-text">
-                    Нажмите <strong>«Добавить»</strong>
-                    в правом верхнем углу
-                </div>
-            </div>
+    <button type="button" class="btn btn-secondary"
+            onclick="PWA.showInstallStep('android')">Android</button>
+</div>
 
+            <button type="button" class="btn btn-primary btn-block"
+                    onclick="closeModal('pwaInstallModal')">Закрыть</button>
         </div>
 
-        <button class="btn btn-primary" onclick="closeModal('pwaIosModal')" style="margin-top:0.5rem;">
-            Понятно
-        </button>
+<div id="pwaInstallGuide" hidden>
+    <section data-pwa-guide="windows" hidden>
+        <ol class="modal-text-left pwa-install-steps">
+            <li>Откройте SportApp в Google Chrome или Microsoft Edge.</li>
+            <li>
+                Нажмите значок установки в адресной строке, если он есть.
+                Если значка нет, откройте меню браузера. В Chrome найдите
+                <strong>«Трансляция, сохранение и отправка» → «Установить страницу как приложение»</strong>.
+                В Edge выберите
+                <strong>«Приложения» → «Установить этот сайт как приложение»</strong>.
+            </li>
+            <li>Подтвердите установку. SportApp можно будет открыть через меню «Пуск».</li>
+        </ol>
+    </section>
+
+    <section data-pwa-guide="mac" hidden>
+        <ol class="modal-text-left pwa-install-steps">
+            <li>Откройте SportApp в Safari.</li>
+            <li>В верхнем меню выберите <strong>«Файл» → «Добавить в Dock»</strong>.</li>
+            <li>Нажмите <strong>«Добавить»</strong>. SportApp появится в Dock.</li>
+        </ol>
+        <p class="modal-text">
+            Если в Safari нет пункта «Добавить в Dock», откройте SportApp в Chrome
+            и выберите установку приложения в меню браузера.
+        </p>
+    </section>
+
+    <section data-pwa-guide="iphone" hidden>
+        <ol class="modal-text-left pwa-install-steps">
+            <li>Откройте SportApp в Safari.</li>
+            <li>
+                Нажмите <strong>«Поделиться»</strong>.
+                Если кнопка скрыта, сначала откройте меню Safari.
+            </li>
+            <li>Выберите <strong>«На экран “Домой”»</strong>.</li>
+            <li>
+                Если есть переключатель <strong>«Открыть как веб-приложение»</strong>,
+                включите его. Нажмите <strong>«Добавить»</strong>.
+            </li>
+        </ol>
+    </section>
+
+    <section data-pwa-guide="android" hidden>
+        <ol class="modal-text-left pwa-install-steps">
+            <li>Откройте SportApp в Chrome.</li>
+            <li>Нажмите <strong>⋮</strong> в правом верхнем углу.</li>
+            <li>
+                Выберите <strong>«Установить приложение»</strong> или
+                <strong>«Добавить на главный экран»</strong>.
+            </li>
+            <li>Подтвердите действие и запустите SportApp с главного экрана.</li>
+        </ol>
+    </section>
+
+    <div class="pwa-install-actions">
+        <button type="button" class="btn btn-secondary"
+                onclick="PWA.showInstallStep()">Назад</button>
+        <button type="button" class="btn btn-primary"
+                onclick="closeModal('pwaInstallModal')">Понятно</button>
     </div>
-</div> 
+</div>
+    </div>
+</div>
 
     <!-- ===== УВЕДОМЛЕНИЯ ===== -->
     <div id="notificationContainer">

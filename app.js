@@ -9946,13 +9946,19 @@ window.openPremiumSlideshow = function () {
         const stage = document.getElementById('premiumSlideshowStage');
         const buyButton = document.getElementById('premiumSlideshowBuy');
         const slideDuration = 3000;
+        const animate = window.matchMedia(
+            '(prefers-reduced-motion: no-preference)'
+        ).matches;
+        const introDuration = animate ? 1000 : 0;
+        const slidePrefix = document.body.classList.contains('theme-dark-mode')
+            ? 'D'
+            : 'L';
 
-        // Загружаем все фотографии до начала отсчёта.
         const slides = await Promise.all(
             Array.from({ length: 6 }, async (_, index) => {
                 const slide = new Image();
                 slide.alt = `PREMIUM — ${index + 1} из 6`;
-                slide.src = `images/PREMIUM/${index + 1}.png`;
+                slide.src = `images/PREMIUM/${slidePrefix}-${index + 1}.png`;
                 await slide.decode();
                 return slide;
             })
@@ -9970,23 +9976,32 @@ window.openPremiumSlideshow = function () {
 
         await new Promise(resolve => {
             function update(timestamp) {
-startTime ??= timestamp + (
-    window.matchMedia('(prefers-reduced-motion: no-preference)').matches
-        ? 1000
-        : 0
-);
+                startTime ??= timestamp + introDuration;
 
-const elapsed = Math.min(
-    Math.max(timestamp - startTime, 0),
-    totalDuration
-);
+                const elapsed = Math.min(
+                    Math.max(timestamp - startTime, 0),
+                    totalDuration
+                );
                 const nextSlide = Math.min(
                     Math.floor(elapsed / slideDuration),
                     slides.length - 1
                 );
 
                 if (nextSlide !== currentSlide) {
-                    stage.replaceChildren(slides[nextSlide]);
+                    const previous = slides[currentSlide];
+                    const next = slides[nextSlide];
+
+                    if (animate) {
+                        previous.className = 'premium-slide-exit';
+                        next.className = 'premium-slide-enter';
+                        previous.addEventListener('animationend', () => {
+                            previous.remove();
+                        }, { once: true });
+                        stage.append(next);
+                    } else {
+                        stage.replaceChildren(next);
+                    }
+
                     currentSlide = nextSlide;
                 }
 
@@ -24383,9 +24398,35 @@ const PWA = {
         this.deferredPrompt = null;
     },
 
-    showIosInstructions() {
+    showInstallStep(device) {
+        const devices = {
+computer: { title: 'Установка на Windows', guide: 'windows' },
+laptop: { title: 'Установка на Mac', guide: 'mac' },
+            iphone: { title: 'Установка на iPhone', guide: 'iphone' },
+            android: { title: 'Установка на Android', guide: 'android' }
+        };
+
+        const selection = devices[device];
+        const title = document.getElementById('pwaInstallTitle');
+        const picker = document.getElementById('pwaDevicePicker');
+        const guide = document.getElementById('pwaInstallGuide');
+
+        title.textContent = selection?.title ?? 'Выберите устройство';
+        picker.hidden = Boolean(selection);
+        guide.hidden = !selection;
+
+        guide.querySelectorAll('[data-pwa-guide]').forEach(section => {
+            section.hidden = section.dataset.pwaGuide !== selection?.guide;
+        });
+
+        title.focus();
+    },
+
+    showInstallOptions() {
+        this.markDismissed();
         this.hideBanner();
-        openModal('pwaIosModal');
+        openModal('pwaInstallModal');
+        this.showInstallStep();
     },
 
     init() {
@@ -24416,15 +24457,7 @@ const PWA = {
 
         if (installBtn) {
             installBtn.addEventListener('click', () => {
-                if (this.isIOS()) {
-                    this.showIosInstructions();
-                } else if (this.deferredPrompt) {
-                    this.triggerInstall();
-                } else {
-                    showToast('ℹ️ Откройте меню браузера → «Установить приложение»');
-                    this.markDismissed();
-                    this.hideBanner();
-                }
+                this.showInstallOptions();
             });
         }
 
@@ -24456,7 +24489,7 @@ window.PWA = PWA;
 // =================== МОДАЛКА: ЧТО НОВОГО ===================
 const CHANGELOG = {
     // ★★★ ТЕКУЩАЯ ВЕРСИЯ — меняй при выпуске обновления ★★★
-    CURRENT_VERSION: '1.2.2',
+    CURRENT_VERSION: '1.2.3',
 
     STORAGE_KEY: 'changelogSeenVersion',
 
@@ -24464,6 +24497,15 @@ const CHANGELOG = {
     // Порядок: от новых к старым
     // ★★★ ИСТОРИЯ ВЕРСИЙ — от новых к старым ★★★
     VERSIONS: [
+        {
+    version: '1.2.3',
+    date: '23 ноября 2026',
+    title: 'Установка SportApp и обновление PREMIUM',
+    changes: [
+        '📲 <strong>Установка SportApp</strong> - нажмите «Установить» и выберите своё устройство: Windows PC, Mac, iPhone или Android. Для каждого устройства доступна пошаговая инструкция.',
+        '💎 <strong>Знакомство с PREMIUM</strong> - после каждой третьей тренировки предложение PREMIUM теперь открывается как полноэкранное слайд-шоу. Фотографии подбираются под светлую или тёмную тему, а после просмотра можно открыть окно покупки.'
+    ]
+},
     {
         version: '1.2.2',
         date: '21 ноября 2026',

@@ -704,6 +704,13 @@ body.theme-dark-mode .item-card-light {
     margin-bottom: 1rem;
 }
 
+.modal-text-left {
+    color: var(--slate);
+    font-size: 0.8rem;
+    margin-bottom: 1rem;
+    text-align: left;
+}
+
 .modal-buttons { display: flex; gap: 0.5rem; }
 .modal-buttons .btn { flex: 1; }
 
@@ -8114,6 +8121,7 @@ body.theme-dark-mode .program-detail-schedule-scroll { background: var(--bg-seco
 #premiumSlideshow {
     position: fixed;
     inset: 0;
+    box-sizing: border-box;
     width: 100%;
     height: 100%;
     max-width: none;
@@ -8122,47 +8130,42 @@ body.theme-dark-mode .program-detail-schedule-scroll { background: var(--bg-seco
     padding: 0;
     border: 0;
     overflow: hidden;
+--premium-slideshow-bg: var(--white);
+background-color: var(--premium-slideshow-bg);
+}
+
+body.theme-dark-mode #premiumSlideshow {
+    --premium-slideshow-bg: var(--dark);
+}
+
+#premiumSlideshow::backdrop {
+    background-color: transparent;
 }
 
 #premiumSlideshowStage {
     position: absolute;
     inset: 0;
+    display: grid;
+    grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+    place-items: center;
     overflow: hidden;
-    background-position: center;
-    background-size: contain;
-    background-repeat: no-repeat;
+    container-type: size;
 }
 
 #premiumSlideshowStage img {
+    grid-area: 1 / 1;
     display: block;
-    width: 100%;
-    height: 100%;
-    max-width: none;
-    max-height: none;
+    width: auto;
+    height: auto;
+    max-width: 100vw;
+    max-height: 100dvh;
     margin: 0;
     object-fit: contain;
-    object-position: center;
-}
 
-/* Предыдущая фотография остаётся под новой во время перехода. */
-#premiumSlideshowStage:has(img[src$="/2.png"]) {
-    background-image: url("images/PREMIUM/1.png");
-}
-
-#premiumSlideshowStage:has(img[src$="/3.png"]) {
-    background-image: url("images/PREMIUM/2.png");
-}
-
-#premiumSlideshowStage:has(img[src$="/4.png"]) {
-    background-image: url("images/PREMIUM/3.png");
-}
-
-#premiumSlideshowStage:has(img[src$="/5.png"]) {
-    background-image: url("images/PREMIUM/4.png");
-}
-
-#premiumSlideshowStage:has(img[src$="/6.png"]) {
-    background-image: url("images/PREMIUM/5.png");
+    mask-image:
+        linear-gradient(to right, transparent, #000 6%, #000 94%, transparent),
+        linear-gradient(to bottom, transparent, #000 6%, #000 94%, transparent);
+    mask-composite: intersect;
 }
 
 #premiumSlideshowBuy {
@@ -8177,7 +8180,7 @@ body.theme-dark-mode .program-detail-schedule-scroll { background: var(--bg-seco
     min-height: 30px;
     padding: 12px 16px;
     overflow: hidden;
-    border: 2px solid var(--dark);
+    border: 2px solid #dc143c;
     border-radius: 14px;
     background: #B01030;
     color: #fff;
@@ -8204,28 +8207,6 @@ body.theme-dark-mode .program-detail-schedule-scroll { background: var(--bg-seco
     cursor: default;
 }
 
-#premiumSlideshow,
-#premiumSlideshow::backdrop {
-    background-color: #000;
-}
-
-
-
-@media (prefers-reduced-motion: no-preference) {
-    #premiumSlideshowStage img:not([src$="/1.png"]) {
-        animation: premiumSlideFadeIn 400ms ease-in-out both;
-    }
-}
-
-@keyframes premiumSlideFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-#premiumSlideshow::backdrop {
-    background-color: transparent;
-}
-
 @media (prefers-reduced-motion: no-preference) {
     #premiumSlideshow[open] {
         animation: premiumScreenFadeIn 500ms ease both;
@@ -8235,14 +8216,63 @@ body.theme-dark-mode .program-detail-schedule-scroll { background: var(--bg-seco
     #premiumSlideshow[open] #premiumSlideshowBuy {
         animation: premiumContentFadeIn 500ms ease 500ms both;
     }
+
+    #premiumSlideshowStage .premium-slide-enter {
+        animation: premiumSlideFadeIn 400ms ease-in-out both;
+    }
+
+    #premiumSlideshowStage .premium-slide-exit {
+        animation: premiumSlideFadeOut 400ms ease-in-out both;
+    }
 }
 
 @keyframes premiumScreenFadeIn {
     from { background-color: transparent; }
-    to { background-color: #000; }
+    to { background-color: var(--premium-slideshow-bg); }
 }
 
 @keyframes premiumContentFadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
+}
+
+@keyframes premiumSlideFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes premiumSlideFadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+/* УТСНОВКА ПРИЛОЖЕНИЯ */
+.pwa-install-content {
+    width: 94%;
+    max-width: 420px;
+    max-height: 85vh;
+    max-height: 85dvh;
+    overflow-y: auto;
+}
+
+.pwa-device-grid,
+.pwa-install-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+    margin-top: 0.75rem;
+}
+
+.pwa-device-grid {
+    margin-bottom: 0.75rem;
+}
+
+.pwa-install-steps {
+    margin: 0.75rem 0;
+    padding-inline-start: 1.4rem;
+    line-height: 1.5;
+}
+
+.pwa-install-steps li + li {
+    margin-top: 0.5rem;
 }
