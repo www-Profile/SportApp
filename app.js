@@ -443,190 +443,212 @@ window.cancelInvite = async function() {
 }
 
 function setupInviteListener(user) {
-    // ★ Сначала отписываемся от старого слушателя
-    if (inviteListener) {
-        inviteListener();
-        inviteListener = null;
-    }
-
-    // ★ Если пользователя нет — слушать нечего
+    if (inviteListener) inviteListener();
+    inviteListener = null;
     if (!user) return;
 
-    inviteListener = firebase.firestore()
-        .collection('notifications')
+    const db = firebase.firestore();
+    const modalId = 'incomingWorkoutModal';
+    let modal = document.getElementById(modalId);
+
+    // Берём оформление прямо из существующей модалки вызова.
+    if (!modal) {
+        const original = document.getElementById('incomingChallengeModal');
+        modal = original.cloneNode(true);
+        modal.id = modalId;
+
+        modal.querySelectorAll('[id]').forEach(el => {
+            el.id = el.id.replace('incomingChallenge', 'incomingWorkout');
+        });
+        modal.querySelectorAll('[onclick]').forEach(el => {
+            el.removeAttribute('onclick');
+        });
+
+        modal.classList.remove('modal-overlay-visible', 'modal-overlay-closing');
+        modal.style.display = 'none';
+        modal.querySelector('.modal-title').textContent = 'Приглашение на тренировку';
+        modal.querySelector('.item-icon span').textContent = '🏋️';
+        original.after(modal);
+    }
+
+    const yes = modal.querySelector('.btn-primary');
+    const no = modal.querySelector('.btn-secondary');
+    let pending = [];
+    let active = null;
+    let timer;
+    let stopped = false;
+
+    function dismiss() {
+        if (active?.shown) closeModal(modalId);
+        active = null;
+    }
+
+    async function showNext() {
+        clearTimeout(timer);
+        if (stopped || active || !pending.length) return;
+
+        // Если открыт вызов или идёт тренировка, приглашение ждёт своей очереди.
+        if (!Challenges._canShowChallengeModal()) {
+            timer = setTimeout(showNext, 1000);
+            return;
+        }
+
+        const note = pending[0];
+        const data = note.data();
+        const item = { id: note.id, shown: false, busy: false };
+        active = item;
+
+        try {
+            const ref = data.sessionId && db.collection('trainingSessions').doc(data.sessionId);
+            const snap = ref ? await ref.get() : null;
+            if (active !== item) return;
+
+            const session = snap?.data();
+            if (!workoutInviteIsValid(session)) {
+                if (!snap?.metadata.fromCache) {
+                    const batch = db.batch();
+                    batch.delete(note.ref);
+                    if (session && isSessionExpired(session.createdAt)) batch.delete(ref);
+                    await batch.commit();
+                }
+            } else if (Challenges._canShowChallengeModal()) {
+                const count = session.totalExercises || session.exercises?.length;
+
+                modal.querySelector('#incomingWorkoutText').textContent =
+                    `${data.fromName || 'Пользователь'} приглашает вас на совместную тренировку!`;
+                modal.querySelector('.item-title').textContent =
+                    session.workoutTitle || data.workoutTitle || 'Совместная тренировка';
+                modal.querySelector('.item-desc').textContent = count
+                    ? `${count} ${declOfNum(count, ['упражнение', 'упражнения', 'упражнений'])}`
+                    : 'Тренировка с другом';
+
+                yes.disabled = no.disabled = false;
+                yes.onclick = () => respond(true);
+                no.onclick = () => respond(false);
+                item.shown = true;
+                openModal(modalId);
+                return;
+            }
+        } catch (error) {
+            console.warn('Не удалось загрузить приглашение', error);
+        }
+
+        if (active === item) {
+            active = null;
+            timer = setTimeout(showNext, 1500);
+        }
+
+        async function respond(accept) {
+            if (active !== item || item.busy) return;
+            item.busy = true;
+            yes.disabled = no.disabled = true;
+
+            try {
+                const joined = await answerWorkoutInvite(user, note, accept);
+                if (stopped || firebase.auth().currentUser?.uid !== user.uid) return;
+
+                pending = pending.filter(doc => doc.id !== note.id);
+                dismiss();
+
+                if (joined) {
+                    currentSessionId = data.sessionId;
+                    isHost = false;
+                    coopStarted = false;
+                    finishPageShown = false;
+                    sessionData = joined;
+                    window.navigateTo('training-waiting');
+                    listenSession(data.sessionId);
+                    showToast('✅ Вы присоединились к тренировке');
+                } else if (accept) {
+                    showToast('Приглашение больше не действует');
+                }
+            } catch (error) {
+                if (active !== item) return;
+                item.busy = false;
+                yes.disabled = no.disabled = false;
+                showToast('Не удалось ответить. Попробуйте ещё раз.');
+                if (!pending.some(doc => doc.id === note.id)) dismiss();
+            }
+
+            showNext();
+        }
+    }
+
+    const unsubscribe = db.collection('notifications')
         .where('to', '==', user.uid)
         .where('type', '==', 'train_invite')
         .where('read', '==', false)
-        .onSnapshot(async (snapshot) => {
-            for (const change of snapshot.docChanges()) {
-                if (change.type === 'added') {
-                    const data = change.doc.data();
-                    if (!data.sessionId) {
-                        await firebase.firestore()
-                            .collection('notifications')
-                            .doc(change.doc.id)
-                            .delete();
-                        continue;
-                    }
-                    try {
-                        const doc = await firebase.firestore()
-                            .collection('trainingSessions')
-                            .doc(data.sessionId)
-                            .get();
-                        if (!doc.exists) {
-                            await firebase.firestore()
-                                .collection('notifications')
-                                .doc(change.doc.id)
-                                .delete();
-                            continue;
-                        }
-                        const sessionData = doc.data();
-                        if (isSessionExpired(sessionData.createdAt)) {
-                            await firebase.firestore()
-                                .collection('notifications')
-                                .doc(change.doc.id)
-                                .delete();
-                            await firebase.firestore()
-                                .collection('trainingSessions')
-                                .doc(data.sessionId)
-                                .delete();
-                            continue;
-                        }
-                        const participants = sessionData.participants || [];
-                        const participantFinished = sessionData.participantFinished || {};
-                        const allFinished = participants.every(p => participantFinished[p.id] === true);
-                        if (sessionData.status === 'completed' || allFinished) {
-                            await firebase.firestore()
-                                .collection('notifications')
-                                .doc(change.doc.id)
-                                .delete();
-                            continue;
-                        }
-                    } catch (error) {}
+        .onSnapshot(snapshot => {
+            if (stopped) return;
+            pending = snapshot.docs;
 
-                    showNotification(
-                        '🏋️',
-                        `${data.fromName} приглашает вас на тренировку!`,
-                        function() {
-                            acceptInvite(data.sessionId, change.doc.id);
-                        }
-                    );
-                }
+            // Отправитель отменил приглашение или пользователь ответил с другого устройства.
+            if (active && !active.busy && !pending.some(doc => doc.id === active.id)) {
+                dismiss();
             }
+            showNext();
         });
+
+    inviteListener = () => {
+        stopped = true;
+        unsubscribe();
+        clearTimeout(timer);
+        dismiss();
+    };
 }
 
-function showInviteNotification(data, notificationId) {
-    const id = 'invite_' + data.sessionId;
-    if (isNotificationSeen(id)) return;
-    
-    // Вместо передачи actionCallback, сохраняем данные и показываем уведомление
-    showNotificationWithAction(
-        '🏋️',
-        `${data.fromName} приглашает вас на "${data.workoutTitle}"!`,
-        function() {
-            acceptInvite(data.sessionId, notificationId);
-        }
-    );
-    markNotificationSeen(id);
+function workoutInviteIsValid(session) {
+    return session && !isSessionExpired(session.createdAt) &&
+        !['completed', 'cancelled'].includes(session.status) &&
+        (session.participants || []).some(p => !session.participantFinished?.[p.id]);
 }
 
-// =================== ИСПРАВЛЕННАЯ ФУНКЦИЯ ACCEPT INVITE ===================
-async function acceptInvite(sessionId, notificationId) {
-    try {
-        const user = await getFirebaseUser();
-        if (!user) {
-            showToast('❌ Вы не авторизованы');
-            return;
+async function answerWorkoutInvite(user, note, accept) {
+    const db = firebase.firestore();
+    const ref = db.collection('trainingSessions').doc(note.data().sessionId);
+
+    return db.runTransaction(async tx => {
+        const invite = (await tx.get(note.ref)).data();
+        if (!invite || invite.read || invite.to !== user.uid || invite.sessionId !== ref.id) {
+            return null;
         }
-        const doc = await firebase.firestore()
-            .collection('trainingSessions')
-            .doc(sessionId)
-            .get();
-        if (!doc.exists) {
-            if (notificationId) {
-                await firebase.firestore()
-                    .collection('notifications')
-                    .doc(notificationId)
-                    .update({ read: true });
-            }
-            showToast('❌ Приглашение устарело или отменено');
-            return;
+
+        const session = (await tx.get(ref)).data();
+        tx.update(note.ref, { read: true });
+        if (!workoutInviteIsValid(session)) return null;
+
+        const members = session.participants || [];
+
+        if (!accept) {
+            const rest = members.filter(p => p.id !== user.uid);
+            if (rest.length === members.length) return null;
+
+            const update = {
+                participants: rest,
+                participantIds: rest.map(p => p.id)
+            };
+            if (rest.every(p => p.id === session.hostId)) update.status = 'cancelled';
+            tx.update(ref, update);
+            return null;
         }
-        const data = doc.data();
-        if (isSessionExpired(data.createdAt)) {
-            await firebase.firestore()
-                .collection('trainingSessions')
-                .doc(sessionId)
-                .delete();
-            if (notificationId) {
-                await firebase.firestore()
-                    .collection('notifications')
-                    .doc(notificationId)
-                    .delete();
-            }
-            showToast('⏰ Приглашение устарело');
-            return;
-        }
-        if (data.status === 'completed') {
-            showToast('❌ Тренировка уже завершена');
-            return;
-        }
-        if (notificationId) {
-            await firebase.firestore()
-                .collection('notifications')
-                .doc(notificationId)
-                .update({ read: true });
-        }
-        
-        const participants = data.participants || [];
-        const existingIndex = participants.findIndex(p => p.id === user.uid);
-        const userName = user.displayName || 'Пользователь';
-        let updatedParticipants = [...participants];
-        if (existingIndex !== -1) {
-            if (updatedParticipants[existingIndex].name !== userName) {
-                updatedParticipants[existingIndex] = { 
-                    ...updatedParticipants[existingIndex], 
-                    name: userName 
-                };
-            }
-        } else {
-            updatedParticipants.push({ id: user.uid, name: userName });
-        }
-        
-const updateData = {
-    participants: updatedParticipants,
-    participantIds: firebase.firestore.FieldValue.arrayUnion(user.uid),   // ★★★ НОВОЕ ★★★
-    [`participantProgress.${user.uid}`]: 0,
-    [`participantFinished.${user.uid}`]: false,
-    [`participantFinishedSeconds.${user.uid}`]: null,
-    [`participantXp.${user.uid}`]: 0,
-    [`participantReady.${user.uid}`]: true
-};
-        
-        await firebase.firestore()
-            .collection('trainingSessions')
-            .doc(sessionId)
-            .update(updateData);
-        
-        currentSessionId = sessionId;
-        isHost = false;
-        
-        sessionData = {
-            participants: updatedParticipants,
-            participantProgress: { [user.uid]: 0 },
-            participantFinished: { [user.uid]: false },
-            participantFinishedSeconds: { [user.uid]: null },
-            participantXp: { [user.uid]: 0 },
-            participantReady: { [user.uid]: true }
-        };
-        
-        window.navigateTo('training-waiting');
-        setTimeout(() => listenSession(sessionId), 500);
-        showToast(`✅ Вы присоединились к тренировке`);
-    } catch (error) {
-        showToast('❌ Не удалось присоединиться к тренировке');
-    }
+
+        const me = { id: user.uid, name: user.displayName || 'Пользователь' };
+        const participants = members.some(p => p.id === me.id)
+            ? members.map(p => p.id === me.id ? { ...p, name: me.name } : p)
+            : [...members, me];
+
+        tx.update(ref, {
+            participants,
+            participantIds: firebase.firestore.FieldValue.arrayUnion(user.uid),
+            [`participantReady.${user.uid}`]: true,
+            [`participantProgress.${user.uid}`]: session.participantProgress?.[user.uid] ?? 0,
+            [`participantFinished.${user.uid}`]: session.participantFinished?.[user.uid] ?? false,
+            [`participantFinishedSeconds.${user.uid}`]: session.participantFinishedSeconds?.[user.uid] ?? null,
+            [`participantXp.${user.uid}`]: session.participantXp?.[user.uid] ?? 0
+        });
+
+        return { ...session, participants };
+    });
 }
 
 // =================== ИСПРАВЛЕННАЯ ФУНКЦИЯ СЛУШАТЕЛЯ СЕССИИ ===================
@@ -677,6 +699,19 @@ function handleSessionSnapshot(doc) {
     }
     
     const data = doc.data();
+    if (data.status === 'cancelled' && doc.id === currentSessionId) {
+    if (sessionListener) sessionListener();
+    sessionListener = null;
+
+    if (isHost) doc.ref.delete().catch(console.warn);
+
+    currentSessionId = null;
+    sessionData = null;
+    isHost = false;
+    window.navigateTo('workouts');
+    showToast('Приглашение на тренировку отклонено');
+    return;
+}
     console.log('📄 Данные из Firestore:', JSON.stringify(data, null, 2));
     
     if (isSessionExpired(data.createdAt)) {
