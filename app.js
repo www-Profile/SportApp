@@ -4809,6 +4809,18 @@ function renderExerciseGallery(exercise, containerId) {
         const drawY = (output.height - drawHeight) / 2;
         context.drawImage(sourceCanvas, minX, minY, cropWidth, cropHeight,
             drawX, drawY, drawWidth, drawHeight);
+        // Feather the actual picture bounds, including the sides of narrow portrait frames.
+        context.globalCompositeOperation = 'destination-in';
+        const axes = [[drawX, 0, drawX + drawWidth, 0], [0, drawY, 0, drawY + drawHeight]];
+        for (const axis of axes) {
+            const gradient = context.createLinearGradient(...axis);
+            gradient.addColorStop(0, 'transparent');
+            gradient.addColorStop(0.045, 'black');
+            gradient.addColorStop(0.955, 'black');
+            gradient.addColorStop(1, 'transparent');
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, output.width, output.height);
+        }
         return output.toDataURL('image/png');
     }
 
@@ -4819,7 +4831,7 @@ function renderExerciseGallery(exercise, containerId) {
     }
 
     function finishPreloading() {
-        if (finalized || readyCount !== sources.length) return;
+        if (imageElement.parentNode !== container || finalized || readyCount !== sources.length) return;
         finalized = true;
         const usableFrames = normalizedFrames.filter(Boolean);
         if (!usableFrames.length) {

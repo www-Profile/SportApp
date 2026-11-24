@@ -2069,8 +2069,7 @@ body.theme-dark-mode .btn-submit-arrow {
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    /* Нейтральная светлая подложка одинакова в светлой и тёмной темах. */
-    background: none;
+    background: var(--light);
     border-radius: 14px;
 }
 
