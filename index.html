@@ -1958,8 +1958,13 @@
                         <span>Соревнуйся с друзьями</span>
                     </div>
                 </div>
+                <div id="photoLoadRecovery" hidden>
+                    <p role="status">Не удалось загрузить фотографии упражнений.</p>
+                    <button type="button" class="btn btn-secondary" id="retryWorkoutPhotos">Повторить</button>
+                    <button type="button" class="btn btn-secondary" id="skipWorkoutPhotos">Продолжить без фото</button>
+                </div>
                 <div class="hero-buttons">
-                    <button class="btn btn-primary" onclick="enterApp()">Начать тренироваться</button>
+                    <button id="enterWorkoutApp" disabled class="btn btn-primary" onclick="enterApp()">Начать тренироваться</button>
                 </div>
             </div>
         </div>
@@ -3856,6 +3861,7 @@
     <script src="firebase-config.js"></script>
     <script src="exercises-catalog.js"></script>
     <script src="programs-data.js"></script>
+    <script src="exercise-preload.js"></script>
     <script src="app.js"></script>
 
 <script>

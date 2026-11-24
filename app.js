@@ -4071,6 +4071,7 @@ if (levelData) {
         workoutIcon = CATEGORY_ICON_MAP[category] || null;
     }
 
+    exercisePhotos.workout(exercises);
     _quickEditExercises = exercises;
 
     window._currentWorkoutForInvite = {
@@ -4414,6 +4415,7 @@ function skipRest() {
 
 // ===================СТРАНИЦА ТРЕНИРОВКИ СЕССИЯ ===================
 let sessionExercises = [];
+let lastPreloadedSession;
 let sessionCurrentIndex = 0;
 let sessionCompleted = new Set();
 let sessionTimerInterval = null;
@@ -4851,6 +4853,10 @@ function renderExerciseGallery(exercise, containerId) {
     });
 }
 function renderSessionExercise() {
+    if (sessionExercises !== lastPreloadedSession) {
+        lastPreloadedSession = sessionExercises;
+        exercisePhotos.workout(sessionExercises);
+    }
     if (isResting) {
         updateRestUI();
         return;
@@ -7072,6 +7078,9 @@ if (loadingPage) {
         
         // ★★★ УБЕЖДАЕМСЯ, ЧТО КНОПКА СКРЫТА ★★★
         hideHeroButtons();
+        document.getElementById("enterWorkoutApp").disabled = true;
+        document.getElementById("photoLoadRecovery").hidden = true;
+        const firstPhotos = exercisePhotos.startup();
 
         // ★★★ ТЕПЕРЬ ГРУЗИМ ДАННЫЕ В ФОНЕ ★★★
         console.log('📊 Загрузка данных...');
@@ -7186,6 +7195,22 @@ applySavedWorldStatsOrder();
             syncPendingWorkouts();
         }
         
+        const photoWorkouts = Array.isArray(customWorkouts) ? customWorkouts : [];
+        let photosReady = (await Promise.all([firstPhotos, exercisePhotos.startup(photoWorkouts, false)])).every(Boolean);
+        const recovery = document.getElementById('photoLoadRecovery');
+        while (!photosReady) {
+            if (firebase.auth().currentUser?.uid !== user.uid) return;
+            recovery.hidden = false;
+            const action = await new Promise(resolve => {
+                document.getElementById('retryWorkoutPhotos').onclick = () => resolve('retry');
+                document.getElementById('skipWorkoutPhotos').onclick = () => resolve('skip');
+            });
+            recovery.hidden = true;
+            if (action === 'skip') break;
+            photosReady = await exercisePhotos.startup(photoWorkouts);
+        }
+        if (firebase.auth().currentUser?.uid !== user.uid) return;
+        document.getElementById('enterWorkoutApp').disabled = false;
         // ★★★ УСТАНАВЛИВАЕМ ФЛАГ, ЧТО ДАННЫЕ ЗАГРУЖЕНЫ ★★★
         isDataLoaded = true;
 
@@ -7262,7 +7287,8 @@ function showHeroButtons() {
     console.log(`⏳ Кнопка появится через ${remaining}мс`);
 
     _showButtonsTimeout = setTimeout(() => {
-        document.querySelectorAll('.hero-buttons').forEach(el => {
+        document.querySelectorAll('.page-active .hero-buttons').forEach(el => {
+            if (el.querySelector('#enterWorkoutApp:disabled')) return;
             el.classList.add('hero-buttons-ready');
         });
         _showButtonsTimeout = null;
@@ -8181,6 +8207,8 @@ async function logout() {
 }
 
 function enterApp() {
+    if (document.querySelector('#page-loading.page-active #enterWorkoutApp:disabled')) return;
+    exercisePhotos.background();
     // ★★★ ЗАПУСКАЕМ СЛУШАТЕЛЬ ВЫЗОВОВ ★★★
     if (typeof startChallengesListener === 'function') {
         startChallengesListener();

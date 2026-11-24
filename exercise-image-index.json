@@ -1,0 +1,4 @@
+---
+layout: null
+---
+[{% assign frames = site.static_files | where_exp: "file", "file.path contains '/images/exercises/'" %}{% for file in frames %}{{ file.path | remove_first: '/' | jsonify }}{% unless forloop.last %},{% endunless %}{% endfor %}]
