@@ -3,11 +3,22 @@ const exercisePhotos = (() => {
     const ready = new Set();
     const loading = new Map();
     const queues = [new Set(), new Set(), new Set()];
-    const catalog = new Map(EXERCISES_CATALOG.map(ex => [ex.name, ex]));
+    const photosByName = new Map();
+    function addExercise(exercise) {
+        if (!exercise?.name || !exercise.images?.length) return;
+        const key = exerciseNameKey(exercise.name);
+        if (!photosByName.has(key)) photosByName.set(key, []);
+        const entries = photosByName.get(key);
+        if (!entries.some(images => images.join('|') === exercise.images.join('|'))) {
+            entries.push(exercise.images);
+        }
+    }
+    EXERCISES_CATALOG.forEach(addExercise);
     const first = [];
     function visit(value) {
         if (Array.isArray(value)) {
             if (value[0]?.name) first.push(value[0]);
+            value.forEach(addExercise);
         } else if (value && typeof value === 'object') {
             Object.values(value).forEach(visit);
         }
@@ -137,6 +148,77 @@ const exercisePhotos = (() => {
     "images/exercises/FullBody/burpee-4.png",
     "images/exercises/FullBody/burpee-5.png",
     "images/exercises/FullBody/burpee-6.png",
+    "images/exercises/Shoulders/avstraliyskie-pull-ups-shirokiy-hvat-1.png",
+    "images/exercises/Shoulders/avstraliyskie-pull-ups-shirokiy-hvat-2.png",
+    "images/exercises/Shoulders/fly-ganteley-v-bende-1.png",
+    "images/exercises/Shoulders/fly-ganteley-v-bende-2.png",
+    "images/exercises/Shoulders/fly-ganteley-v-bende-seated-1.png",
+    "images/exercises/Shoulders/fly-ganteley-v-bende-seated-2.png",
+    "images/exercises/Shoulders/fly-ganteley-v-storony-seated-1.png",
+    "images/exercises/Shoulders/fly-ganteley-v-storony-seated-2.png",
+    "images/exercises/Shoulders/fly-ganteley-v-storony-standing-1.png",
+    "images/exercises/Shoulders/fly-ganteley-v-storony-standing-2.png",
+    "images/exercises/Shoulders/pike-push-ups-1.png",
+    "images/exercises/Shoulders/pike-push-ups-2.png",
+    "images/exercises/Shoulders/pike-push-ups-feet-elevated-1.png",
+    "images/exercises/Shoulders/pike-push-ups-feet-elevated-2.png",
+    "images/exercises/Shoulders/pike-push-ups-na-kolenyah-1.png",
+    "images/exercises/Shoulders/pike-push-ups-na-kolenyah-2.png",
+    "images/exercises/Shoulders/pike-push-ups-s-pauzoy-1.png",
+    "images/exercises/Shoulders/pike-push-ups-s-pauzoy-2.png",
+    "images/exercises/Shoulders/pike-push-ups-s-pauzoy-gluboko-1.png",
+    "images/exercises/Shoulders/pike-push-ups-s-pauzoy-gluboko-2.png",
+    "images/exercises/Shoulders/plank-s-kasaniem-plech-medlennaya-1.png",
+    "images/exercises/Shoulders/plank-s-kasaniem-plech-medlennaya-2.png",
+    "images/exercises/Shoulders/plank-s-kasaniem-plech-medlennaya-3.png",
+    "images/exercises/Shoulders/plank-s-kasaniem-plech-medlennaya-4.png",
+    "images/exercises/Shoulders/press-arnolda-1.png",
+    "images/exercises/Shoulders/press-arnolda-2.png",
+    "images/exercises/Shoulders/press-arnolda-3.png",
+    "images/exercises/Shoulders/press-arnolda-seated-1.png",
+    "images/exercises/Shoulders/press-arnolda-seated-2.png",
+    "images/exercises/Shoulders/press-arnolda-seated-3.png",
+    "images/exercises/Shoulders/press-ganteley-seated-1.png",
+    "images/exercises/Shoulders/press-ganteley-seated-2.png",
+    "images/exercises/Shoulders/press-ganteley-standing-1.png",
+    "images/exercises/Shoulders/press-ganteley-standing-2.png",
+    "images/exercises/Shoulders/press-odnoy-ganteli-seated-1.png",
+    "images/exercises/Shoulders/press-odnoy-ganteli-seated-2.png",
+    "images/exercises/Shoulders/pull-ups-s-vyhodom-1.png",
+    "images/exercises/Shoulders/pull-ups-s-vyhodom-2.png",
+    "images/exercises/Shoulders/pull-ups-s-vyhodom-3.png",
+    "images/exercises/Shoulders/pull-ups-wide-grip-1.png",
+    "images/exercises/Shoulders/pull-ups-wide-grip-2.png",
+    "images/exercises/Shoulders/pull-ups-wide-grip-s-otyagoshcheniem-1.png",
+    "images/exercises/Shoulders/pull-ups-wide-grip-s-otyagoshcheniem-2.png",
+    "images/exercises/Shoulders/pull-ups-za-golovu-1.png",
+    "images/exercises/Shoulders/pull-ups-za-golovu-2.png",
+    "images/exercises/Shoulders/push-ups-v-stoyke-s-oporoy-1.png",
+    "images/exercises/Shoulders/push-ups-v-stoyke-s-oporoy-2.png",
+    "images/exercises/Shoulders/push-ups-v-stoyke-s-oporoy-odnoy-nogoy-1.png",
+    "images/exercises/Shoulders/push-ups-v-stoyke-s-oporoy-odnoy-nogoy-2.png",
+    "images/exercises/Shoulders/push-ups-v-stoyke-u-steny-1.png",
+    "images/exercises/Shoulders/push-ups-v-stoyke-u-steny-2.png",
+    "images/exercises/Shoulders/push-ups-v-stoyke-u-steny-polnaya-1.png",
+    "images/exercises/Shoulders/push-ups-v-stoyke-u-steny-polnaya-2.png",
+    "images/exercises/Shoulders/raise-ruk-pered-soboy-dumbbell-1.png",
+    "images/exercises/Shoulders/raise-ruk-pered-soboy-dumbbell-2.png",
+    "images/exercises/Shoulders/raises-gantelyami-pered-soboy-1.png",
+    "images/exercises/Shoulders/raises-gantelyami-pered-soboy-2.png",
+    "images/exercises/Shoulders/razvedenie-ganteley-v-bende-1.png",
+    "images/exercises/Shoulders/razvedenie-ganteley-v-bende-2.png",
+    "images/exercises/Shoulders/razvedenie-ganteley-v-storony-standing-1.png",
+    "images/exercises/Shoulders/razvedenie-ganteley-v-storony-standing-2.png",
+    "images/exercises/Shoulders/tyaga-k-podborodku-dumbbell-1.png",
+    "images/exercises/Shoulders/tyaga-k-podborodku-dumbbell-2.png",
+    "images/exercises/Shoulders/vrashchenie-plechami-1.png",
+    "images/exercises/Shoulders/vrashchenie-plechami-2.png",
+    "images/exercises/Shoulders/vrashchenie-plechami-3.png",
+    "images/exercises/Shoulders/vrashchenie-plechami-4.png",
+    "images/exercises/Shoulders/vrashchenie-plechami-dumbbell-1.png",
+    "images/exercises/Shoulders/vrashchenie-plechami-dumbbell-2.png",
+    "images/exercises/Shoulders/vrashchenie-plechami-dumbbell-3.png",
+    "images/exercises/Shoulders/vrashchenie-plechami-dumbbell-4.png",
     "images/exercises/Stretching/butterfly-stretch-1.png",
     "images/exercises/Stretching/butterfly-stretch-2.png"
 ];
@@ -153,8 +235,23 @@ const exercisePhotos = (() => {
     let indexPromise;
     const index = () => indexPromise ||= readIndex().then(paths => available = paths);
     function sources(ex) {
-        const images = ex?.images?.length ? ex.images : catalog.get(ex?.name)?.images;
-        return Array.isArray(images) ? images.filter(s => typeof s === 'string' && s.trim() && !s.startsWith('*')) : [];
+        const candidates = [ex?.images, ...(photosByName.get(exerciseNameKey(ex?.name)) || [])];
+        for (const images of candidates) {
+            if (!Array.isArray(images)) continue;
+            const paths = images.filter(path => typeof path === 'string' &&
+                (available.has(path) || /^(?:https?:|blob:|data:image\/)/i.test(path)));
+            if (paths.length) return paths;
+        }
+        return [];
+    }
+
+    function sideFrames(ex) {
+        return (TIMED_EXERCISE_SIDE_FRAMES.get(exerciseNameKey(ex?.name)) || [])
+            .filter(path => available.has(path));
+    }
+
+    function preloadSources(ex) {
+        return [...sources(ex), ...sideFrames(ex)];
     }
 
     const jobs = new Map();
@@ -217,16 +314,28 @@ const exercisePhotos = (() => {
     }
     let backgroundStarted = false;
     return {
+        async gallery(exercise, timed, completedSets) {
+            await index();
+            const paths = sources(exercise);
+            if (!timed) return paths;
+            const sides = sideFrames(exercise);
+            if (!sides.length) {
+                const hold = TIMED_EXERCISE_HOLD_FRAMES.get(exerciseNameKey(exercise?.name));
+                return available.has(hold) ? [hold] : paths.slice(0, 1);
+            }
+            const indexForSet = Math.max(0, Math.trunc(Number(completedSets) || 0)) % sides.length;
+            return [sides[indexForSet]];
+        },
         async startup(custom = [], includeCatalog = true) {
             await index();
-            const paths = [...(includeCatalog ? first : []), ...custom.map(w => w?.exercises?.[0])].flatMap(sources);
+            const paths = [...(includeCatalog ? first : []), ...custom.map(w => w?.exercises?.[0])].flatMap(preloadSources);
             return (await request(paths.filter(p => available.has(p)), 0)).every(Boolean);
         },
         async workout(exercises) {
             await index();
             for (const path of queues[1]) queues[2].add(path);
             queues[1].clear();
-            await request(exercises.flatMap(sources).filter(p => available.has(p)), 1);
+            await request(exercises.flatMap(preloadSources).filter(p => available.has(p)), 1);
         },
         async background() {
             if (backgroundStarted) return;

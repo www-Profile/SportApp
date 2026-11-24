@@ -4258,14 +4258,19 @@ function startRest() {
 }
 
 function updateRestUI() {
-    // Во время отдыха фото упражнения не показываем и не переключаем.
-    const exerciseGallery = document.getElementById('sessionExerciseGallery');
-    if (exerciseGallery) {
-        if (exerciseGallery._galleryTimer) {
-            clearInterval(exerciseGallery._galleryTimer);
-            exerciseGallery._galleryTimer = null;
-        }
-        exerciseGallery.style.display = 'none';
+    const exercise = sessionExercises[sessionCurrentIndex];
+    if (isTimeBased(exercise?.reps)) {
+        const lastSet = Math.max(0, (Number(exercise.sets) || 1) - 1);
+        const completed = Number(sessionCompletedSets[sessionCurrentIndex]) || 0;
+        renderExerciseGallery(exercise, 'sessionExerciseGallery', Math.min(completed, lastSet));
+    } else {
+        const gallery = document.getElementById('sessionExerciseGallery');
+        clearInterval(gallery._galleryTimer);
+        gallery.classList.remove('session-gallery-timed');
+        gallery._galleryKey = null;
+        gallery._galleryRequest = null;
+        gallery.replaceChildren();
+        gallery.style.display = 'none';
     }
 
     // Скрываем кнопку редактирования
@@ -4733,137 +4738,134 @@ function startTrainingSession(exercises, title, category, workoutIcon) {
     startSessionTimer();
 }
 
-// Отображение галереи упражнения. Если файл отсутствует, показываем понятную заглушку.
-function renderExerciseGallery(exercise, containerId) {
+// Remove only neutral, near-white pixels connected to the edge of an opaque PNG.
+function blendExerciseImageBackground(context, width, height) {
+    const image = context.getImageData(0, 0, width, height);
+    const pixels = image.data;
+    const count = width * height;
+    const queue = new Int32Array(count);
+    const visited = new Uint8Array(count);
+    let head = 0;
+    let tail = 0;
+
+    function enqueue(index) {
+        if (visited[index]) return;
+        visited[index] = 1;
+        const offset = index * 4;
+        const low = Math.min(pixels[offset], pixels[offset + 1], pixels[offset + 2]);
+        const high = Math.max(pixels[offset], pixels[offset + 1], pixels[offset + 2]);
+        if (pixels[offset + 3] > 250 && low >= 242 && high - low <= 10) {
+            queue[tail++] = index;
+        }
+    }
+
+    for (let x = 0; x < width; x++) {
+        enqueue(x);
+        enqueue(count - width + x);
+    }
+    for (let y = 0; y < height; y++) {
+        enqueue(y * width);
+        enqueue((y + 1) * width - 1);
+    }
+    while (head < tail) {
+        const index = queue[head++];
+        const x = index % width;
+        const offset = index * 4;
+        const low = Math.min(pixels[offset], pixels[offset + 1], pixels[offset + 2]);
+        pixels[offset + 3] = Math.round(255 * Math.max(0, (250 - low) / 8));
+        if (x > 0) enqueue(index - 1);
+        if (x < width - 1) enqueue(index + 1);
+        if (index >= width) enqueue(index - width);
+        if (index < count - width) enqueue(index + width);
+    }
+    if (tail) context.putImageData(image, 0, 0);
+}
+
+const exerciseGalleryFrames = new Map();
+
+function loadExerciseGalleryFrame(src) {
+    if (exerciseGalleryFrames.has(src)) return exerciseGalleryFrames.get(src);
+    const promise = new Promise(resolve => {
+        const image = new Image();
+        image.onload = () => {
+            try {
+                const canvas = document.createElement('canvas');
+                const scale = Math.min(1, 900 / Math.max(image.naturalWidth, image.naturalHeight));
+                canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+                canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+                const context = canvas.getContext('2d', { willReadFrequently: true });
+                context.drawImage(image, 0, 0, canvas.width, canvas.height);
+                blendExerciseImageBackground(context, canvas.width, canvas.height);
+
+                // Feather the source perimeter without cropping transparent padding.
+                context.globalCompositeOperation = 'destination-in';
+                for (const axis of [[canvas.width, 0], [0, canvas.height]]) {
+                    const gradient = context.createLinearGradient(0, 0, ...axis);
+                    gradient.addColorStop(0, 'transparent');
+                    gradient.addColorStop(0.04, 'black');
+                    gradient.addColorStop(0.96, 'black');
+                    gradient.addColorStop(1, 'transparent');
+                    context.fillStyle = gradient;
+                    context.fillRect(0, 0, canvas.width, canvas.height);
+                }
+                resolve(canvas.toDataURL('image/png'));
+            } catch {
+                resolve(src);
+            }
+        };
+        image.onerror = () => {
+            exerciseGalleryFrames.delete(src);
+            resolve(null);
+        };
+        image.src = src;
+    });
+    if (exerciseGalleryFrames.size >= 48) {
+        exerciseGalleryFrames.delete(exerciseGalleryFrames.keys().next().value);
+    }
+    exerciseGalleryFrames.set(src, promise);
+    return promise;
+}
+
+async function renderExerciseGallery(exercise, containerId, completedSets = 0,
+    timed = isTimeBased(exercise?.reps)) {
     const container = document.getElementById(containerId);
     if (!container) return;
     container.style.display = 'flex';
 
-    if (container._galleryTimer) {
-        clearInterval(container._galleryTimer);
-        container._galleryTimer = null;
-    }
-
-    const catalogExercise = typeof EXERCISES_CATALOG !== 'undefined'
-        ? EXERCISES_CATALOG.find(item => item.name === exercise?.name)
-        : null;
-    const images = Array.isArray(exercise?.images) && exercise.images.length
-        ? exercise.images
-        : (Array.isArray(catalogExercise?.images) ? catalogExercise.images : []);
-    const sources = images.filter(src => typeof src === 'string' && src.trim() && !src.startsWith('*'));
-
-    container.innerHTML = '';
-    if (!sources.length) {
-        container.innerHTML = '<span class="session-bg-text">Фото будет добавлено позже</span>';
+    const request = {};
+    container._galleryRequest = request;
+    container.classList.toggle('session-gallery-timed', timed);
+    const sources = await exercisePhotos.gallery(exercise, timed, completedSets);
+    if (container._galleryRequest !== request) return;
+    const key = JSON.stringify([exercise?.name, timed, sources]);
+    if (container._galleryKey === key) return;
+    const frames = (await Promise.all(sources.map(loadExerciseGalleryFrame))).filter(Boolean);
+    if (container._galleryRequest !== request) return;
+    clearInterval(container._galleryTimer);
+    container._galleryKey = key;
+    if (!frames.length) {
+        const placeholder = document.createElement('span');
+        placeholder.className = 'session-bg-text';
+        placeholder.textContent = 'Фото будет добавлено позже';
+        container.replaceChildren(placeholder);
         return;
     }
 
-    // Один и тот же img-элемент и единый холст для всех кадров:
-    // это исключает смещение из-за разных размеров и прозрачных полей PNG.
-    const imageElement = document.createElement('img');
-    imageElement.className = 'exercise-gallery-image';
-    imageElement.alt = exercise?.name || 'Техника выполнения упражнения';
-    imageElement.draggable = false;
-    container.appendChild(imageElement);
-
-    const normalizedFrames = [];
-    let currentIndex = 0;
-    let readyCount = 0;
-    let finalized = false;
-
-    function normalizeTransparentImage(img) {
-        const sourceCanvas = document.createElement('canvas');
-        sourceCanvas.width = img.naturalWidth;
-        sourceCanvas.height = img.naturalHeight;
-        const sourceContext = sourceCanvas.getContext('2d', { willReadFrequently: true });
-        sourceContext.drawImage(img, 0, 0);
-
-        const pixels = sourceContext.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height).data;
-        let minX = sourceCanvas.width, minY = sourceCanvas.height, maxX = -1, maxY = -1;
-        for (let y = 0; y < sourceCanvas.height; y++) {
-            for (let x = 0; x < sourceCanvas.width; x++) {
-                if (pixels[(y * sourceCanvas.width + x) * 4 + 3] > 16) {
-                    if (x < minX) minX = x;
-                    if (x > maxX) maxX = x;
-                    if (y < minY) minY = y;
-                    if (y > maxY) maxY = y;
-                }
-            }
-        }
-
-        const output = document.createElement('canvas');
-        output.width = 1000;
-        output.height = 1000;
-        const context = output.getContext('2d');
-        if (maxX < minX || maxY < minY) {
-            context.drawImage(img, 0, 0, output.width, output.height);
-            return output.toDataURL('image/png');
-        }
-
-        const cropWidth = maxX - minX + 1;
-        const cropHeight = maxY - minY + 1;
-        const scale = Math.min(900 / cropWidth, 940 / cropHeight);
-        const drawWidth = cropWidth * scale;
-        const drawHeight = cropHeight * scale;
-        const drawX = (output.width - drawWidth) / 2;
-        const drawY = (output.height - drawHeight) / 2;
-        context.drawImage(sourceCanvas, minX, minY, cropWidth, cropHeight,
-            drawX, drawY, drawWidth, drawHeight);
-        // Feather the actual picture bounds, including the sides of narrow portrait frames.
-        context.globalCompositeOperation = 'destination-in';
-        const axes = [[drawX, 0, drawX + drawWidth, 0], [0, drawY, 0, drawY + drawHeight]];
-        for (const axis of axes) {
-            const gradient = context.createLinearGradient(...axis);
-            gradient.addColorStop(0, 'transparent');
-            gradient.addColorStop(0.045, 'black');
-            gradient.addColorStop(0.955, 'black');
-            gradient.addColorStop(1, 'transparent');
-            context.fillStyle = gradient;
-            context.fillRect(0, 0, output.width, output.height);
-        }
-        return output.toDataURL('image/png');
+    const image = document.createElement('img');
+    image.className = 'exercise-gallery-image';
+    image.alt = exercise?.name || 'Техника выполнения упражнения';
+    image.draggable = false;
+    let frame = 0;
+    image.src = frames[frame];
+    container.replaceChildren(image);
+    if (!timed && frames.length > 1) {
+        container._galleryTimer = setInterval(() => {
+            frame = (frame + 1) % frames.length;
+            image.src = frames[frame];
+        }, 1000);
     }
-
-    function showFrame(index) {
-        if (!normalizedFrames.length) return;
-        currentIndex = (index + normalizedFrames.length) % normalizedFrames.length;
-        imageElement.src = normalizedFrames[currentIndex];
-    }
-
-    function finishPreloading() {
-        if (imageElement.parentNode !== container || finalized || readyCount !== sources.length) return;
-        finalized = true;
-        const usableFrames = normalizedFrames.filter(Boolean);
-        if (!usableFrames.length) {
-            container.innerHTML = '<span class="session-bg-text">Фото будет добавлено позже</span>';
-            return;
-        }
-        normalizedFrames.splice(0, normalizedFrames.length, ...usableFrames);
-        showFrame(0);
-        if (normalizedFrames.length > 1) {
-            container._galleryTimer = setInterval(() => showFrame(currentIndex + 1), 1000);
-        }
-    }
-
-    sources.forEach((src, index) => {
-        const preload = new Image();
-        preload.onload = function() {
-            try {
-                normalizedFrames[index] = normalizeTransparentImage(preload);
-            } catch (error) {
-                normalizedFrames[index] = src;
-            }
-            readyCount++;
-            finishPreloading();
-        };
-        preload.onerror = function() {
-            normalizedFrames[index] = null;
-            readyCount++;
-            finishPreloading();
-        };
-        preload.src = src;
-    });
 }
+
 function renderSessionExercise() {
     if (sessionExercises !== lastPreloadedSession) {
         lastPreloadedSession = sessionExercises;
@@ -4877,7 +4879,7 @@ function renderSessionExercise() {
     if (!ex) return;
     
     document.getElementById('sessionExerciseName').textContent = ex.name;
-    renderExerciseGallery(ex, 'sessionExerciseGallery');
+    renderExerciseGallery(ex, 'sessionExerciseGallery', sessionCompletedSets[sessionCurrentIndex]);
     
     const repsStr = String(ex.reps || '');
     const isSeconds = isTimeBased(repsStr);
@@ -5389,7 +5391,10 @@ exerciseTimerInterval = setInterval(() => {
             if (!sessionCompletedSets[key]) {
                 sessionCompletedSets[key] = 0;
             }
-            sessionCompletedSets[key] = sessionCompletedSets[key] + 1;
+            sessionCompletedSets[key] = Number(sessionCompletedSets[key]) + 1;
+            if (exerciseCurrentSet > 0) {
+                renderExerciseGallery(sessionExercises[key], 'sessionExerciseGallery', sessionCompletedSets[key]);
+            }
             savePersonalTrainingSession();
             
             console.log('✅ Подход завершён! sessionCompletedSets:', sessionCompletedSets);
@@ -9094,7 +9099,7 @@ function renderExerciseListPageContent() {
     
     // Поиск по названию
     if (searchQuery) {
-        filtered = filtered.filter(ex => ex.name.toLowerCase().includes(searchQuery));
+        filtered = filtered.filter(ex => exerciseMatchesSearch(ex, searchQuery));
     }
     
     // ★★★ ФИЛЬТРУЕМ PREMIUM УПРАЖНЕНИЯ ★★★
@@ -9179,7 +9184,7 @@ function addExerciseFromList(name, sets, reps) {
     let images = []; // ← ДОБАВЛЯЕМ ПЕРЕМЕННУЮ ДЛЯ ВЕСА
     
     if (typeof EXERCISES_CATALOG !== 'undefined') {
-        const found = EXERCISES_CATALOG.find(e => e.name === name);
+        const found = findCatalogExercise(name);
         if (found) images = Array.isArray(found.images) ? [...found.images] : [];
         if (found && found.icon) {
             icon = found.icon;
@@ -11662,7 +11667,7 @@ function getExerciseIcon(exerciseName) {
 
     // ★★★ СНАЧАЛА ИЩЕМ В ОТДЕЛЬНОМ КАТАЛОГЕ ★★★
     if (typeof EXERCISES_CATALOG !== 'undefined') {
-        const found = EXERCISES_CATALOG.find(e => e.name === exerciseName);
+        const found = findCatalogExercise(exerciseName);
         if (found && found.icon) {
             result = found.icon;
         }
@@ -11695,7 +11700,7 @@ function getExerciseIcon(exerciseName) {
 
     // ★★★ ЕСЛИ НЕ НАШЛИ — ОПРЕДЕЛЯЕМ ПО КАТЕГОРИИ ★★★
     if (!result && typeof EXERCISES_CATALOG !== 'undefined') {
-        const found = EXERCISES_CATALOG.find(e => e.name === exerciseName);
+        const found = findCatalogExercise(exerciseName);
         if (found && found.category) {
             const categoryIconMap = {
                 'Грудь': 'breast', 'Спина': 'back', 'Ноги': 'legs',
@@ -15349,7 +15354,7 @@ function startTaskSession(taskId) {
     const detailsEl = document.getElementById('taskExerciseDetails');
     
     if (nameEl) nameEl.textContent = task.name;
-    renderExerciseGallery(task, 'taskExerciseGallery');
+    renderExerciseGallery(exercise || task, 'taskExerciseGallery', 0, isSeconds);
     if (detailsEl) {
         const detailsText = isSeconds ? `${target} секунд` : `${target} повторений`;
         detailsEl.textContent = detailsText;
@@ -16966,6 +16971,10 @@ function getSessionExerciseDescription(exercise) {
         value.trim() !== 'Описание пока не добавлено'
     );
 
+    const canonical = findCatalogExercise(exercise.name);
+    if (canonical && normalizedCatalogName(canonical.name) !== normalizedCatalogName(exercise.name)) {
+        return canonical.description;
+    }
     if (directDescription) return directDescription.trim();
 
     if (typeof EXERCISES_CATALOG === 'undefined' || !Array.isArray(EXERCISES_CATALOG)) {
@@ -16978,7 +16987,7 @@ function getSessionExerciseDescription(exercise) {
 
     // 1. Точное совпадение после нормализации названия.
     let match = catalog.find(item =>
-        normalizeExerciseLookupName(item?.name) === targetName &&
+        exerciseNameKey(item?.name) === exerciseNameKey(exercise.name) &&
         typeof item?.description === 'string' && item.description.trim()
     );
 

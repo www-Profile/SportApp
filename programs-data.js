@@ -314,7 +314,7 @@ function buildProgramWorkout(programId, dayNumber) {
         const variant = Array.isArray(item.variants)
             ? item.variants[Math.min(phase, item.variants.length - 1)]
             : item.name;
-        const catalogExercise = EXERCISES_CATALOG.find(ex => ex.name === variant);
+        const catalogExercise = findCatalogExercise(variant);
         if (!catalogExercise) {
             console.warn('[SportApp] Не найдено упражнение программы:', variant);
             return null;
