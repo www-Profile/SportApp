@@ -9105,7 +9105,19 @@ function renderExerciseListPageContent() {
     // ★★★ ФИЛЬТРУЕМ PREMIUM УПРАЖНЕНИЯ ★★★
     const premiumCategories = ['Кроссфит', 'Мужская сила', 'Женское счастье', 'ГТО'];
     const hasPremiumAccess = hasPremium();  // ← проверяем актуальный статус
-    
+
+    // Keep category filtering and equipment variants, but show one card per movement.
+    const uniqueExercises = new Map();
+    for (const exercise of filtered) {
+        const key = JSON.stringify([exerciseNameKey(exercise.name), exercise.equipment || 'none']);
+        const existing = uniqueExercises.get(key);
+        if (!existing || (premiumCategories.includes(existing.category) &&
+            !premiumCategories.includes(exercise.category))) {
+            uniqueExercises.set(key, exercise);
+        }
+    }
+    filtered = [...uniqueExercises.values()];
+
     filtered.sort((a, b) => a.name.localeCompare(b.name));
     
     if (filtered.length === 0) {
