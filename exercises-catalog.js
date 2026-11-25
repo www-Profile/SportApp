@@ -366,6 +366,9 @@ function exerciseMatchesSearch(exercise, search) {
 }
 
 const TIMED_EXERCISE_HOLD_FRAMES = new Map([
+    ['планка на коленях', 'images/exercises/Abs/plank-na-kolenyah-2.png'],
+    ['вакуум живота стоя', 'images/exercises/Abs/vacuum-zhivota-standing-2.png'],
+    ['планка на локтях', 'images/exercises/Abs/plank-na-loktyah-2.png'],
     ['планка на вытянутых руках', 'images/exercises/Arms/plank-na-vytyanutyh-rukah-2.png'],
     ['вис на турнике', 'images/exercises/Arms/vis-na-turnike-1.png'],
     ['боковая планка на правую сторону', 'images/exercises/Abs/side-plank-na-pravuyu-storonu-2.png'],
