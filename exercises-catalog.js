@@ -366,12 +366,20 @@ function exerciseMatchesSearch(exercise, search) {
 }
 
 const TIMED_EXERCISE_HOLD_FRAMES = new Map([
+    ['боковая планка на правую сторону', 'images/exercises/Abs/side-plank-na-pravuyu-storonu-2.png'],
+    ['боковая планка на левую сторону', 'images/exercises/Abs/side-plank-na-levuyu-storonu-2.png'],
+    ['боковая планка на правую', 'images/exercises/Abs/side-plank-na-pravuyu-2.png'],
+    ['боковая планка на левую', 'images/exercises/Abs/side-plank-na-levuyu-2.png'],
     ['арка-холд', 'images/exercises/Back/superman-2.png'],
     ['лодочка', 'images/exercises/Back/superman-2.png'],
     ['лодочка с задержкой', 'images/exercises/Back/superman-2.png']
 ]);
 
 const TIMED_EXERCISE_SIDE_FRAMES = new Map([
+    ['боковая планка', [
+        'images/exercises/Abs/side-plank-2.png',
+        'images/exercises/Abs/side-plank-4.png'
+    ]],
     ['планка на одной руке', [
         'images/exercises/Arms/plank-one-arm-2.png',
         'images/exercises/Arms/plank-one-arm-4.png'
