@@ -2,7 +2,7 @@
 // sw.js — Service Worker для SportApp
 // ============================================================
 
-const CACHE_VERSION = 'sportapp-v13';   // ← поменял версию, чтобы старый кэш сбросился
+const CACHE_VERSION = 'sportapp-v14';   // ← поменял версию, чтобы старый кэш сбросился
 const CACHE_STATIC = `${CACHE_VERSION}-static`;
 
 const PRECACHE_URLS = [

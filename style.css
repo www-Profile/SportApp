@@ -2069,7 +2069,7 @@ body.theme-dark-mode .btn-submit-arrow {
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    background: var(--light);
+    background: #fff;
     border-radius: 14px;
 }
 
@@ -2083,7 +2083,6 @@ body.theme-dark-mode .btn-submit-arrow {
     user-select: none;
     -webkit-user-drag: none;
 }
-body.theme-dark-mode .session-exercise-gallery,
 body.theme-dark-mode #sessionRestTimer {
     background-color: var(--bg-primary);
 }

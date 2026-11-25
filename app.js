@@ -4260,9 +4260,7 @@ function startRest() {
 function updateRestUI() {
     const exercise = sessionExercises[sessionCurrentIndex];
     if (isTimeBased(exercise?.reps)) {
-        const lastSet = Math.max(0, (Number(exercise.sets) || 1) - 1);
-        const completed = Number(sessionCompletedSets[sessionCurrentIndex]) || 0;
-        renderExerciseGallery(exercise, 'sessionExerciseGallery', Math.min(completed, lastSet));
+        renderExerciseGallery(exercise, 'sessionExerciseGallery', sessionCompletedSets[sessionCurrentIndex], true, true);
     } else {
         const gallery = document.getElementById('sessionExerciseGallery');
         clearInterval(gallery._galleryTimer);
@@ -4598,6 +4596,10 @@ function restorePersonalTrainingSession(snapshot) {
             if (isTimedExercise) {
                 exerciseTimeLeft = Math.max(0, Number(snapshot.exerciseTimeLeft) || 0);
                 exerciseTotalTime = Number(snapshot.exerciseTotalTime) || exerciseTotalTime;
+                const completed = Number(sessionCompletedSets[sessionCurrentIndex]) || 0;
+                const betweenSets = completed > 0 && !snapshot.exerciseTimerWasRunning &&
+                    (exerciseTimeLeft === 0 || exerciseTimeLeft === exerciseTotalTime);
+                renderExerciseGallery(sessionExercises[sessionCurrentIndex], 'sessionExerciseGallery', completed, true, betweenSets);
                 exerciseCurrentSet = Number(snapshot.exerciseCurrentSet) || exerciseCurrentSet;
                 exerciseTotalSets = Number(snapshot.exerciseTotalSets) || exerciseTotalSets;
                 const setCurrent = document.getElementById('sessionSetCurrent');
@@ -4738,81 +4740,13 @@ function startTrainingSession(exercises, title, category, workoutIcon) {
     startSessionTimer();
 }
 
-// Remove only neutral, near-white pixels connected to the edge of an opaque PNG.
-function blendExerciseImageBackground(context, width, height) {
-    const image = context.getImageData(0, 0, width, height);
-    const pixels = image.data;
-    const count = width * height;
-    const queue = new Int32Array(count);
-    const visited = new Uint8Array(count);
-    let head = 0;
-    let tail = 0;
-
-    function enqueue(index) {
-        if (visited[index]) return;
-        visited[index] = 1;
-        const offset = index * 4;
-        const low = Math.min(pixels[offset], pixels[offset + 1], pixels[offset + 2]);
-        const high = Math.max(pixels[offset], pixels[offset + 1], pixels[offset + 2]);
-        if (pixels[offset + 3] > 250 && low >= 242 && high - low <= 10) {
-            queue[tail++] = index;
-        }
-    }
-
-    for (let x = 0; x < width; x++) {
-        enqueue(x);
-        enqueue(count - width + x);
-    }
-    for (let y = 0; y < height; y++) {
-        enqueue(y * width);
-        enqueue((y + 1) * width - 1);
-    }
-    while (head < tail) {
-        const index = queue[head++];
-        const x = index % width;
-        const offset = index * 4;
-        const low = Math.min(pixels[offset], pixels[offset + 1], pixels[offset + 2]);
-        pixels[offset + 3] = Math.round(255 * Math.max(0, (250 - low) / 8));
-        if (x > 0) enqueue(index - 1);
-        if (x < width - 1) enqueue(index + 1);
-        if (index >= width) enqueue(index - width);
-        if (index < count - width) enqueue(index + width);
-    }
-    if (tail) context.putImageData(image, 0, 0);
-}
-
 const exerciseGalleryFrames = new Map();
 
 function loadExerciseGalleryFrame(src) {
     if (exerciseGalleryFrames.has(src)) return exerciseGalleryFrames.get(src);
     const promise = new Promise(resolve => {
         const image = new Image();
-        image.onload = () => {
-            try {
-                const canvas = document.createElement('canvas');
-                const scale = Math.min(1, 900 / Math.max(image.naturalWidth, image.naturalHeight));
-                canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
-                canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
-                const context = canvas.getContext('2d', { willReadFrequently: true });
-                context.drawImage(image, 0, 0, canvas.width, canvas.height);
-                blendExerciseImageBackground(context, canvas.width, canvas.height);
-
-                // Feather the source perimeter without cropping transparent padding.
-                context.globalCompositeOperation = 'destination-in';
-                for (const axis of [[canvas.width, 0], [0, canvas.height]]) {
-                    const gradient = context.createLinearGradient(0, 0, ...axis);
-                    gradient.addColorStop(0, 'transparent');
-                    gradient.addColorStop(0.04, 'black');
-                    gradient.addColorStop(0.96, 'black');
-                    gradient.addColorStop(1, 'transparent');
-                    context.fillStyle = gradient;
-                    context.fillRect(0, 0, canvas.width, canvas.height);
-                }
-                resolve(canvas.toDataURL('image/png'));
-            } catch {
-                resolve(src);
-            }
-        };
+        image.onload = () => resolve(src);
         image.onerror = () => {
             exerciseGalleryFrames.delete(src);
             resolve(null);
@@ -4827,7 +4761,7 @@ function loadExerciseGalleryFrame(src) {
 }
 
 async function renderExerciseGallery(exercise, containerId, completedSets = 0,
-    timed = isTimeBased(exercise?.reps)) {
+    timed = isTimeBased(exercise?.reps), betweenSets = false) {
     const container = document.getElementById(containerId);
     if (!container) return;
     container.style.display = 'flex';
@@ -4835,9 +4769,10 @@ async function renderExerciseGallery(exercise, containerId, completedSets = 0,
     const request = {};
     container._galleryRequest = request;
     container.classList.toggle('session-gallery-timed', timed);
-    const sources = await exercisePhotos.gallery(exercise, timed, completedSets);
+    if (timed && !betweenSets) clearInterval(container._galleryTimer);
+    const sources = await exercisePhotos.gallery(exercise, timed, completedSets, betweenSets);
     if (container._galleryRequest !== request) return;
-    const key = JSON.stringify([exercise?.name, timed, sources]);
+    const key = JSON.stringify([exercise?.name, timed, betweenSets, sources]);
     if (container._galleryKey === key) return;
     const frames = (await Promise.all(sources.map(loadExerciseGalleryFrame))).filter(Boolean);
     if (container._galleryRequest !== request) return;
@@ -4858,7 +4793,7 @@ async function renderExerciseGallery(exercise, containerId, completedSets = 0,
     let frame = 0;
     image.src = frames[frame];
     container.replaceChildren(image);
-    if (!timed && frames.length > 1) {
+    if ((!timed || betweenSets) && frames.length > 1) {
         container._galleryTimer = setInterval(() => {
             frame = (frame + 1) % frames.length;
             image.src = frames[frame];
@@ -4879,7 +4814,8 @@ function renderSessionExercise() {
     if (!ex) return;
     
     document.getElementById('sessionExerciseName').textContent = ex.name;
-    renderExerciseGallery(ex, 'sessionExerciseGallery', sessionCompletedSets[sessionCurrentIndex]);
+    const completedSets = Number(sessionCompletedSets[sessionCurrentIndex]) || 0;
+    renderExerciseGallery(ex, 'sessionExerciseGallery', completedSets, isTimeBased(ex.reps), completedSets > 0);
     
     const repsStr = String(ex.reps || '');
     const isSeconds = isTimeBased(repsStr);
@@ -5362,6 +5298,7 @@ function debugXP() {
 }
 
 function startExerciseTimer() {
+    renderExerciseGallery(sessionExercises[sessionCurrentIndex], 'sessionExerciseGallery', sessionCompletedSets[sessionCurrentIndex], true);
     if (exerciseTimerInterval) {
         clearInterval(exerciseTimerInterval);
         exerciseTimerInterval = null;
@@ -5393,7 +5330,7 @@ exerciseTimerInterval = setInterval(() => {
             }
             sessionCompletedSets[key] = Number(sessionCompletedSets[key]) + 1;
             if (exerciseCurrentSet > 0) {
-                renderExerciseGallery(sessionExercises[key], 'sessionExerciseGallery', sessionCompletedSets[key]);
+                renderExerciseGallery(sessionExercises[key], 'sessionExerciseGallery', sessionCompletedSets[key], true, true);
             }
             savePersonalTrainingSession();
             

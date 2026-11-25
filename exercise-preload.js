@@ -349,17 +349,20 @@ const exercisePhotos = (() => {
     }
     let backgroundStarted = false;
     return {
-        async gallery(exercise, timed, completedSets) {
+        async gallery(exercise, timed, completedSets, betweenSets = false) {
             await index();
             const paths = sources(exercise);
             if (!timed) return paths;
             const sides = sideFrames(exercise);
-            if (!sides.length) {
-                const hold = TIMED_EXERCISE_HOLD_FRAMES.get(exerciseNameKey(exercise?.name));
-                return available.has(hold) ? [hold] : paths.slice(0, 1);
+            if (betweenSets) {
+                return [...paths, ...sides.filter(path => !paths.includes(path))];
             }
-            const indexForSet = Math.max(0, Math.trunc(Number(completedSets) || 0)) % sides.length;
-            return [sides[indexForSet]];
+            const hold = TIMED_EXERCISE_HOLD_FRAMES.get(exerciseNameKey(exercise?.name));
+            if (available.has(hold)) return [hold];
+            const poses = sides.length ? sides : [...new Set(paths)];
+            if (!poses.length) return [];
+            const set = Math.max(0, Math.trunc(Number(completedSets) || 0));
+            return [poses[set % poses.length]];
         },
         async startup(custom = [], includeCatalog = true) {
             await index();
